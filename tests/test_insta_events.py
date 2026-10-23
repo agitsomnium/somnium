@@ -47,6 +47,14 @@ class InstaEvents(unittest.TestCase):
         self.assertEqual(ev['days'], ['2026-10-20', '2026-10-27'])
         self.assertEqual(ev['link'], 'https://forms.gle/zn5P72E1hfjF2iae8')
 
+    def test_jsonld_multi_day(self):
+        import seo
+        t = {'세미나': [], '회차': [], '강사진': [], '북클럽': [{'id': 'b', '제목': '11월 북클럽', '도서': '책', '소개': '', '날짜': '2026-11-12;2026-11-19',
+              '시간': '19:00', '장소': '', '신청_url': '', '상태': '모집중', '취소사유': '', '공개': '예', '정렬': '1'}]}
+        evs = [e for e in seo.events_jsonld(t, '') if '책' in e['name']]
+        self.assertEqual([e['startDate'][:10] for e in evs], ['2026-11-12', '2026-11-19'])
+        self.assertTrue(all(';' not in e['startDate'] for e in evs))
+
     def test_ignores_plain_post(self):
         self.assertIsNone(insta_events.parse_post({'text': '오늘 세미나 사진입니다'}))
 

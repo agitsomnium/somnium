@@ -94,8 +94,14 @@ def events_jsonld(tables, base=''):
         out.append(make('%s %s회 · %s' % (sem.get('제목', ''), r.get('회차', ''), r.get('제목', '')), r['날짜'], r.get('시간', ''),
                         sem, 'seminars/%s/' % sem.get('id'), sem.get('소개', '')))
     for b in public_rows(tables, '북클럽'):
-        if b.get('날짜') and b.get('상태') != '취소':
-            out.append(make('솜니움 %s 『%s』' % (b.get('제목', ''), b.get('도서', '')), b['날짜'], b.get('시간', ''),
+        days = [d.strip() for d in (b.get('날짜') or '').split(';') if d.strip()]
+        if not days or b.get('상태') == '취소':
+            continue
+        for n, d in enumerate(days, 1):  # 날짜가 여럿이면 회차마다 Event 하나
+            name = '솜니움 %s 『%s』' % (b.get('제목', ''), b.get('도서', ''))
+            if len(days) > 1:
+                name += ' %d/%d회' % (n, len(days))
+            out.append(make(name, d, b.get('시간', ''),
                             {'장소': b.get('장소', ''), '신청_url': b.get('신청_url', '')}, 'programs/', b.get('소개', '')))
     return out
 
