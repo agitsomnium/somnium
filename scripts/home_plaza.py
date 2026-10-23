@@ -3,7 +3,7 @@ from html import escape as e
 
 from data import public_rows
 from extras import (today, collect_events, _shift, _month_range, WEEK,
-                    youtube_section, social_strip, accounts_block, social_feeds, fmt_days)
+                    youtube_section, social_strip, accounts_block, social_feeds, fmt_days, pay_bar, news_strip)
 import datetime as _dt
 
 POSTERS = {'book-october': 'sonjeol.webp', 'book-november': 'gakkaseuro.webp'}
@@ -13,7 +13,7 @@ def _calendar(tables, base, now):
     cur = _dt.date(now.year, now.month, 1)
     dated, ranges, undated = collect_events(tables, base)
     cols = []
-    for n, tag in ((-1, '지난달'), (0, '이번 달'), (1, '다음 달')):
+    for n, tag in ((1, '다음 달'), (0, '이번 달'), (-1, '지난달')):  # 다가올 일부터
         first = _shift(cur, n)
         lo, hi = _month_range(first)
         rows = []
@@ -120,9 +120,11 @@ def home(tables, base='', videos=None, insta=None):
         '<section class="pz-hero" aria-labelledby="pz-h1">',
         '<div><p class="pz-tag">기독교 신앙으로 정치와 사회를 다시 묻는 공부의 광장</p>',
         '<h1 id="pz-h1">%d월,<br>솜니움에서는</h1></div>' % now.month,
-        '<p class="pz-lead">지난달 기록, 이번 달 모임, 다음 달 예고를 한 장의 달력으로 봅니다. '
+        '<p class="pz-lead">다음 달 예고, 이번 달 모임, 지난달 기록을 한 장의 달력으로 봅니다. '
         '기독교와 정치사회 현실을 함께 공부하는 연구소입니다. <a href="%s/about/">솜니움 알아보기 →</a></p>' % base,
         '</section>',
+        pay_bar(),
+        news_strip(insta or []),
         '<section class="pz-sec pz-study" aria-labelledby="pz-study-h"><h2 id="pz-study-h" class="pz-kicker">이번에 함께할 공부</h2>',
         _feature(tables, base), '</section>',
         '<section id="cal" class="pz-cal-wrap" aria-label="이달의 프로그램">', _calendar(tables, base, now), '</section>',
@@ -131,7 +133,5 @@ def home(tables, base='', videos=None, insta=None):
         '<p class="archive-more"><a href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>' % base,
         _notices(tables),
         social_strip(),
-        social_feeds(insta or []),
-        accounts_block(compact=True),
     ]
     return '\n'.join(x for x in out if x)

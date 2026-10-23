@@ -239,6 +239,59 @@ def accounts_block(heading='후원·참가비 계좌', compact=False):
             '<div class="acct-grid">%s</div>%s%s</section>' % (cls, e(heading), ''.join(cards), extra, note))
 
 
+def pay_bar():
+    """홈 맨 위 «참가비·후원 계좌» 띠 — 한눈에 보이고 바로 복사."""
+    accts = site_config().get('accounts') or []
+    if not accts:
+        return ''
+    rows = ''.join(
+        '<div class="pay-row"><p class="pay-use">%s<span>%s</span></p>'
+        '<p class="pay-num"><span>%s</span> <strong>%s</strong></p>'
+        '<button type="button" class="acct-copy pay-copy" data-copy="%s">복사</button>'
+        '<p class="pay-holder">예금주 %s%s</p></div>'
+        % (e(a.get('용도', '')), (' · ' + e(a['설명'])) if a.get('설명') else '', e(a.get('은행', '')), e(a.get('번호', '')),
+           e(a.get('번호', '')), e(a.get('예금주', '')), (' · ' + e(a['안내'])) if a.get('안내') else '')
+        for a in accts)
+    return ('<section class="pay-bar" aria-labelledby="pay-h"><h2 id="pay-h">참가비 · 후원 계좌</h2>'
+            '<div class="pay-rows">%s</div></section>' % rows)
+
+
+def news_strip(insta, limit=6):
+    """홈 맨 앞 «새 소식» — 인스타 홍보 포스터를 크게. 같은 홍보를 여러 번 올렸으면 최신 하나만."""
+    import re as _re
+    if not insta:
+        return ''
+    ig = site_config().get('instagram') or {}
+    seen, cards = set(), []
+    for p in insta:
+        text = (p.get('text') or p.get('caption') or '').strip()
+        first = text.split('\n', 1)[0].strip()
+        m = _re.match(r'^\[\s*(?:(\d{1,2})월\s*)?(.*?)\s*(?:\|\s*(.+?))?\s*\]', first)
+        if m and m.group(3):
+            kind, title = _re.sub(r'\d+$', '', m.group(2)).strip(), m.group(3).strip()
+        elif m:
+            after = first[m.end():].strip()
+            kind, title = m.group(2).strip(), (_re.split(r'\s[:：]\s', after)[0].strip() if after else m.group(2).strip())
+        else:
+            kind, title = '', first[:40]
+        kind = _re.sub(r'^솜니움\s*', '', kind)
+        key = _re.sub(r'\W', '', title)
+        if key in seen:
+            continue
+        seen.add(key)
+        d = p.get('date', '')
+        cards.append('<a class="news-card" href="%s" target="_blank" rel="noopener">'
+                     '<img src="%s" alt="%s 포스터" loading="lazy" width="432" height="540">'
+                     '<span class="news-kind">%s</span><strong>%s</strong>%s</a>'
+                     % (e(p['link']), e(p['image']), e(title), e(kind or '소식'), e(title),
+                        ('<time datetime="%s">%s 올림</time>' % (e(d), e(d[5:].replace('-', '.')))) if d else ''))
+        if len(cards) >= limit:
+            break
+    return ('<section class="news-strip" aria-labelledby="news-h"><div class="news-head"><h2 id="news-h">따끈한 소식</h2>'
+            '<a href="%s" target="_blank" rel="noopener">인스타그램에서 더 보기 ↗</a></div>'
+            '<div class="news-row">%s</div></section>' % (e(ig.get('url', '')), ''.join(cards)))
+
+
 def board_frame():
     seats = site_config().get('board') or []
     if not seats:

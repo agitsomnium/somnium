@@ -174,3 +174,43 @@ main.container>.pz-notice{padding-top:72px}
 .yt-episodes{list-style:none;padding:0;counter-reset:ep}
 .yt-episodes li{position:relative}
 .yt-ep{position:absolute;left:8px;top:8px;z-index:1;background:rgba(0,0,0,.82);color:#fff;font-size:13px;font-weight:800;min-width:28px;text-align:center;padding:3px 6px;border-radius:3px}
+/* 홈 맨 위: 참가비·후원 계좌 띠 */
+.pay-bar{margin:36px calc(50% - 50vw) 0;padding:22px max(20px,calc(50vw - 664px));background:var(--accent);color:var(--bg);display:flex;flex-wrap:wrap;align-items:center;gap:14px 40px}
+.pay-bar h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(22px,2.6vw,30px);white-space:nowrap}
+.pay-rows{display:flex;flex-wrap:wrap;gap:14px 40px;flex:1}
+.pay-row{display:grid;grid-template-columns:auto auto;align-items:center;gap:2px 12px}
+.pay-use{margin:0;grid-column:1/-1;font-size:13px;font-weight:800;letter-spacing:.04em;opacity:.85}
+.pay-use span{font-weight:400}
+.pay-num{margin:0;font-size:clamp(19px,2.2vw,24px)}
+.pay-num span{font-size:14px;font-weight:800;margin-right:4px}
+.pay-num strong{font-family:var(--font-num);font-weight:400;letter-spacing:.02em}
+.pay-bar .pay-copy{margin:0;min-height:36px;padding:4px 14px;border:1.5px solid var(--bg);background:transparent;color:var(--bg);font-weight:800;cursor:pointer}
+.pay-bar .pay-copy:hover,.pay-bar .pay-copy:focus-visible{background:var(--bg);color:var(--accent)}
+.pay-holder{margin:0;grid-column:1/-1;font-size:12.5px;opacity:.85}
+/* 홈 맨 앞: 따끈한 소식(인스타 포스터) */
+.news-strip{margin:44px 0 8px}
+.news-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:16px}
+.news-head h2{margin:0;font-family:var(--font-display);font-weight:400;font-size:clamp(28px,3.4vw,42px)}
+.news-head a{color:var(--accent);font-weight:800;font-size:14px;text-decoration:none}
+.news-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.news-card{display:flex;flex-direction:column;gap:6px;color:inherit;text-decoration:none}
+.news-card img{width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--line);border:1px solid var(--line)}
+.news-kind{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--accent)}
+.news-card strong{font-size:16px;line-height:1.4}
+.news-card time{font-size:12.5px;color:var(--muted)}
+.news-card:hover strong{color:var(--accent)}
+@media (max-width:760px){
+  .pay-bar{margin-top:24px;padding:18px 20px;gap:10px}
+  .pay-rows{gap:14px}
+  .pay-row{width:100%}
+  .news-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:14px;margin:0 -20px;padding:0 20px 8px}
+  .news-card{flex:0 0 68%;scroll-snap-align:start}
+}
+@media (max-width:760px){
+  .pay-bar{flex-direction:column;align-items:stretch}
+  .pay-row{grid-template-columns:1fr auto;gap:4px 10px}
+  .pay-num{font-size:19px;white-space:nowrap}
+  .pay-num span{display:block;font-size:12.5px}
+  .pay-row + .pay-row{padding-top:12px;border-top:1px solid rgba(255,255,255,.25)}
+}
+.pay-bar + .news-strip{margin-top:36px}
