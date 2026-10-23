@@ -20,6 +20,8 @@ from extras import load_videos, load_instagram
 import seo
 from pages import about_page, program_page, archive_page, participate_page, page_intro  # noqa: E402
 from videos_page import videos_page, series_pages  # noqa: E402
+import insta_events  # noqa: E402
+from extras import today as _today  # noqa: E402
 
 PAGE_DESC = {
     'about': '솜니움 기독교정치사회연구소의 정신과 미션, 이사회, 2017년부터의 연혁, 서울 합정 사무실 오시는 길.',
@@ -139,6 +141,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         raise ValueError('invalid base path')
     target.parent.mkdir(parents=True, exist_ok=True)
     tables = load_tables(data_dir)
+    insta_events.merge(tables, load_instagram(data_dir, limit=12), _today())
     tables = validate(tables)
     stage = Path(tempfile.mkdtemp(prefix='.stage-', dir=str(target.parent)))
     try:

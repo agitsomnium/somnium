@@ -3,7 +3,7 @@ from html import escape as e
 
 from data import public_rows
 from extras import (today, collect_events, _shift, _month_range, WEEK,
-                    youtube_section, social_strip, accounts_block, social_feeds)
+                    youtube_section, social_strip, accounts_block, social_feeds, fmt_days)
 import datetime as _dt
 
 POSTERS = {'book-october': 'sonjeol.webp', 'book-november': 'gakkaseuro.webp'}
@@ -94,7 +94,7 @@ def _books(tables, base):
         if bid in POSTERS:
             img = ('<img src="%s/assets/%s" alt="%s 북클럽 포스터" width="864" height="1080" loading="lazy">'
                    % (base, POSTERS[bid], e(b.get('도서', ''))))
-        date = b.get('날짜', '').replace('-', '.')
+        date = fmt_days(b.get('날짜', ''))
         meta = ' · '.join(x for x in (b.get('제목', ''), b.get('상태', ''), date) if x)
         cards.append('<article class="pz-book"><a href="%s/programs/#book-%s">%s</a><div><p class="pz-tag">%s</p>'
                      '<h3>%s</h3>%s</div></article>'

@@ -194,7 +194,8 @@ def validate(tables):
             _err("북클럽", i, f"bad 상태 {st!r}")
         if st == "취소" and not row.get("취소사유", "").strip():
             _err("북클럽", i, "취소 requires 취소사유")
-        _check_date("북클럽", i, "날짜", row.get("날짜", ""))
+        for one in (row.get("날짜", "") or "").split(";"):
+            _check_date("북클럽", i, "날짜", one.strip())
         _check_time("북클럽", i, "시간", row.get("시간", ""))
         _check_url("북클럽", i, "신청_url", row.get("신청_url", ""))
 

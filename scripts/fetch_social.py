@@ -20,8 +20,9 @@ def normalize(data):
         if not img or not str(link).startswith('https://www.instagram.com/'):
             continue
         cap = (p.get('prunedCaption') or p.get('caption') or '').strip()
-        out.append({'image': img, 'link': link, 'caption': cap[:140], 'date': str(p.get('timestamp', ''))[:10]})
-    return out[:6]
+        out.append({'image': img, 'link': link, 'caption': cap[:140], 'text': (p.get('caption') or cap)[:4000],
+                    'date': str(p.get('timestamp', ''))[:10]})
+    return out[:12]
 
 
 def main(out_dir='data/live'):

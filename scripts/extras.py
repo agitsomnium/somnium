@@ -27,6 +27,15 @@ def today():
     return _dt.datetime.now(KST).date()
 
 
+def fmt_days(v):
+    """'2026-11-12;2026-11-19' → '11.12 · 11.19' (해가 다르면 해까지)."""
+    ds = [x for x in (_d(p) for p in (v or '').split(';')) if x]
+    if not ds:
+        return (v or '').strip()
+    head = '%d.%d.%d' % (ds[0].year, ds[0].month, ds[0].day)
+    return ' · '.join([head] + ['%d.%d' % (d.month, d.day) for d in ds[1:]])
+
+
 def _d(s):
     try:
         return _dt.date.fromisoformat((s or '').strip())
@@ -74,11 +83,13 @@ def collect_events(tables, base=''):
     for bk in public_rows(tables, '북클럽'):
         if bk.get('상태') == '취소':
             continue
-        d = _d(bk.get('날짜'))
+        days = [x for x in (_d(v) for v in (bk.get('날짜') or '').split(';')) if x]
         title = '%s 『%s』' % (bk.get('제목', ''), bk.get('도서', '')) if bk.get('도서') else bk.get('제목', '')
         href = '%s/programs/#book-%s' % (base, bk.get('id'))
-        if d:
-            dated.append({'date': d, 'time': bk.get('시간', ''), 'title': title, 'kind': '북클럽', 'href': href})
+        if days:
+            for n, d in enumerate(days, 1):
+                t = title + (' (%d/%d)' % (n, len(days)) if len(days) > 1 else '')
+                dated.append({'date': d, 'time': bk.get('시간', ''), 'title': t, 'kind': '북클럽', 'href': href})
         elif bk.get('상태') in ('예고', '모집중', '진행중'):
             undated.append({'title': title, 'kind': '북클럽', 'href': href, 'state': bk.get('상태', '')})
     return dated, ranges, undated
@@ -240,14 +251,14 @@ def board_frame():
     return '<div class="board-grid">' + ''.join(cells) + '</div>'
 
 
-def load_instagram(data_dir):
+def load_instagram(data_dir, limit=6):
     p = Path(data_dir) / 'instagram.json'
     try:
         rows = json.loads(p.read_text(encoding='utf-8'))
     except (OSError, ValueError):
         return []
     return [r for r in rows if isinstance(r, dict) and str(r.get('link', '')).startswith('https://www.instagram.com/')
-            and str(r.get('image', '')).startswith('https://')][:6]
+            and str(r.get('image', '')).startswith('https://')][:limit]
 
 
 def social_feeds(insta):

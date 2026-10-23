@@ -1,5 +1,5 @@
 import re
-from extras import accounts_block, board_frame
+from extras import accounts_block, board_frame, fmt_days
 from data import public_rows
 from html import escape as e
 
@@ -207,7 +207,7 @@ def program_page(tables, content, md, base=''):
             t = g(r, '시간').strip()
             loc = g(r, '장소').strip()
             if d:
-                out.append('<dt>날짜</dt><dd>%s</dd>' % e(d))
+                out.append('<dt>날짜</dt><dd>%s</dd>' % e(fmt_days(d)))
             if t:
                 out.append('<dt>시간</dt><dd>%s</dd>' % e(t))
             if loc:
