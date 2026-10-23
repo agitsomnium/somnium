@@ -27,7 +27,13 @@ jobs:
       - name: 운영 흐름 시험
         run: python3 -m unittest discover -s tests -v
       - name: 공개 CSV 내려받고 검증
-        run: python3 scripts/fetch_sheets.py
+        run: |
+          if python3 -c "import json,sys; d=json.load(open('config/sheets.json')); sys.exit(0 if any(d.values()) else 1)"; then
+            python3 scripts/fetch_sheets.py
+          else
+            echo "시트 주소가 아직 없어 연습 자료(data/sample)로 만듭니다"
+            mkdir -p data/live && cp data/sample/*.csv data/live/
+          fi
       - name: 유튜브 최근 영상 목록 받기
         run: python3 scripts/fetch_youtube.py data/live
       - name: 인스타 최신 글 받기

@@ -6,7 +6,7 @@ from extras import month_calendar, youtube_section, social_strip, footer_social,
 
 def shell(title, body, base='', theme='b', preview=False):
     t = e(title)
-    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('연구자료', '/resources/'), ('연구소 소개', '/about/'), ('참여·후원', '/participate/')]
+    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('참여·후원', '/participate/')]
     navhtml = ''.join(f'<a href="{base}{h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
     banner = '<div class="preview-banner">검토용 / 프로그램 일정과 신청 안내를 확인하고 있습니다</div>' if preview else ''
     return f'''<!DOCTYPE html>
@@ -145,7 +145,7 @@ def home(tables, base='', videos=None):
     out.append('</section>')
 
     out.append(youtube_section(videos or []))
-    out.append(f'<p class="archive-more"><a class="plain-link" href="{base}/resources/">세미나별 영상과 자료 모아 보기 ↗</a></p>')
+    out.append(f'<p class="archive-more"><a class="plain-link" href="{base}/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>')
 
     notices = public_rows(tables, '공지')
     if notices:

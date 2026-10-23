@@ -1,9 +1,9 @@
 {
   "_설명": "자주 안 바뀌는 연결 정보. 계좌·채널이 바뀌면 이 파일만 고칩니다.",
   "youtube": {
-    "이름": "솜니움 Somnium",
-    "url": "https://www.youtube.com/@%EC%86%9C%EB%8B%88%EC%9B%80Somnium",
-    "channel_id": "UCzrxNwAlp8gRAZxR3jZm5ag"
+    "이름": "솜니움 기독교정치사회연구소",
+    "url": "https://www.youtube.com/@%EC%86%9C%EB%8B%88%EC%9B%80%EC%A0%95%EC%B9%98%EC%82%AC%ED%9A%8C%EC%97%B0%EA%B5%AC%EC%86%8C",
+    "channel_id": "UCc_hiFEUA9uzuHqsfLsB9eA"
   },
   "instagram": {
     "이름": "@somnium_agit",
@@ -59,9 +59,11 @@
   ],
   "youtube_more": [
     {
-      "이름": "솜니움 기독교정치사회연구소 (이전 채널)",
-      "url": "https://www.youtube.com/@%EC%86%9C%EB%8B%88%EC%9B%80%EC%A0%95%EC%B9%98%EC%82%AC%ED%9A%8C%EC%97%B0%EA%B5%AC%EC%86%8C",
-      "channel_id": "UCc_hiFEUA9uzuHqsfLsB9eA"
+      "이름": "한국기독학생운동사를 돌아보며",
+      "구분": "솜니움 1기 강좌",
+      "설명": "솜니움 1기가 준비한 강좌 시리즈입니다. 안재웅·박종렬·장규식·신대균·고지수·이문식·구교형·이윤희 선생님이 일제강점기부터 1990년대까지 한국 기독학생운동의 역사를 강의하고 질의응답을 나눴습니다.",
+      "url": "https://www.youtube.com/@%EC%86%9C%EB%8B%88%EC%9B%80Somnium/videos",
+      "channel_id": "UCzrxNwAlp8gRAZxR3jZm5ag"
     }
   ],
   "site_url": "",

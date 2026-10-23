@@ -128,7 +128,7 @@ def home(tables, base='', videos=None, insta=None):
         '<section id="cal" class="pz-cal-wrap" aria-label="이달의 프로그램">', _calendar(tables, base, now), '</section>',
         _books(tables, base),
         youtube_section(videos or []),
-        '<p class="archive-more"><a href="%s/resources/">세미나별 영상과 자료 모아 보기 →</a></p>' % base,
+        '<p class="archive-more"><a href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>' % base,
         _notices(tables),
         social_strip(),
         social_feeds(insta or []),

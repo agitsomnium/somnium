@@ -142,3 +142,12 @@ main.container>.pz-notice{padding-top:72px}
 .fb-fallback{margin:8px 0 0;font-size:14px;color:var(--muted)}
 .footer-family{margin:28px 0 0;font-size:14px;opacity:.8}
 .footer-family a{color:inherit;text-decoration:underline}
+
+.yt-series{display:flex;flex-direction:column;gap:6px;margin:20px 0 0;padding:20px 22px;border:2px solid var(--ink,currentColor);border-radius:4px;text-decoration:none;color:inherit}
+.yt-series:hover{background:var(--surface-2,rgba(0,0,0,.04))}
+.yt-series-tag{font-size:13px;font-weight:800;letter-spacing:.04em;color:var(--accent)}
+.yt-series strong{font-family:var(--font-display,inherit);font-size:24px;line-height:1.25}
+.yt-series-desc{font-size:15px;line-height:1.7;color:var(--muted)}
+.yt-series-go{font-size:14px;font-weight:800;color:var(--accent)}
+.archive-prose h2{margin-top:40px}
+.archive-prose h2:first-of-type{margin-top:8px}

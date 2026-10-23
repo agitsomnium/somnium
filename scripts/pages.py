@@ -234,7 +234,7 @@ def program_page(tables, content, md, base=''):
     out.append('<section class="content-section" id="lectures"><div class="split-content">')
     out.append('<div class="split-main"><h2>기획강좌·특강</h2>')
     out.append(md(clean_content(content.get('lectures.md', ''))))
-    out.append('<a class="text-link" href="%s/resources/">지난 영상과 자료 보기 ↗</a>' % e(base))
+    out.append('<a class="text-link" href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a>' % e(base))
     out.append('</div></div></section>')
 
     out.append('<section class="content-section" id="agit"><h2>아지트솜니움</h2>')
@@ -365,3 +365,9 @@ def participate_page(tables, content, md, base=''):
     out.append(f'<p><a class="text-link" href="{e(base)}/about/#visit">오시는 길</a></p>')
     out.append('</section>')
     return '\n'.join(out)
+
+def archive_page(content, md, base=''):
+    """창립 이후 프로그램을 해마다 모은 쪽. content/archive.md 를 그대로 옮긴다."""
+    body = clean_content(content.get('archive.md', ''))
+    return (page_intro('지난 프로그램', '2017년 창립부터 지금까지, 솜니움이 함께 공부한 시간입니다.', base)
+            + '<div class="prose archive-prose">' + md(body) + '</div>')

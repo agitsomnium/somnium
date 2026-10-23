@@ -161,9 +161,13 @@ def youtube_section(videos, limit=6):
                        '<strong>%s</strong>%s</a>' % (e(watch), e(thumb), e(v['title']), date))
         out.append('</div>')
     if url:
-        more = ''.join(' <a class="yt-more" href="%s" target="_blank" rel="noopener">%s ↗</a>' % (e(m['url']), e(m.get('이름', '')))
-                       for m in (site_config().get('youtube_more') or []) if m.get('url'))
-        out.append('<p class="yt-links"><a class="button yt-button" href="%s" target="_blank" rel="noopener">유튜브 채널 구독하기 ↗</a>%s</p>' % (e(url), more))
+        out.append('<p class="yt-links"><a class="button yt-button" href="%s" target="_blank" rel="noopener">유튜브 채널 바로가기 ↗</a></p>' % e(url))
+    for m in (site_config().get('youtube_more') or []):
+        if not m.get('url'):
+            continue
+        out.append('<a class="yt-series" href="%s" target="_blank" rel="noopener"><span class="yt-series-tag">%s</span>'
+                   '<strong>%s</strong><span class="yt-series-desc">%s</span><span class="yt-series-go">유튜브에서 보기 ↗</span></a>'
+                   % (e(m['url']), e(m.get('구분', '')), e(m.get('이름', '')), e(m.get('설명', ''))))
     out.append('</section>')
     return '\n'.join(out)
 
@@ -171,7 +175,7 @@ def youtube_section(videos, limit=6):
 def _social_items(cfg):
     items = [('youtube', '유튜브', cfg.get('youtube') or {})]
     for m in cfg.get('youtube_more') or []:
-        items.append(('youtube', '유튜브 · 이전 채널', {'url': m.get('url', ''), '이름': (m.get('이름', '') or '').replace(' (이전 채널)', '')}))
+        items.append(('youtube', '유튜브 · ' + (m.get('구분') or '이전 채널'), {'url': m.get('url', ''), '이름': m.get('이름', '')}))
     items += [('instagram', '인스타그램', cfg.get('instagram') or {}), ('facebook', '페이스북', cfg.get('facebook') or {})]
     return items
 
@@ -258,14 +262,6 @@ def social_feeds(insta):
                         % (e(p['link']), e(p['image']), e(p.get('caption') or '솜니움 인스타그램 게시물')) for p in insta)
         cols.append('<div class="feed-col"><h3>인스타그램 <a href="%s" target="_blank" rel="noopener">%s ↗</a></h3><div class="ig-grid">%s</div></div>'
                     % (e(ig.get('url', '')), e(ig.get('이름', '')), tiles))
-    if fb.get('page_plugin') and fb.get('url'):
-        src = ('https://www.facebook.com/plugins/page.php?href=%s&tabs=timeline&width=500&height=420'
-               '&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false' % quote(fb['url'], safe=''))
-        cols.append('<div class="feed-col"><h3>페이스북 <a href="%s" target="_blank" rel="noopener">%s ↗</a></h3>'
-                    '<iframe class="fb-frame" title="솜니움 페이스북 최신 글" src="%s" width="500" height="420" loading="lazy" '
-                    'style="border:none;overflow:hidden" scrolling="no" allowfullscreen="true"></iframe>'
-                    '<p class="fb-fallback">글이 보이지 않으면 <a href="%s" target="_blank" rel="noopener">페이스북에서 보기 ↗</a></p></div>'
-                    % (e(fb['url']), e(fb.get('이름', '')), e(src), e(fb['url'])))
     if not cols:
         return ''
     return '<div class="feed-wrap">' + ''.join(cols) + '</div>'

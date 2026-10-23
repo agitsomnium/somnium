@@ -45,5 +45,5 @@ class SocialFeedTest(unittest.TestCase):
         self.assertEqual(posts[0]['image'], 'https://cdn.example/a-m.jpg')
         html = social_feeds(posts)
         self.assertIn('ig-tile', html)
-        self.assertIn('facebook.com/plugins/page.php', html)
+        self.assertNotIn('facebook.com/plugins', html)
         self.assertNotIn('javascript:', html)

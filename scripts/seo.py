@@ -174,5 +174,5 @@ def llms_txt(tables, base=''):
     L += ['', '## 쪽', '',
           '- [연구소 소개](%s): 정신·미션·이사회·연혁·오시는 길' % abs_url('about/', base),
           '- [프로그램](%s): 세미나·북클럽·기획강좌' % abs_url('programs/', base),
-          '- [연구자료](%s): 영상·세미나별 자료' % abs_url('resources/', base)]
+          '- [지난 프로그램](%s): 2017년 창립 이후 세미나·강좌 목록' % abs_url('archive/', base)]
     return '\n'.join(L) + '\n'
