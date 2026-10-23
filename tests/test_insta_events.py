@@ -55,6 +55,15 @@ class InstaEvents(unittest.TestCase):
         self.assertEqual([e['startDate'][:10] for e in evs], ['2026-11-12', '2026-11-19'])
         self.assertTrue(all(';' not in e['startDate'] for e in evs))
 
+    def test_same_promo_posted_twice(self):
+        t = empty()
+        a = GAKKA
+        b = GAKKA.replace('가까스로-있음]', '가까스로 있음 ]').replace('함께 읽습니다', '마감 임박!')
+        posts = [{'text': b, 'link': 'https://www.instagram.com/somnium_agit/p/NEW/'},
+                 {'text': a, 'link': 'https://www.instagram.com/somnium_agit/p/OLD/'}]
+        self.assertEqual(insta_events.merge(t, posts), 1)
+        self.assertIn('NEW', t['북클럽'][0]['신청_url'])  # 최근 글이 이긴다
+
     def test_ignores_plain_post(self):
         self.assertIsNone(insta_events.parse_post({'text': '오늘 세미나 사진입니다'}))
 

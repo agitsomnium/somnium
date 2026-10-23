@@ -78,12 +78,17 @@ def merge(tables, posts, today=None):
     """시트에 없는 인스타 일정만 표에 덧붙인다. 덧붙인 개수를 돌려준다."""
     have = {_key(r.get('도서') or r.get('제목')) for r in tables.get('북클럽', [])}
     have |= {_key(r.get('제목')) for r in tables.get('세미나', [])}
+    days_seen = {d for r in tables.get('북클럽', []) for d in (r.get('날짜') or '').split(';') if d}
+    days_seen |= {r.get('날짜') for r in tables.get('회차', []) if r.get('날짜')}
     added = 0
-    for post in posts or []:
+    for post in posts or []:  # 피드는 최신 글부터 — 같은 홍보를 여러 번 올리면 가장 최근 글 하나만 쓴다
         ev = parse_post(post)
         if not ev or _key(ev['title']) in have:
             continue
+        if ev['days'][0] in days_seen and ev['kind'] == '북클럽' and any(_key(ev['title'])[:4] == k[:4] for k in have if k):
+            continue  # 제목을 조금 바꿔 다시 올린 같은 모임(첫날·앞 네 글자가 같음)
         have.add(_key(ev['title']))
+        days_seen |= set(ev['days'])
         last = ev['days'][-1]
         state = '종료' if today and last < today.isoformat() else '모집중'
         slug = 'ig-' + re.sub(r'[^a-z0-9]', '', (post.get('link', '').rstrip('/').split('/')[-1]).lower())[:20] or 'ig-%d' % added
