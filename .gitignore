@@ -1,0 +1,9 @@
+dist/
+data/live/
+backup/
+docs/transcripts/
+docs/lecture-drafts/
+docs/batch-private/
+__pycache__/
+.DS_Store
+.env*

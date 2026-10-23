@@ -1,0 +1,50 @@
+/* ───────────────────────────────────────────────
+   솜니움 디자인 토큰 — 색·글꼴은 이 파일 하나만 고칩니다.
+   1안 「달력 광장」 · 2026-10-23 확정
+   theme-b = 밝게(기본, 종이) · theme-a = 어둡게
+   ─────────────────────────────────────────────── */
+:root,
+.theme-b{
+  --bg:#f1f0e9;          /* 바탕: 종이 */
+  --ink:#1b1d22;         /* 글자: 먹 */
+  --muted:#5d6168;       /* 보조 글자 */
+  --line:#c9c8bf;        /* 가는 선 */
+  --rule:#1b1d22;        /* 굵은 선 */
+  --accent:#23407a;      /* 강조: 쪽빛 (하나만 씁니다) */
+  --feature:#23407a;     /* 세미나 색면 */
+  --feature-ink:#f6f5ef;
+  --now-bg:#1b1d22;      /* 달력 「이번 달」 칸 */
+  --now-ink:#f1f0e9;
+  --now-muted:#a9adb5;
+  --now-line:#3d414a;
+  --band-bg:#1b1d22;     /* 계좌 띠 */
+  --band-ink:#f1f0e9;
+  --band-muted:#a9adb5;
+  --band-line:#4a4e57;
+  --cancelled:#a92e1f;
+}
+.theme-a{
+  --bg:#1b1c1e;
+  --ink:#f1eee5;
+  --muted:#b4b4ad;
+  --line:#44464a;
+  --rule:#f1eee5;
+  --accent:#8fb0ff;
+  --feature:#2c4f94;
+  --feature-ink:#f6f5ef;
+  --now-bg:#f1f0e9;
+  --now-ink:#1b1d22;
+  --now-muted:#5d6168;
+  --now-line:#c9c8bf;
+  --band-bg:#26282c;
+  --band-ink:#f1eee5;
+  --band-muted:#b4b4ad;
+  --band-line:#4a4e57;
+  --cancelled:#ff9b8e;
+}
+:root{
+  /* 글꼴 (1안 B) — 제목: 검은고딕 / 큰 숫자: Archivo Black / 본문: Pretendard 400·800 */
+  --font-display:'Black Han Sans', Pretendard, sans-serif;
+  --font-num:'Archivo Black', 'Black Han Sans', sans-serif;
+  --font-body:Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}

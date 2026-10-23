@@ -1,0 +1,56 @@
+name: 시트에서 홈페이지 만들기
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 21 * * *'
+  push:
+    branches: [main]
+    paths: ['scripts/**', 'assets/**', 'content/**', 'config/**', '.github/workflows/build.yml', 'tests/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: somnium-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 운영 흐름 시험
+        run: python3 -m unittest discover -s tests -v
+      - name: 공개 CSV 내려받고 검증
+        run: python3 scripts/fetch_sheets.py
+      - name: 유튜브 최근 영상 목록 받기
+        run: python3 scripts/fetch_youtube.py data/live
+      - name: 인스타 최신 글 받기
+        run: python3 scripts/fetch_social.py data/live
+      - name: 실제 시트로 정적 HTML 생성
+        env:
+          SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}
+        run: python3 scripts/build.py --data data/live
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    if: vars.PAGES_ENABLED == 'true'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 승인된 홈페이지 공개
+        id: deployment
+        uses: actions/deploy-pages@v4

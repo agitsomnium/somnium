@@ -1,0 +1,137 @@
+/* 1안 「달력 광장」 레이아웃. 색·글꼴 값은 tokens.css 에서 옵니다. */
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink)}
+h1,h2,.pz-display{font-family:var(--font-display);font-weight:400;letter-spacing:-.01em}
+h1{line-height:1.08}
+.num{font-family:var(--font-num);font-weight:400;font-variant-numeric:tabular-nums}
+
+/* 머리말 */
+.site-header{border-bottom:2px solid var(--rule)}
+.logo strong{font-family:var(--font-num);font-weight:400;letter-spacing:-.03em}
+.site-nav a[href$="/participate/"]{background:var(--accent);color:var(--bg);padding:6px 14px}
+
+/* 첫 화면 */
+.pz-hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px 48px;padding:56px 0 0}
+.pz-hero h1{font-size:clamp(48px,7.4vw,112px);margin-top:12px}
+.pz-tag{margin:0;font-size:14px;font-weight:800;letter-spacing:.06em;color:var(--accent)}
+.pz-lead{max-width:36ch;margin:0;font-size:17px;line-height:1.75;color:var(--muted)}
+.pz-lead a{color:var(--accent);font-weight:800}
+
+/* 달력 */
+.pz-cal-wrap{padding:44px 0 0}
+.pz-cal{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:2px solid var(--rule)}
+.pz-month{padding:26px 26px 34px;border-right:1px solid var(--line)}
+.pz-month:first-child{padding-left:0}
+.pz-month:last-child{border-right:0}
+.pz-month h2{font-size:32px;margin-top:6px}
+.pz-month.is-now{background:var(--now-bg);color:var(--now-ink);padding-left:26px}
+.pz-month.is-now .pz-tag{color:var(--now-muted)}
+.pz-month .pz-tag{color:var(--muted);font-size:13px}
+.pz-month ul{list-style:none;margin:22px 0 0;padding:0}
+.pz-month li{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
+.pz-month.is-now li{border-top-color:var(--now-line)}
+.pz-month li.is-past{opacity:.6}
+.pz-day{flex:0 0 auto;min-width:58px;font-size:42px;line-height:.95}
+.pz-ev{display:flex;flex-direction:column;gap:3px}
+.pz-ev a{font-weight:800;font-size:17px;line-height:1.45;color:inherit}
+.pz-ev span{font-size:14px;line-height:1.5;color:var(--muted)}
+.pz-month.is-now .pz-ev span{color:var(--now-muted)}
+.pz-empty{margin:20px 0 0;color:var(--muted)}
+.pz-month.is-now .pz-empty{color:var(--now-muted)}
+.pz-soon{margin:16px 0 0;font-size:14px;color:var(--muted)}
+.pz-soon a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+
+/* 구역 공통 */
+.pz-sec{padding:96px 0 0}
+.pz-kicker{font-family:var(--font-body);font-size:14px;font-weight:800;letter-spacing:.08em;color:var(--accent)}
+
+/* 지금 하는 공부 */
+.pz-feature{display:flex;flex-wrap:wrap;margin-top:20px}
+.pz-feature-main{flex:2 1 520px;min-width:0;background:var(--feature);color:var(--feature-ink);padding:46px 44px}
+.pz-feature-main .pz-tag{color:var(--feature-ink);opacity:.85}
+.pz-feature-main h3{font-family:var(--font-display);font-weight:400;font-size:clamp(36px,4.6vw,64px);line-height:1.12;margin-top:14px;letter-spacing:-.01em}
+.pz-feature-main p{margin:18px 0 0;font-size:18px;line-height:1.7;max-width:42ch}
+.pz-btn-light{display:inline-block;margin-top:30px;padding:14px 22px;background:var(--feature-ink);color:var(--feature);font-weight:800}
+.pz-facts{flex:1 1 300px;min-width:0;margin:0;padding:38px 34px;border:2px solid var(--feature);display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px 12px;align-content:start;font-size:16px;line-height:1.6}
+.pz-facts dt{color:var(--muted)}
+.pz-facts dd{margin:0;font-weight:800}
+.pz-facts a{color:var(--accent)}
+
+/* 북클럽 */
+.pz-books{display:flex;flex-wrap:wrap;gap:32px;margin-top:22px}
+.pz-book{flex:1 1 320px;min-width:0;display:flex;gap:22px;align-items:flex-start}
+.pz-book img{width:150px;height:auto;flex:0 0 150px}
+.pz-book .pz-tag{font-size:13px}
+.pz-book h3{font-family:var(--font-display);font-weight:400;font-size:32px;margin-top:8px;letter-spacing:0}
+.pz-book p{color:var(--muted);font-size:15px;margin-top:8px}
+
+/* 영상·소식 (extras.css 위에 1안 글꼴만 얹음) */
+.yt-section h2,.social-strip h2,.acct-block h2{font-family:var(--font-display);font-weight:400}
+.social-link strong{font-family:var(--font-body);font-weight:800}
+.social-grid{gap:0;border-top:2px solid var(--rule);border-bottom:2px solid var(--rule)}
+.social-link{border:0;border-right:1px solid var(--line)}
+.social-link:last-child{border-right:0}
+.pz-notice ul{list-style:none;margin:16px 0 0;padding:0}
+.pz-notice li{padding:14px 0;border-top:1px solid var(--line)}
+
+/* 계좌 띠: 화면 끝까지 */
+.acct-block.compact{margin:104px calc(50% - 50vw) 0;padding:64px max(28px,calc(50vw - 664px));border:0;background:var(--band-bg);color:var(--band-ink)}
+.acct-block .acct-card{border-color:var(--band-line)}
+.acct-block .acct-num strong{font-family:var(--font-num);font-weight:400}
+.acct-block.compact .acct-use span,.acct-block.compact .acct-holder,.acct-block.compact .acct-note{color:var(--band-muted)}
+.acct-block.compact .acct-note a{color:var(--band-ink)}
+.acct-block.compact .acct-copy{border-color:var(--band-ink);color:var(--band-ink)}
+.acct-block.compact .acct-copy:hover,.acct-block.compact .acct-copy:focus-visible{background:var(--band-ink);color:var(--band-bg)}
+.acct-block.compact .button{background:var(--band-ink);color:var(--band-bg)}
+.acct-num strong{font-family:var(--font-num);font-weight:400}
+
+/* 꼬리말 */
+.site-footer h2{font-family:var(--font-display);font-weight:400}
+
+@media (max-width:900px){
+  .pz-cal{grid-template-columns:1fr}
+  .pz-month,.pz-month:first-child{padding:24px 0;border-right:0;border-bottom:1px solid var(--line)}
+  .pz-month.is-now{padding:24px 20px}
+}
+@media (max-width:767px){
+  .pz-hero{padding-top:36px}
+  .pz-sec{padding-top:72px}
+  .pz-feature-main{padding:32px 24px}
+  .pz-facts{padding:26px 22px}
+  .pz-book img{width:110px;flex-basis:110px}
+  .acct-block.compact{margin-top:72px;padding:44px 22px}
+}
+
+/* 구역 간격 한곳에서: site.css 의 section 기본 여백을 끄고 1안 간격만 씁니다 */
+main.container>section{padding-bottom:0}
+main.container>.yt-section,main.container>.social-strip{padding-top:96px}
+main.container>.pz-notice{padding-top:72px}
+.yt-section .yt-button{margin-top:24px}
+.archive-more{margin:20px 0 0}
+.social-strip>p{margin-bottom:0}
+.acct-block.compact{margin-top:96px}
+.site-footer .footer-links{display:flex;flex-wrap:wrap;gap:10px 28px}
+@media (max-width:767px){
+  main.container>.yt-section,main.container>.social-strip{padding-top:64px}
+  main.container>.pz-notice{padding-top:56px}
+  .acct-block.compact{margin-top:64px}
+}
+.yt-links{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
+.yt-more{font-weight:800;color:var(--accent)}
+.social-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.acct-hint{margin-top:8px;font-size:14px;font-weight:800}
+.acct-block.compact .acct-hint{color:var(--band-ink)}
+
+/* 인스타·페이스북 최신 글 */
+.feed-wrap{display:flex;flex-wrap:wrap;gap:40px;margin-top:36px}
+.feed-col{flex:1 1 360px;min-width:0}
+.feed-col h3{font-family:var(--font-body);font-size:15px;font-weight:800;letter-spacing:.04em;margin-bottom:14px;color:var(--muted)}
+.feed-col h3 a{color:var(--accent);margin-left:8px}
+.ig-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.ig-tile img{width:100%;aspect-ratio:1/1;object-fit:cover;background:var(--line)}
+.fb-frame{max-width:100%;background:#fff}
+
+/* 하위 페이지 머리 — 1안 글꼴 */
+.page-intro h1{font-family:var(--font-display);font-weight:400;font-size:clamp(52px,7.2vw,108px);letter-spacing:-.01em;line-height:1.04}
+.page-intro .breadcrumb a{color:var(--accent);font-weight:800}
+.reading-body h2,.content-section h2,.resources-section h2{font-family:var(--font-display);font-weight:400;letter-spacing:0}
+@media (max-width:767px){.page-intro h1{font-size:48px}}

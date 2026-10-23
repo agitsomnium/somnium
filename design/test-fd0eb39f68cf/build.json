@@ -1,0 +1,9 @@
+{
+  "counts": {
+    "seminars": 6,
+    "bookclubs": 2,
+    "videos": 1
+  },
+  "base": "/somnium",
+  "preview": true
+}

@@ -1,0 +1,102 @@
+{
+  "_설명": "자주 안 바뀌는 연결 정보. 계좌·채널이 바뀌면 이 파일만 고칩니다.",
+  "youtube": {
+    "이름": "솜니움 Somnium",
+    "url": "https://www.youtube.com/@%EC%86%9C%EB%8B%88%EC%9B%80Somnium",
+    "channel_id": "UCzrxNwAlp8gRAZxR3jZm5ag"
+  },
+  "instagram": {
+    "이름": "@somnium_agit",
+    "url": "https://www.instagram.com/somnium_agit/",
+    "behold_feed_url": "",
+    "_설명": "최신 글 6개: behold.so 무료 피드. 인스타를 비즈니스/크리에이터 계정으로 바꾸고 behold.so 에 연결한 뒤 JSON 피드 주소(https://feeds.behold.so/...)를 behold_feed_url 에 붙여 넣습니다."
+  },
+  "facebook": {
+    "이름": "agit.somnium",
+    "url": "https://www.facebook.com/agit.somnium",
+    "page_plugin": true
+  },
+  "email": "agit.somnium@gmail.com",
+  "cms_url": "https://online.mrm.or.kr/PCjx2kb",
+  "accounts": [
+    {
+      "용도": "후원",
+      "설명": "기부금 영수증 발급",
+      "은행": "국민은행",
+      "번호": "343601-04-114832",
+      "예금주": "(재)한빛누리(기독교정치사회연구소)"
+    },
+    {
+      "용도": "참가비 · 일반 후원",
+      "설명": "영수증 없음",
+      "은행": "국민은행",
+      "번호": "671037-04-002495",
+      "예금주": "기독교정치사회연구소",
+      "안내": "참가비는 입금자명을 「강의+이름」으로 적어 주세요."
+    }
+  ],
+  "board": [
+    {
+      "자리": "이사장",
+      "이름": ""
+    },
+    {
+      "자리": "대표",
+      "이름": ""
+    },
+    {
+      "자리": "이사",
+      "이름": ""
+    },
+    {
+      "자리": "감사",
+      "이름": ""
+    },
+    {
+      "자리": "사무국",
+      "이름": ""
+    }
+  ],
+  "youtube_more": [
+    {
+      "이름": "솜니움 기독교정치사회연구소 (이전 채널)",
+      "url": "https://www.youtube.com/@%EC%86%9C%EB%8B%88%EC%9B%80%EC%A0%95%EC%B9%98%EC%82%AC%ED%9A%8C%EC%97%B0%EA%B5%AC%EC%86%8C",
+      "channel_id": "UCc_hiFEUA9uzuHqsfLsB9eA"
+    }
+  ],
+  "site_url": "",
+  "_site_url_설명": "도메인이 생기면 https://주소 를 적습니다(끝에 / 없이). 적으면 검색·AI용 sitemap.xml, 대표 주소(canonical), 공유 미리보기 주소가 자동으로 생깁니다.",
+  "seo": {
+    "name": "솜니움 기독교정치사회연구소",
+    "alternate_names": [
+      "솜니움",
+      "Somnium",
+      "Somnium 기독교정치사회연구소",
+      "기독교정치사회연구소"
+    ],
+    "description": "솜니움 기독교정치사회연구소는 기독교 신앙을 토대로 청년과 시민이 정치사회이론을 함께 공부하고 토론하는 서울 합정의 연구 공동체입니다. 세미나·북클럽·강좌를 매달 엽니다.",
+    "keywords": [
+      "솜니움",
+      "기독교정치사회연구소",
+      "정치신학",
+      "기독교 사회사상",
+      "정치사회이론 세미나",
+      "현대 자본주의 세미나",
+      "북클럽",
+      "합정",
+      "시민교육"
+    ],
+    "founding_date": "2017-11-01",
+    "address": {
+      "streetAddress": "독막로 43, 2층",
+      "addressLocality": "마포구",
+      "addressRegion": "서울",
+      "addressCountry": "KR"
+    }
+  },
+  "verification": {
+    "google": "",
+    "naver": ""
+  },
+  "_verification_설명": "도메인 연결 뒤 구글 서치 콘솔·네이버 서치어드바이저에서 받은 확인 코드(content 값)만 붙여 넣습니다."
+}
