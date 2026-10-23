@@ -141,7 +141,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         raise ValueError('invalid base path')
     target.parent.mkdir(parents=True, exist_ok=True)
     tables = load_tables(data_dir)
-    insta_events.merge(tables, load_instagram(data_dir, limit=12), _today())
+    insta_events.merge(tables, load_instagram(data_dir, limit=80), _today())
     tables = validate(tables)
     stage = Path(tempfile.mkdtemp(prefix='.stage-', dir=str(target.parent)))
     try:

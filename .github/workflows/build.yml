@@ -36,6 +36,8 @@ jobs:
           fi
       - name: 유튜브 최근 영상 목록 받기
         run: python3 scripts/fetch_youtube.py data/live
+      - name: 인스타 최신 글 받기
+        run: python3 scripts/fetch_social.py data/live
       - name: 새 영상을 누적 목록에 저장
         if: github.event_name != 'pull_request'
         run: |
@@ -43,11 +45,9 @@ jobs:
             git config user.name "somnium-bot"
             git config user.email "agit.somnium@gmail.com"
             git add data/catalog
-            git commit -m "유튜브 새 영상 목록 저장 [skip ci]"
+            git commit -m "유튜브 새 영상·인스타 글 목록 저장 [skip ci]"
             git push || echo "목록 저장 push 실패 — 다음 실행 때 다시 시도"
           fi
-      - name: 인스타 최신 글 받기
-        run: python3 scripts/fetch_social.py data/live
       - name: 실제 시트로 정적 HTML 생성
         env:
           SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}
