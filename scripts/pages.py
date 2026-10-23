@@ -39,7 +39,7 @@ def page_intro(title, lead, base=''):
     b = _base(base)
     return (
         '<header class="page-intro">'
-        f'<nav class="breadcrumb" aria-label="위치"><a href="{e(b + "/")}">홈</a></nav>'
+        f'<nav class="breadcrumb" aria-label="위치"><a href="{e(b + "/")}">홈</a> <span aria-hidden="true">›</span> <span>{e(title)}</span></nav>'
         f'<h1>{e(title)}</h1>'
         f'<p>{e(lead)}</p>'
         '</header>'
@@ -66,7 +66,8 @@ def about_page(content, md, base=''):
     visit = clean_content(content.get('visit.md', ''))
     raw = [content.get('about.md', ''), content.get('board.md', ''), content.get('history.md', ''), content.get('visit.md', '')]
     sources = _sources(raw)
-    toc = [('spirit', '솜니움의 정신'), ('board', '이사회'), ('history', '걸어온 길'), ('visit', '오시는 길')]
+    toc = [('spirit', '솜니움의 정신'), ('board', '이사회'), ('history', '걸어온 길'), ('people', '함께한 사람들'), ('visit', '오시는 길')]
+    people = clean_content(content.get('people.md', ''))
     toc_html = ''.join('<li><a href="#%s">%s</a></li>' % (i, t) for i, t in toc)
     src_html = ''.join(sources)
     return (
@@ -80,7 +81,9 @@ def about_page(content, md, base=''):
         + '<article class="reading-body">'
         + '<section id="spirit"><h2>솜니움의 정신</h2>' + md(spirit) + '</section>'
         + '<section id="board"><h2>이사회</h2>' + board_frame() + '</section>'
-        + '<section id="history"><h2>걸어온 길</h2>' + md(history) + '</section>'
+        + '<section id="history"><h2>걸어온 길</h2>' + md(history)
+        + '<p><a class="text-link" href="' + b + '/archive/">해마다 정리한 지난 프로그램 보기 →</a></p></section>'
+        + '<section id="people"><h2>함께한 사람들</h2>' + md(people) + '</section>'
         + '<section id="visit"><h2>오시는 길</h2>' + md(visit)
         + '<figure><img src="' + b + '/assets/visit-building.webp" width="1196" height="900" loading="lazy" alt="솜니움 사무실이 있는 건물"></figure>'
         + '<p><a href="https://map.naver.com/p/search/%EC%84%9C%EC%9A%B8%20%EB%A7%88%ED%8F%AC%EA%B5%AC%20%EB%8F%85%EB%A7%89%EB%A1%9C%2043" target="_blank" rel="noopener">네이버지도에서 길찾기↗</a></p>'

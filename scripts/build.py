@@ -18,11 +18,13 @@ from render import shell, seminar_detail
 from home_plaza import home
 from extras import load_videos, load_instagram
 import seo
-from pages import about_page, program_page, archive_page, participate_page  # noqa: E402
+from pages import about_page, program_page, archive_page, participate_page, page_intro  # noqa: E402
+from videos_page import videos_page, series_pages  # noqa: E402
 
 PAGE_DESC = {
     'about': '솜니움 기독교정치사회연구소의 정신과 미션, 이사회, 2017년부터의 연혁, 서울 합정 사무실 오시는 길.',
     'programs': '솜니움의 세미나·북클럽·기획강좌. 정치사회이론과 기독교를 함께 읽는 공부 모임 일정과 신청 안내.',
+    'videos': '솜니움 세미나·강좌·북클럽 영상을 최근 순서로 모았습니다. 시리즈는 묶어서 차례대로 볼 수 있습니다.',
     'archive': '2017년 창립 이후 솜니움이 진행한 세미나·강좌·북토크·토론회를 해마다 모았습니다.',
     'participate': '솜니움 프로그램 참여 신청과 후원·참가비 계좌 안내. CMS 정기후원(기부금 영수증) 가능.',
 }
@@ -152,14 +154,18 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
             sdesc = ' '.join(x for x in (s.get('제목', ''), s.get('부제', ''), (s.get('소개') or '').split('\n')[0]) if x)
             sev = [ev for ev in events if ('seminars/%s/' % sid) in ev.get('url', '')]
             _page(stage, 'seminars/%s/index.html' % sid, s.get('제목', '세미나'), body, base, theme, preview, sdesc, sev)
-        content = {name: _read(name) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md')}
+        content = {name: _read(name) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md','people.md')}
         for slug, title, body in (
             ('about', '연구소 소개', about_page(content, markdown, base)),
             ('programs', '프로그램', program_page(tables, content, markdown, base)),
+            ('videos', '유튜브', videos_page(load_videos(data_dir), page_intro, base)),
             ('archive', '지난 프로그램', archive_page(content, markdown, base)),
             ('participate', '참여·후원', participate_page(tables, content, markdown, base)),
         ):
             _page(stage, slug + '/index.html', title, body, base, theme, preview, PAGE_DESC.get(slug, ''))
+        vpages = series_pages(load_videos(data_dir), page_intro, base)
+        for path, title, body, desc in vpages:
+            _page(stage, path, title, body, base, theme, preview, desc)
         assets_src = Path(ROOT) / 'assets'
         if assets_src.is_dir():
             shutil.copytree(str(assets_src), str(stage / 'assets'))
@@ -167,7 +173,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         _write(stage / '.nojekyll', '')
         _write(stage / 'robots.txt', seo.robots_txt())
         _write(stage / 'llms.txt', seo.llms_txt(tables, base))
-        rels = ['index.html'] + ['seminars/%s/' % str(x.get('id', '')) for x in seminars] + [p + '/' for p in ('about', 'programs', 'archive', 'participate')]
+        rels = ['index.html'] + ['seminars/%s/' % str(x.get('id', '')) for x in seminars] + [p + '/' for p in ('about', 'programs', 'videos', 'archive', 'participate')] + [x[0][:-len('index.html')] for x in vpages]
         sm = seo.sitemap_xml(rels)
         if sm:
             _write(stage / 'sitemap.xml', sm)

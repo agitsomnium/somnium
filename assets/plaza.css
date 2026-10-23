@@ -151,3 +151,26 @@ main.container>.pz-notice{padding-top:72px}
 .yt-series-go{font-size:14px;font-weight:800;color:var(--accent)}
 .archive-prose h2{margin-top:40px}
 .archive-prose h2:first-of-type{margin-top:8px}
+
+.breadcrumb{font-size:14px;color:var(--muted)}
+.breadcrumb a{color:var(--accent);font-weight:800}
+.page-steps{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:56px 0 8px;padding-top:20px;border-top:1px solid var(--line,rgba(0,0,0,.15));font-weight:800}
+.page-steps a{color:var(--accent);text-decoration:none}
+.step-mid{display:flex;gap:10px}
+.step-back,.step-home{font:inherit;font-size:14px;padding:6px 14px;border:1px solid currentColor;border-radius:999px;background:none;color:inherit;cursor:pointer;text-decoration:none}
+.vid-toc{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 28px}
+.vid-toc a{font-size:13px;font-weight:800;padding:6px 12px;border:1px solid var(--line,rgba(0,0,0,.2));border-radius:999px;color:inherit;text-decoration:none}
+.vid-group{margin:40px 0;scroll-margin-top:90px}
+.vid-group h2{font-family:var(--font-display,inherit);font-size:26px;margin:0 0 6px}
+.vid-desc{color:var(--muted);margin:0 0 16px}
+.vid-series{padding:24px;border:2px solid currentColor;border-radius:4px}
+.yt-button.ghost{background:none;color:inherit;border:1px solid currentColor}
+/* 유튜브: 시리즈 묶음 카드 */
+.yt-bundle .yt-stack{position:relative;display:block}
+.yt-bundle .yt-stack img{display:block;box-shadow:6px -6px 0 -1px var(--bg,#fff),6px -6px 0 0 currentColor,12px -12px 0 -1px var(--bg,#fff),12px -12px 0 0 currentColor;margin:12px 12px 0 0;width:calc(100% - 12px)}
+.yt-count{position:absolute;right:20px;bottom:8px;background:rgba(0,0,0,.82);color:#fff;font-size:13px;font-weight:800;padding:4px 10px;border-radius:3px}
+.yt-kicker{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--accent)}
+.yt-bundle strong{margin-top:-4px}
+.yt-episodes{list-style:none;padding:0;counter-reset:ep}
+.yt-episodes li{position:relative}
+.yt-ep{position:absolute;left:8px;top:8px;z-index:1;background:rgba(0,0,0,.82);color:#fff;font-size:13px;font-weight:800;min-width:28px;text-align:center;padding:3px 6px;border-radius:3px}

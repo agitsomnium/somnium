@@ -4,9 +4,30 @@ from data import public_rows
 from extras import month_calendar, youtube_section, social_strip, footer_social, accounts_block
 
 
+def _page_steps(title, base, nav):
+    """홈이 아닌 쪽 아래에 «이전 메뉴 · 홈 · 다음 메뉴»와 «뒤로» 단추."""
+    if title == '홈':
+        return ''
+    pages = [(l, h) for l, h in nav if not h.startswith('/#')]
+    labels = [l for l, _ in pages]
+    if title in labels:
+        i = labels.index(title)
+        prev = pages[i - 1] if i > 0 else None
+        nxt = pages[i + 1] if i + 1 < len(pages) else None
+    elif title.startswith('유튜브 · '):
+        prev, nxt = ('유튜브', '/videos/'), None
+    else:
+        prev, nxt = ('프로그램', '/programs/'), None
+    left = f'<a class="step-prev" href="{base}{prev[1]}">← {e(prev[0])}</a>' if prev else '<span></span>'
+    right = f'<a class="step-next" href="{base}{nxt[1]}">{e(nxt[0])} →</a>' if nxt else '<span></span>'
+    return (f'<nav class="page-steps" aria-label="쪽 이동">{left}'
+            f'<span class="step-mid"><button type="button" class="step-back" onclick="history.length>1?history.back():location.href=\'{base}/\'">뒤로</button>'
+            f'<a class="step-home" href="{base}/">홈으로</a></span>{right}</nav>')
+
+
 def shell(title, body, base='', theme='b', preview=False):
     t = e(title)
-    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('참여·후원', '/participate/')]
+    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('참여·후원', '/participate/')]
     navhtml = ''.join(f'<a href="{base}{h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
     banner = '<div class="preview-banner">검토용 / 프로그램 일정과 신청 안내를 확인하고 있습니다</div>' if preview else ''
     return f'''<!DOCTYPE html>
@@ -39,6 +60,7 @@ def shell(title, body, base='', theme='b', preview=False):
 </header>
 <main class="container" id="main">
 {body}
+{_page_steps(title, base, nav)}
 </main>
 <footer class="site-footer">
 <div class="container">

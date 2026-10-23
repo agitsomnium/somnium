@@ -38,7 +38,7 @@ def main(out_dir='data/live'):
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'somnium-site'}), timeout=20) as r:
                 for v in parse(r.read()):
-                    v['channel'] = ch.get('이름', '')
+                    v['channel'] = 'series' if ch is not chans[0] and ch.get('구분') else 'main'
                     videos.append(v)
         except Exception as exc:  # 네트워크 실패는 빌드를 막지 않는다
             failed += 1
@@ -50,6 +50,17 @@ def main(out_dir='data/live'):
     videos.sort(key=lambda v: v.get('published', ''), reverse=True)
     target.write_text(json.dumps(videos, ensure_ascii=False, indent=1), encoding='utf-8')
     print('유튜브 영상 %d개 저장' % len(videos))
+    cat = ROOT / 'data' / 'catalog' / 'youtube.json'
+    try:
+        old = json.loads(cat.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        old = []
+    known = {r.get('id') for r in old}
+    new = [v for v in videos if v['id'] not in known]
+    if new:
+        cat.parent.mkdir(parents=True, exist_ok=True)
+        cat.write_text(json.dumps(new + old, ensure_ascii=False, indent=1), encoding='utf-8')
+        print('누적 영상 목록에 %d개 추가' % len(new))
     return 0
 
 
