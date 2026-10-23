@@ -135,3 +135,10 @@ main.container>.pz-notice{padding-top:72px}
 .page-intro .breadcrumb a{color:var(--accent);font-weight:800}
 .reading-body h2,.content-section h2,.resources-section h2{font-family:var(--font-display);font-weight:400;letter-spacing:0}
 @media (max-width:767px){.page-intro h1{font-size:48px}}
+
+.pz-first{margin:14px 0 18px;font-size:15px;line-height:1.7;color:var(--feature-ink);opacity:.92}
+.pz-first a{color:inherit;font-weight:800;text-decoration:underline}
+.pz-study{padding-top:28px}
+.fb-fallback{margin:8px 0 0;font-size:14px;color:var(--muted)}
+.footer-family{margin:28px 0 0;font-size:14px;opacity:.8}
+.footer-family a{color:inherit;text-decoration:underline}

@@ -50,6 +50,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a>
 {footer_social()}
 </div>
+<p class="footer-family">함께하는 곳 · <a href="https://gilseop.com/" target="_blank" rel="noopener">길섶교회</a> · <a href="https://yesuchurch.com/" target="_blank" rel="noopener">한국예수교회연대</a> · <a href="https://faithseeking.net/" target="_blank" rel="noopener">신학브리핑 웹진</a></p>
 </div>
 </footer>
 </body>

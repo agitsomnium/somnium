@@ -66,15 +66,20 @@ def _feature(tables, base):
         rows.append(('어디서', e(s['장소'])))
     if names:
         rows.append(('이끔이', ' · '.join(e(f['이름']) for f in names)))
+    if s.get('참가비'):
+        rows.append(('참가비', e(s['참가비'])))
+    if s.get('참여방법'):
+        rows.append(('참여', e(s['참여방법'])))
     if s.get('신청_url'):
         rows.append(('신청', '<a href="%s" target="_blank" rel="noopener">신청하기 ↗</a>' % e(s['신청_url'])))
     dl = ''.join('<dt>%s</dt><dd>%s</dd>' % (k, v) for k, v in rows)
     state = ' · '.join(x for x in (s.get('부제', ''), s.get('상태', '')) if x)
     return ('<div class="pz-feature"><div class="pz-feature-main">'
             '<p class="pz-tag">%s</p><h3>%s</h3><p>%s</p>'
+            '<p class="pz-first">처음 오셔도 함께 공부할 수 있습니다. 미리 읽어 올 것과 참여 방법은 <a href="%s/participate/">참여 안내</a>에 있습니다.</p>'
             '<a class="pz-btn-light" href="%s">세미나 자세히 보기</a></div>'
             '<dl class="pz-facts">%s</dl></div>'
-            % (e(state), e(s.get('제목', '')), e((s.get('소개') or '').split('\n')[0]), href,
+            % (e(state), e(s.get('제목', '')), e((s.get('소개') or '').split('\n')[0]), base, href,
                dl or '<dt>일정</dt><dd>운영진 확인 뒤 안내합니다</dd>'))
 
 
@@ -113,14 +118,14 @@ def home(tables, base='', videos=None, insta=None):
     now = today()
     out = [
         '<section class="pz-hero" aria-labelledby="pz-h1">',
-        '<div><p class="pz-tag">연구자와 시민이 만나는 광장</p>',
+        '<div><p class="pz-tag">기독교 신앙으로 정치와 사회를 다시 묻는 공부의 광장</p>',
         '<h1 id="pz-h1">%d월,<br>솜니움에서는</h1></div>' % now.month,
         '<p class="pz-lead">지난달 기록, 이번 달 모임, 다음 달 예고를 한 장의 달력으로 봅니다. '
         '기독교와 정치사회 현실을 함께 공부하는 연구소입니다. <a href="%s/about/">솜니움 알아보기 →</a></p>' % base,
         '</section>',
-        '<section id="cal" class="pz-cal-wrap" aria-label="이달의 프로그램">', _calendar(tables, base, now), '</section>',
-        '<section class="pz-sec" aria-labelledby="pz-study-h"><h2 id="pz-study-h" class="pz-kicker">지금 하는 공부</h2>',
+        '<section class="pz-sec pz-study" aria-labelledby="pz-study-h"><h2 id="pz-study-h" class="pz-kicker">이번에 함께할 공부</h2>',
         _feature(tables, base), '</section>',
+        '<section id="cal" class="pz-cal-wrap" aria-label="이달의 프로그램">', _calendar(tables, base, now), '</section>',
         _books(tables, base),
         youtube_section(videos or []),
         '<p class="archive-more"><a href="%s/resources/">세미나별 영상과 자료 모아 보기 →</a></p>' % base,

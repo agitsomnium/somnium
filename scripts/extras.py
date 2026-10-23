@@ -259,12 +259,13 @@ def social_feeds(insta):
         cols.append('<div class="feed-col"><h3>인스타그램 <a href="%s" target="_blank" rel="noopener">%s ↗</a></h3><div class="ig-grid">%s</div></div>'
                     % (e(ig.get('url', '')), e(ig.get('이름', '')), tiles))
     if fb.get('page_plugin') and fb.get('url'):
-        src = ('https://www.facebook.com/plugins/page.php?href=%s&tabs=timeline&width=500&height=560'
+        src = ('https://www.facebook.com/plugins/page.php?href=%s&tabs=timeline&width=500&height=420'
                '&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=false' % quote(fb['url'], safe=''))
         cols.append('<div class="feed-col"><h3>페이스북 <a href="%s" target="_blank" rel="noopener">%s ↗</a></h3>'
-                    '<iframe class="fb-frame" title="솜니움 페이스북 최신 글" src="%s" width="500" height="560" loading="lazy" '
-                    'style="border:none;overflow:hidden" scrolling="no" allowfullscreen="true"></iframe></div>'
-                    % (e(fb['url']), e(fb.get('이름', '')), e(src)))
+                    '<iframe class="fb-frame" title="솜니움 페이스북 최신 글" src="%s" width="500" height="420" loading="lazy" '
+                    'style="border:none;overflow:hidden" scrolling="no" allowfullscreen="true"></iframe>'
+                    '<p class="fb-fallback">글이 보이지 않으면 <a href="%s" target="_blank" rel="noopener">페이스북에서 보기 ↗</a></p></div>'
+                    % (e(fb['url']), e(fb.get('이름', '')), e(src), e(fb['url'])))
     if not cols:
         return ''
     return '<div class="feed-wrap">' + ''.join(cols) + '</div>'

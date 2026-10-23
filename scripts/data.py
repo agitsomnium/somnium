@@ -5,7 +5,7 @@ import re
 from urllib.parse import urlparse
 
 SCHEMA = {
-    "세미나": ["id","제목","부제","소개","상태","시작일","종료일","장소","강사진_id","신청_url","취소사유","공개","정렬"],
+    "세미나": ["id","제목","부제","소개","상태","시작일","종료일","장소","강사진_id","신청_url","취소사유","공개","정렬","참가비","참여방법"],
     "회차": ["id","세미나_id","회차","제목","날짜","시간","자료_url","공개"],
     "북클럽": ["id","제목","도서","소개","날짜","시간","장소","신청_url","상태","취소사유","공개","정렬"],
     "강사진": ["id","이름","소개","사진_url","공개","정렬"],
@@ -29,7 +29,7 @@ def load_tables(data_dir):
         with open(path, "r", encoding="utf-8-sig", newline="") as f:
             reader = csv.reader(f)
             try:
-                header = next(reader)
+                header = [h.strip() for h in next(reader)]
             except StopIteration:
                 raise ValueError(f"{stem}: empty file")
             if header != cols:
