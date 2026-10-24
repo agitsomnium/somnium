@@ -1,0 +1,131 @@
+/* ───────────────────────────────────────────────
+   솜니움 인스타 디자인을 홈피에 (2026-10-24 확정판)
+   기준: ~/작업/솜니움_인스타_올릴것/홈피적용/솜니움_인스타_디자인_홈피적용.md
+   - 바탕은 종이(--paper), 순백 쓰지 않음. 구역은 쪽빛·종이를 번갈아.
+   - 형광(--lime)은 쪽빛 위 도형(점·원·밑줄)에만. 글자에 쓰지 않음.
+   - 분홍은 한 화면(카드)에 한 낱말만. 밝은 파랑은 쓰지 않음.
+   ─────────────────────────────────────────────── */
+:root{
+  --paper:#F1F0E9;
+  --ink:#1B1D22;
+  --navy:#23407A;
+  --feat:#F6F5EF;
+  --line:#C9C8BF;
+  --sub:#5D6168;
+  --navy-sub:#C9D3EA;
+  --lime:#D9F546;
+  --pink-light:#F4A3C4;
+  --pink-hot:#E2366F;
+  --font-hand:'East Sea Dokdo', 'Black Han Sans', sans-serif;
+  --font-num:'Archivo Black', sans-serif;
+  --font-body:Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-display:var(--font-hand);
+}
+:root,.theme-b{
+  --bg:var(--paper);--muted:var(--sub);--rule:var(--ink);--accent:var(--navy);
+  --feature:var(--navy);--feature-ink:var(--feat);
+  --now-bg:var(--navy);--now-ink:var(--feat);--now-muted:var(--navy-sub);--now-line:rgba(246,245,239,.22);
+  --band-bg:var(--navy);--band-ink:var(--feat);--band-muted:var(--navy-sub);--band-line:rgba(246,245,239,.25);
+}
+/* 어둡게: 먹 바탕 + 미색 글자. 밝은 파랑 대신 쪽빛 보조색 */
+.theme-a{
+  --bg:var(--ink);--ink:var(--feat);--muted:#B4B4AD;--line:#44464A;--rule:var(--feat);--accent:var(--navy-sub);
+  --feature:var(--navy);--feature-ink:var(--feat);--now-bg:var(--navy);--now-ink:var(--feat);--now-muted:var(--navy-sub);
+  --band-bg:var(--navy);--band-ink:var(--feat);--band-muted:var(--navy-sub);
+}
+html,body{background:var(--bg)}
+body{font-family:var(--font-body);color:var(--ink)}
+
+/* 손글씨 제목: 굵기 보정(글자크기/60) */
+h1,h2,.pz-display,.page-intro h1,.reading-body h2,.content-section h2,.resources-section h2,
+.yt-section h2,.social-strip h2,.news-head h2,.pay-bar h2,.pz-month h2,.vid-group h2,.yt-series strong,.band-h,.pc-title,.brand-hand{
+  font-family:var(--font-hand);font-weight:400;letter-spacing:0;-webkit-text-stroke:calc(1em / 60) currentColor;paint-order:stroke fill}
+.num,.pz-day,.acct-num strong,.pay-num strong{font-family:var(--font-num);-webkit-text-stroke:0}
+
+/* 머리말: 조립 글자 로고 */
+.site-header{background:var(--paper);border-bottom:2px solid var(--ink)}
+.theme-a .site-header{background:var(--bg)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo img{height:38px;width:auto;display:block}
+.logo span{font-size:12.5px;font-weight:800;color:var(--sub);line-height:1.35}
+.site-nav a[href$="/participate/"]{background:var(--navy);color:var(--feat)}
+
+/* 쪽빛 띠: 화면 끝까지(본문 폭 안의 구역을 그대로 늘림) */
+.band-navy{background:var(--navy);color:var(--feat);box-shadow:0 0 0 100vmax var(--navy);clip-path:inset(0 -100vmax)}
+.band-paper{background:var(--paper);color:var(--ink);box-shadow:0 0 0 100vmax var(--paper);clip-path:inset(0 -100vmax)}
+.band-navy a{color:var(--feat)}
+.band-h{position:relative;margin:0 0 28px;font-size:clamp(38px,5vw,64px);line-height:1.05;padding-left:30px}
+.band-h::before{content:"";position:absolute;left:0;top:.42em;width:16px;height:16px;border-radius:50%;background:var(--lime)}
+.band-paper .band-h::before,.pz-sec:not(.band-navy) .band-h::before{background:var(--navy)}
+
+/* 첫 화면: 소개 카드 1/6 과 같은 짜임 */
+.pz-brand{padding:64px 0 56px;margin-top:0}
+.pz-brand .brand-mark{display:block;width:min(560px,78%);height:auto}
+.brand-hand{margin:26px 0 0;font-size:clamp(40px,6.4vw,84px);line-height:1.05;color:var(--feat)}
+.brand-hand .pk{color:var(--pink-light)}
+.pz-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:28px 44px;padding:44px 0 48px}
+.pz-intro .intro-l{border-right:2px solid var(--ink);padding-right:40px}
+.pz-intro .intro-l .intro-name{margin:0;font-family:var(--font-num);font-size:clamp(44px,6vw,80px);line-height:1;letter-spacing:-.01em}
+.pz-intro .intro-l p{margin:14px 0 0;font-size:17px}
+.pz-intro .intro-r p{margin:0;font-size:18px;line-height:1.75}
+.pz-intro .intro-r p + p{margin-top:12px;font-size:15px;color:var(--sub)}
+@media (max-width:760px){
+  .pz-intro{grid-template-columns:1fr}
+  .pz-intro .intro-l{border-right:0;border-bottom:2px solid var(--ink);padding:0 0 22px}
+}
+
+/* 계좌 띠(쪽빛) */
+.pay-bar{background:var(--navy);color:var(--feat);margin-top:0}
+.pay-bar .pay-copy{border-color:var(--feat);color:var(--feat)}
+.pay-bar .pay-copy:hover,.pay-bar .pay-copy:focus-visible{background:var(--feat);color:var(--navy)}
+
+/* 이달 프로그램: 포스터 시리즈 틀 */
+.pz-progs{padding:72px 0 80px;margin-top:64px}
+.pc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:28px}
+.pc{container-type:inline-size;position:relative;display:flex;flex-direction:column;aspect-ratio:1080/1350;background:var(--pc-bg,var(--navy));color:var(--feat);overflow:hidden}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:3cqw;padding:5.6cqw 5.9cqw 0}
+.pc-badge{margin:0;background:var(--feat);color:var(--ink);font-weight:800;font-size:4cqw;line-height:1;padding:2cqw 2.4cqw;white-space:nowrap}
+.pc-brand{margin:0;display:flex;flex-direction:column;align-items:flex-end;text-align:right}
+.pc-som{font-family:var(--font-num);font-size:5.4cqw;line-height:1}
+.pc-brand span:last-child{font-size:2.2cqw;margin-top:1cqw;opacity:.9}
+.pc-main{position:relative;flex:1;display:flex;align-items:center;padding:0 5.9cqw;color:inherit;text-decoration:none}
+.pc-title{margin:0;max-width:100%;font-size:14cqw;line-height:1.02;color:var(--feat);-webkit-text-stroke:calc(14cqw / 60) currentColor;word-break:keep-all}
+.pc-main:has(.pc-cover) .pc-title{max-width:56%}
+.pc-pink{color:var(--pink-light)}
+.pc-cover{position:absolute;right:5.9cqw;top:3cqw;width:33cqw;aspect-ratio:2/3;object-fit:cover;box-shadow:0 1cqw 3cqw rgba(0,0,0,.25)}
+.pc-info{display:grid;grid-template-columns:1.25fr 1fr;background:var(--feat);color:var(--ink);padding:4cqw 5.9cqw;min-height:30%}
+.pc-when{padding-right:3.4cqw;border-right:.35cqw solid var(--ink)}
+.pc-date{margin:0 0 2cqw;font-family:var(--font-num);font-size:9cqw;line-height:1;letter-spacing:-.02em;white-space:nowrap}
+.pc-when p:not(.pc-date){margin:.6cqw 0 0;font-size:3.5cqw;line-height:1.4}
+.pc-side{padding-left:3.4cqw;display:flex;flex-direction:column;justify-content:space-between;gap:2cqw}
+.pc-leader{margin:0;font-weight:800;font-size:3.6cqw;line-height:1.35}
+.pc-apply{display:flex;align-items:center;flex-wrap:wrap;gap:2.4cqw;color:var(--ink);text-decoration:none;font-size:3.4cqw;font-weight:800}
+.pc-qr-svg{width:14cqw;height:14cqw;flex:0 0 14cqw;display:block}
+.pc-apply:hover span{text-decoration:underline}
+
+/* 종이 구역 간격 */
+.pz-cal-wrap{padding-top:72px}
+.news-strip{margin-top:56px}
+.pz-month h2{font-size:36px}
+.pz-month.is-now h2{color:var(--feat)}
+.news-kind,.yt-kicker,.yt-series-tag,.pz-kicker{color:var(--navy)}
+
+/* 영상: 쪽빛 띠 */
+main.container>.yt-section.band-navy{padding:72px 0 80px;margin-top:80px}
+.yt-section.band-navy .yt-card strong,.yt-section.band-navy time{color:var(--feat)}
+.yt-section.band-navy .yt-kicker,.yt-section.band-navy .yt-series-tag,.yt-section.band-navy .yt-series-go{color:var(--navy-sub)}
+.yt-section.band-navy .yt-series{border-color:var(--feat)}
+.yt-section.band-navy .yt-series-desc{color:var(--navy-sub)}
+.yt-section.band-navy .yt-button{background:var(--feat);color:var(--navy)}
+.yt-section.band-navy .yt-more{color:var(--feat)}
+.yt-section.band-navy .yt-bundle .yt-stack img{box-shadow:6px -6px 0 -1px var(--navy),6px -6px 0 0 var(--feat),12px -12px 0 -1px var(--navy),12px -12px 0 0 var(--feat)}
+
+/* 꼬리말: 쪽빛 + 조립 글자 */
+.site-footer{background:var(--navy);color:var(--feat)}
+.site-footer a{color:var(--feat)}
+.footer-mark{display:block;width:min(260px,60%);height:auto;margin-bottom:18px}
+.footer-about{margin:0 0 24px;max-width:46ch;font-size:15.5px;line-height:1.75;color:var(--navy-sub)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.pc .pc-apply{color:var(--ink);flex-wrap:nowrap}
+.pc-apply span{white-space:nowrap}
+.pc-side{min-width:0}

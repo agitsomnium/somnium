@@ -5,6 +5,7 @@ from data import public_rows
 from extras import (today, collect_events, _shift, _month_range, WEEK,
                     youtube_section, social_strip, accounts_block, social_feeds, fmt_days, pay_bar, news_strip)
 import datetime as _dt
+from poster_card import program_cards
 
 POSTERS = {'book-october': 'sonjeol.webp', 'book-november': 'gakkaseuro.webp'}
 
@@ -121,18 +122,21 @@ def _notices(tables):
 def home(tables, base='', videos=None, insta=None):
     now = today()
     out = [
-        '<section class="pz-hero" aria-labelledby="pz-h1">',
-        '<div><p class="pz-tag">기독교 신앙으로 정치와 사회를 다시 묻는 공부의 광장</p>',
-        '<h1 id="pz-h1">%d월,<br>솜니움에서는</h1></div>' % now.month,
-        '<p class="pz-lead">다음 달 예고, 이번 달 모임, 지난달 기록을 한 장의 달력으로 봅니다. '
-        '기독교와 정치사회 현실을 함께 공부하는 연구소입니다. <a href="%s/about/">솜니움 알아보기 →</a></p>' % base,
+        '<section class="band-navy pz-brand" aria-labelledby="pz-h1">',
+        '<h1 id="pz-h1" class="sr-only">솜니움 기독교정치사회연구소</h1>',
+        '<img class="brand-mark" src="%s/assets/somnium_wordmark_on_navy.svg" alt="솜니움" width="874" height="560">' % base,
+        '<p class="brand-hand" aria-hidden="true"><span class="pk">기독교</span> 정치사회연구소</p>',
+        '</section>',
+        '<section class="band-paper pz-intro" aria-label="솜니움 소개">',
+        '<div class="intro-l"><p class="intro-name">Somnium</p><p>라틴어로 ‘꿈’을 뜻합니다.</p></div>',
+        '<div class="intro-r"><p>기독교신앙을 근거로, 청년 시민들이 함께 오늘날의 정치사회이론과 현실을 공부하며 '
+        '기독교의 ‘사회적 꿈’을 모색하는 단체입니다.</p>'
+        '<p>📚 북클럽 · 세미나 · 기획강좌　📍 합정–상수 사무실 + Zoom</p></div>',
         '</section>',
         pay_bar(),
         news_strip(insta or []),
-        '<section class="pz-sec pz-study" aria-labelledby="pz-study-h"><h2 id="pz-study-h" class="pz-kicker">이번에 함께할 공부</h2>',
-        _feature(tables, base), '</section>',
-        '<section id="cal" class="pz-cal-wrap" aria-label="이달의 프로그램">', _calendar(tables, base, now), '</section>',
-        _books(tables, base),
+        program_cards(tables, base, now),
+        '<section id="cal" class="pz-cal-wrap" aria-label="달력">', _calendar(tables, base, now), '</section>',
         youtube_section(videos or []),
         '<p class="archive-more"><a href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>' % base,
         _notices(tables),

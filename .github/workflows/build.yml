@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: QR 도구
+        run: pip install segno==1.6.1
       - name: 운영 흐름 시험
         run: python3 -m unittest discover -s tests -v
       - name: 공개 CSV 내려받고 검증

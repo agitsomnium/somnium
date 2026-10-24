@@ -167,9 +167,8 @@ def load_videos(data_dir):
 def youtube_section(videos, limit=6):
     cfg = site_config().get('youtube') or {}
     url = cfg.get('url', '')
-    out = ['<section class="yt-section" aria-labelledby="yt-title">',
-           '<div class="section-heading"><h2 id="yt-title">영상으로 만나는 솜니움</h2>'
-           '<p>세미나와 강좌, 대화의 기록을 유튜브에 남깁니다.</p></div>']
+    out = ['<section class="yt-section band-navy" aria-labelledby="yt-title">',
+           '<div class="section-heading"><h2 id="yt-title" class="band-h">유튜브</h2></div>']
     if videos:
         out.append('<div class="yt-grid">')
         for v in videos[:limit]:
@@ -210,7 +209,6 @@ def social_strip():
     if not links:
         return ''
     return ('<section class="social-strip" aria-labelledby="social-title"><h2 id="social-title">솜니움 소식 받아보기</h2>'
-            '<p>모임 사진과 다음 공부 안내는 SNS에 먼저 올라옵니다.</p>'
             '<div class="social-grid">' + ''.join(links) + '</div></section>')
 
 

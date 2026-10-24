@@ -58,6 +58,9 @@ def shell(title, body, base='', theme='b', preview=False):
 <link rel="stylesheet" href="{base}/assets/tokens.css?v={ASSET_VER}">
 <link rel="stylesheet" href="{base}/assets/fonts-display.css?v={ASSET_VER}">
 <link rel="stylesheet" href="{base}/assets/plaza.css?v={ASSET_VER}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=East+Sea+Dokdo&display=swap">
+<link rel="stylesheet" href="{base}/assets/brand.css?v={ASSET_VER}">
 <script src="{base}/assets/extras.js?v={ASSET_VER}" defer></script>
 <link rel="icon" href="{base}/assets/favicon.png">
 </head>
@@ -66,7 +69,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <a class="skip-link" href="#main">본문으로 건너뛰기</a>
 <header class="site-header">
 <div class="header-inner">
-<a class="logo" href="{base}/"><strong>somnium</strong><span>솜니움 기독교정치사회연구소</span></a>
+<a class="logo" href="{base}/"><img src="{base}/assets/somnium_wordmark_on_paper.svg" alt="솜니움" width="874" height="560"><span>솜니움<br>기독교정치사회연구소</span></a>
 <div class="header-actions"><nav class="site-nav" aria-label="주요 메뉴">{navhtml}</nav>
 <div class="theme-switch hidden" data-theme-switch role="group" aria-label="화면 밝기"><button type="button" data-theme-choice="a" aria-pressed="false">어둡게</button><button type="button" data-theme-choice="b" aria-pressed="false">밝게</button></div></div>
 </div>
@@ -77,7 +80,8 @@ def shell(title, body, base='', theme='b', preview=False):
 </main>
 <footer class="site-footer">
 <div class="container">
-<h2>함께 배우고,<br>토론하며, 꿈을 꿉니다.</h2>
+<img class="footer-mark" src="{base}/assets/somnium_wordmark_on_navy.svg" alt="솜니움" width="874" height="560">
+<p class="footer-about">기독교신앙을 근거로, 청년 시민들이 함께 오늘날의 정치사회이론과 현실을 공부하며 기독교의 ‘사회적 꿈’을 모색하는 단체입니다.</p>
 <div class="footer-links">
 <a href="{base}/about/">연구소 소개</a>
 <a href="{base}/programs/">프로그램</a>
