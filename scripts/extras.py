@@ -164,7 +164,29 @@ def load_videos(data_dir):
     return clean
 
 
-def youtube_section(videos, limit=6):
+def _first_gen_row(base):
+    """1기 강좌 채널에서 강의 영상 4편(질의응답 빼고)을 홈에 보인다."""
+    import re as _re
+    try:
+        from videos_page import load_catalog
+        rows = [r for r in load_catalog([]) if r.get('channel') == 'series' and '(강의)' in r.get('title', '')][:4]
+    except Exception:
+        return ''
+    if not rows:
+        return ''
+    cards = []
+    for v in rows:
+        t = _re.sub(r'\s*\[한국기독학생운동사를 돌아보며\].*$', '', v['title']).replace('(강의)', '·')
+        t = _re.sub(r'\s+', ' ', t).strip()
+        cards.append('<a class="yt-card" href="https://www.youtube.com/watch?v=%s" target="_blank" rel="noopener">'
+                     '<img src="https://i.ytimg.com/vi/%s/hqdefault.jpg" alt="" width="480" height="360" loading="lazy">'
+                     '<strong>%s</strong></a>' % (e(v['id']), e(v['id']), e(t)))
+    return ('<div class="yt-firstgen"><p class="yt-firstgen-h">솜니움 1기 강좌 · 한국기독학생운동사를 돌아보며 '
+            '<a href="%s/videos/first-gen/">18편 모두 보기 →</a></p><div class="yt-grid yt-grid-4">%s</div></div>'
+            % (base, ''.join(cards)))
+
+
+def youtube_section(videos, limit=6, base=''):
     cfg = site_config().get('youtube') or {}
     url = cfg.get('url', '')
     out = ['<section class="yt-section band-navy" aria-labelledby="yt-title">',
@@ -181,6 +203,7 @@ def youtube_section(videos, limit=6):
         out.append('</div>')
     if url:
         out.append('<p class="yt-links"><a class="button yt-button" href="%s" target="_blank" rel="noopener">유튜브 채널 바로가기 ↗</a></p>' % e(url))
+    out.append(_first_gen_row(base))
     for m in (site_config().get('youtube_more') or []):
         if not m.get('url'):
             continue

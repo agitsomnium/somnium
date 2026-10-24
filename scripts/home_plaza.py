@@ -14,7 +14,7 @@ def _calendar(tables, base, now):
     cur = _dt.date(now.year, now.month, 1)
     dated, ranges, undated = collect_events(tables, base)
     cols = []
-    for n, tag in ((1, '다음 달'), (0, '이번 달'), (-1, '지난달')):  # 다가올 일부터
+    for n, tag in ((-1, '지난달'), (0, '이번 달'), (1, '다음 달')):  # 지난달 → 이번 달 → 다음 달 (2026-10-24)
         first = _shift(cur, n)
         lo, hi = _month_range(first)
         rows = []
@@ -135,7 +135,7 @@ def home(tables, base='', videos=None, insta=None):
         program_cards(tables, base, now),
         pay_bar(),
         '<section id="cal" class="pz-cal-wrap" aria-label="달력">', _calendar(tables, base, now), '</section>',
-        youtube_section(videos or []),
+        youtube_section(videos or [], base=base),
         '<p class="archive-more"><a href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>' % base,
         _notices(tables),
         social_strip(),

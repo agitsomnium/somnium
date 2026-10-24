@@ -40,7 +40,7 @@ def _page_steps(title, base, nav):
 
 def shell(title, body, base='', theme='b', preview=False):
     t = e(title)
-    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('참여·후원', '/participate/')]
+    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('오시는 길', '/about/#visit'), ('참여·후원', '/participate/')]
     navhtml = ''.join(f'<a href="{base}{h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
     banner = '<div class="preview-banner">검토용 / 프로그램 일정과 신청 안내를 확인하고 있습니다</div>' if preview else ''
     return f'''<!DOCTYPE html>
@@ -85,6 +85,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <div class="footer-links">
 <a href="{base}/about/">연구소 소개</a>
 <a href="{base}/programs/">프로그램</a>
+<a href="{base}/about/#visit">오시는 길</a>
 <a href="{base}/participate/">참여·후원</a>
 <a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a>
 {footer_social()}

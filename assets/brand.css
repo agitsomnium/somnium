@@ -29,10 +29,19 @@
 }
 /* 어둡게: 먹 바탕 + 미색 글자. 밝은 파랑 대신 쪽빛 보조색 */
 .theme-a{
-  --bg:var(--ink);--ink:var(--feat);--muted:#B4B4AD;--line:#44464A;--rule:var(--feat);--accent:var(--navy-sub);
-  --feature:var(--navy);--feature-ink:var(--feat);--now-bg:var(--navy);--now-ink:var(--feat);--now-muted:var(--navy-sub);
-  --band-bg:var(--navy);--band-ink:var(--feat);--band-muted:var(--navy-sub);
+  --paper:#15171B;--ink:#ECEBE4;--line:#3A3D43;--sub:#A9ABA6;
+  --bg:#15171B;--muted:#B4B4AD;--rule:#ECEBE4;--accent:var(--navy-sub);
+  --feature:var(--navy);--feature-ink:var(--feat);--now-bg:var(--navy);--now-ink:var(--feat);--now-muted:var(--navy-sub);--now-line:rgba(246,245,239,.22);
+  --band-bg:var(--navy);--band-ink:var(--feat);--band-muted:var(--navy-sub);--band-line:rgba(246,245,239,.25);
 }
+/* 어둡게: 종이 자리를 먹색으로 바꿔 종이·쪽빛 번갈이를 먹·쪽빛으로 */
+.theme-a .logo img{content:url(somnium_wordmark_on_navy.svg)}
+.theme-a .pc{background:#1F2228;border-color:#3A3D43}
+.theme-a .pc-badge{color:#1B1D22}
+.theme-a .pc-facts dt{color:#A9ABA6}
+.theme-a .pc-more{color:var(--navy-sub)}
+.theme-a .pc-btn{background:var(--feat);color:#1B1D22}
+.theme-a .pz-intro .intro-l{border-color:var(--feat)}
 html,body{background:var(--bg)}
 body{font-family:var(--font-body);color:var(--ink)}
 
@@ -150,3 +159,13 @@ main.container>.yt-section.band-navy{padding:72px 0 80px;margin-top:80px}
   .site-nav a[href$="/participate/"]{padding:4px 12px;order:-1}
   .theme-switch{position:absolute;top:14px;right:0;margin:0}
 }
+
+/* 어둡게: QR은 밝은 바탕 위에 */
+.theme-a .pc-qr{background:var(--feat);padding:3px;box-sizing:content-box}
+/* 홈 영상 칸의 솜니움 1기 강좌 4편 */
+.yt-firstgen{margin-top:44px}
+.yt-firstgen-h{margin:0;font-weight:800;font-size:16px;color:var(--feat)}
+.yt-firstgen-h a{margin-left:10px;font-weight:700;color:var(--navy-sub)}
+.yt-grid.yt-grid-4{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:18px}
+.yt-grid-4 .yt-card strong{font-size:15px}
+@media (max-width:760px){.yt-grid.yt-grid-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}
