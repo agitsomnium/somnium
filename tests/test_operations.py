@@ -123,6 +123,7 @@ class OpsTest(unittest.TestCase):
                 if attr.startswith("/"):
                     self.assertTrue(attr.startswith("/somnium/"), attr)
                     relative, _, fragment = attr[len("/somnium/"):].partition("#")
+                    relative = relative.split("?", 1)[0]
                     target = self.output / relative
                     if fragment:
                         page = target / "index.html" if target.is_dir() else target

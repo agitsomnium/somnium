@@ -4,6 +4,19 @@ from data import public_rows
 from extras import month_calendar, youtube_section, social_strip, footer_social, accounts_block
 
 
+def _asset_version():
+    """CSS·JS 내용이 바뀌면 주소 꼬리(?v=)가 바뀌어, 브라우저가 옛 디자인을 붙들고 있지 않게 한다."""
+    import hashlib
+    from pathlib import Path
+    h = hashlib.md5()
+    for f in sorted((Path(__file__).resolve().parent.parent / 'assets').glob('*.[cj]s*')):
+        h.update(f.read_bytes())
+    return h.hexdigest()[:8]
+
+
+ASSET_VER = _asset_version()
+
+
 def _page_steps(title, base, nav):
     """홈이 아닌 쪽 아래에 «이전 메뉴 · 홈 · 다음 메뉴»와 «뒤로» 단추."""
     if title == '홈':
@@ -36,16 +49,16 @@ def shell(title, body, base='', theme='b', preview=False):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>window.somniumDefaultTheme="{e(theme)}";</script>
-<script src="{base}/assets/theme.js"></script>
+<script src="{base}/assets/theme.js?v={ASSET_VER}"></script>
 <title>{('솜니움 기독교정치사회연구소 — 연구자와 시민이 만나는 광장' if title == '홈' else t + ' | 솜니움 기독교정치사회연구소')}</title>
 <link rel="preload" href="{base}/assets/SomniumDisplay.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="{base}/assets/site.css">
-<link rel="stylesheet" href="{base}/assets/pages.css">
-<link rel="stylesheet" href="{base}/assets/extras.css">
-<link rel="stylesheet" href="{base}/assets/tokens.css">
-<link rel="stylesheet" href="{base}/assets/fonts-display.css">
-<link rel="stylesheet" href="{base}/assets/plaza.css">
-<script src="{base}/assets/extras.js" defer></script>
+<link rel="stylesheet" href="{base}/assets/site.css?v={ASSET_VER}">
+<link rel="stylesheet" href="{base}/assets/pages.css?v={ASSET_VER}">
+<link rel="stylesheet" href="{base}/assets/extras.css?v={ASSET_VER}">
+<link rel="stylesheet" href="{base}/assets/tokens.css?v={ASSET_VER}">
+<link rel="stylesheet" href="{base}/assets/fonts-display.css?v={ASSET_VER}">
+<link rel="stylesheet" href="{base}/assets/plaza.css?v={ASSET_VER}">
+<script src="{base}/assets/extras.js?v={ASSET_VER}" defer></script>
 <link rel="icon" href="{base}/assets/favicon.png">
 </head>
 <body>
