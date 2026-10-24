@@ -1,8 +1,11 @@
 {
-  "세미나": "",
-  "회차": "",
-  "북클럽": "",
-  "강사진": "",
-  "영상": "",
-  "공지": ""
+  "세미나": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=0&single=true&output=csv",
+  "회차": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=749195051&single=true&output=csv",
+  "북클럽": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=1097291671&single=true&output=csv",
+  "강사진": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=2059532280&single=true&output=csv",
+  "영상": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=1012648175&single=true&output=csv",
+  "공지": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=1493394112&single=true&output=csv",
+  "페이지글": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=2006106038&single=true&output=csv",
+  "계좌": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=58806053&single=true&output=csv",
+  "연락": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT-z2zF-gEugNpJYiyZnaz_HgroMCYCVW8h46iYWtRNGH4EA1yIjEI1TM1vGtIg9n0aar2xzeH-oddm/pub?gid=985633658&single=true&output=csv"
 }
