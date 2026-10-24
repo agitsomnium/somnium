@@ -48,6 +48,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="naver-site-verification" content="5fc0b252ed3c551867be4dac8a02f59011314291">
 <script>window.somniumDefaultTheme="{e(theme)}";</script>
 <script src="{base}/assets/theme.js?v={ASSET_VER}"></script>
 <title>{('솜니움 기독교정치사회연구소 — 연구자와 시민이 만나는 광장' if title == '홈' else t + ' | 솜니움 기독교정치사회연구소')}</title>
