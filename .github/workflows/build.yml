@@ -38,6 +38,8 @@ jobs:
           fi
       - name: 유튜브 최근 영상 목록 받기
         run: python3 scripts/fetch_youtube.py data/live
+      - name: 책 표지 받기
+        run: python3 scripts/fetch_covers.py
       - name: 인스타 최신 글 받기
         run: python3 scripts/fetch_social.py data/live
       - name: 60일 멈춤 방지(오래 조용하면 표시 파일 갱신)

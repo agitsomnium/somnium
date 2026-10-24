@@ -7,3 +7,4 @@ docs/batch-private/
 __pycache__/
 .DS_Store
 .env*
+assets/covers/

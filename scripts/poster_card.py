@@ -21,7 +21,13 @@ BG = {'이 망할 세상에서 사랑이라니!': '#2B1A33', '가까스로-있�
 # 분홍으로 칠할 한 낱말(인스타 포스터와 같게)
 PINK = {'이 망할 세상에서 사랑이라니!': '사랑'}
 # 책 표지(assets/ 안). id 기준
-COVERS = {}  # 지금 assets 의 webp 는 표지가 아니라 인스타 포스터라 넣지 않음
+def _covers():
+    """config 의 covers 중 실제로 내려받아 둔 표지만 (assets/covers/<id>.jpg)."""
+    from pathlib import Path
+    from extras import site_config
+    d = Path(__file__).resolve().parents[1] / 'assets' / 'covers'
+    return {k: 'covers/%s.jpg' % k for k in (site_config().get('covers') or {}) if (d / (k + '.jpg')).is_file()}
+
 WEEK = '월화수목금토일'
 
 
@@ -129,7 +135,7 @@ def program_cards(tables, base='', today=None):
             fee=_from_intro(intro, r'참가비\s*([^.]*)\.'),
             leader=_from_intro(intro, r'(?:이끔이|진행)\s*([가-힣]{2,4})'),
             lead=_first_sentence(intro), url=b.get('신청_url', ''),
-            href='%s/programs/#book-%s' % (base, b.get('id', '')), cover=COVERS.get(b.get('id', ''), '')))
+            href='%s/programs/#book-%s' % (base, b.get('id', '')), cover=_covers().get(b.get('id', ''), '')))
     fac = {f['id']: f['이름'] for f in public_rows(tables, '강사진')}
     ses = public_rows(tables, '회차')
     for s in public_rows(tables, '세미나'):
@@ -144,7 +150,7 @@ def program_cards(tables, base='', today=None):
             tag='세미나 · ' + s.get('상태', ''), title=_title_html(title, PINK.get(title)), plain_title=title,
             bg=BG.get(title, '#23407A'), dates=ds, time=times[0] if times else '', place=s.get('장소', ''),
             fee=s.get('참가비', ''), leader=' · '.join(names), lead=_first_sentence(s.get('소개', '')),
-            url=s.get('신청_url', ''), href='%s/seminars/%s/' % (base, sid), cover=COVERS.get(sid, '')))
+            url=s.get('신청_url', ''), href='%s/seminars/%s/' % (base, sid), cover=''))
     if not items:
         return ''
 

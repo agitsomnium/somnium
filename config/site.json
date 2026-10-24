@@ -67,6 +67,12 @@
     }
   ],
   "site_url": "https://somniumagit.com",
+  "covers": {
+    "book-october": "https://image.aladin.co.kr/product/39061/33/cover500/k852137647_1.jpg",
+    "book-november": "https://image.aladin.co.kr/product/37207/69/cover500/k162031598_1.jpg",
+    "book-november-love": "https://image.aladin.co.kr/product/39418/16/cover500/k492139290_1.jpg"
+  },
+  "_covers_설명": "북클럽 고유이름: 책 표지 그림 주소(알라딘 등). 배포 때 내려받아 홈 「이달 프로그램」 카드에 붙인다.",
   "_site_url_설명": "도메인이 생기면 https://주소 를 적습니다(끝에 / 없이). 적으면 검색·AI용 sitemap.xml, 대표 주소(canonical), 공유 미리보기 주소가 자동으로 생깁니다.",
   "seo": {
     "name": "솜니움 기독교정치사회연구소",
