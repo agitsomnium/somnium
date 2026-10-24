@@ -117,6 +117,17 @@ def _swap(stage, target):
         shutil.rmtree(str(backup), ignore_errors=True)
 
 
+def _home_videos(data_dir):
+    """홈 영상 칸: 오늘 받은 최근 영상, 못 받았으면 누적 목록에서 최근 것."""
+    vids = load_videos(data_dir)
+    if vids:
+        return vids
+    from videos_page import load_catalog
+    rows = [r for r in load_catalog([]) if r.get('channel') != 'series']
+    rows.sort(key=lambda r: r.get('published') or '', reverse=True)
+    return rows[:6]
+
+
 def build(data_dir, outdir, base='', theme='b', preview=False):
     target = Path(outdir)
     if target.is_symlink():
@@ -153,7 +164,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         bookclubs = public_rows(tables, '북클럽')
         videos = public_rows(tables, '영상')
         events = seo.events_jsonld(tables, base)
-        _page(stage, 'index.html', '홈', home(tables, base, load_videos(data_dir), load_instagram(data_dir)), base, theme, preview,
+        _page(stage, 'index.html', '홈', home(tables, base, _home_videos(data_dir), load_instagram(data_dir)), base, theme, preview,
               jsonld=[seo.org_jsonld()] + events)
         for s in seminars:
             sid = str(s.get('id', ''))

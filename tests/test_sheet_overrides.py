@@ -42,3 +42,17 @@ class SheetOverrides(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SheetFormats(unittest.TestCase):
+    def test_dates_times_from_google(self):
+        self.assertEqual(data.norm_date('2026. 9. 17'), '2026-09-17')
+        self.assertEqual(data.norm_date('2026/11/5;2026. 11. 12'), '2026-11-05;2026-11-12')
+        self.assertEqual(data.norm_date('2026-10-01'), '2026-10-01')
+        self.assertEqual(data.norm_time('오후 7:00:00'), '19:00')
+        self.assertEqual(data.norm_time('19:00:00'), '19:00')
+        self.assertEqual(data.norm_time('7:30 PM'), '19:30')
+        self.assertEqual(data.norm_time('19:00'), '19:00')
+        self.assertEqual(data.norm_date('46282'), '2026-09-17')
+        self.assertEqual(data.norm_date('2026. 11. 10 오전 12:00:00'), '2026-11-10')
+        self.assertEqual(data.norm_time('0.7916666667'), '19:00')

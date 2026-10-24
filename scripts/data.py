@@ -28,6 +28,45 @@ YT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
 STATUSES = {"예고", "모집중", "진행중", "종료", "취소"}
 
 
+_DATE_ANY = re.compile(r"^\s*(\d{4})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})\s*일?\.?(?:\s+(?:오전|오후|AM|PM)?\s*\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)?\s*$")
+_TIME_ANY = re.compile(r"^\s*(오전|오후|AM|PM|am|pm)?\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM|am|pm)?\s*$")
+
+
+def norm_date(v):
+    """구글 시트가 바꿔 쓴 날짜(2026. 9. 17 · 2026/9/17)를 2026-09-17 로. 여러 날짜는 ; 로."""
+    out = []
+    for part in (v or "").split(";"):
+        p2 = part.strip()
+        if re.fullmatch(r"\d{5}(\.0+)?", p2) and 30000 < float(p2) < 80000:  # 시트의 날짜 일련번호
+            d = datetime.date(1899, 12, 30) + datetime.timedelta(days=int(float(p2)))
+            out.append(d.isoformat())
+            continue
+        m = _DATE_ANY.match(part)
+        out.append("%s-%02d-%02d" % (m.group(1), int(m.group(2)), int(m.group(3))) if m else part.strip())
+    return ";".join(x for x in out if x) if v else v
+
+
+def norm_time(v):
+    """오후 7:00:00 · 19:00:00 · 7:00 PM 을 19:00 으로."""
+    if re.fullmatch(r"0?\.\d+", (v or "").strip()):  # 시트의 시간 소수(0.7916…)
+        mins = round(float(v) * 24 * 60)
+        return "%02d:%02d" % (mins // 60 % 24, mins % 60)
+    m = _TIME_ANY.match(v or "")
+    if not m:
+        return v
+    h, mi = int(m.group(2)), m.group(3)
+    ap = (m.group(1) or m.group(4) or "").lower()
+    if ap in ("오후", "pm") and h < 12:
+        h += 12
+    if ap in ("오전", "am") and h == 12:
+        h = 0
+    return "%02d:%s" % (h, mi)
+
+
+_DATE_FIELDS = {"시작일", "종료일", "날짜", "게시일"}
+_TIME_FIELDS = {"시간"}
+
+
 def load_tables(data_dir):
     tables = {}
     for stem, cols in SCHEMA.items():
@@ -48,7 +87,13 @@ def load_tables(data_dir):
                     continue
                 if len(raw) != len(cols):
                     raise ValueError(f"{stem} row {lineno}: expected {len(cols)} fields got {len(raw)}")
-                rows.append(dict(zip(cols, raw)))
+                row = dict(zip(cols, raw))
+                for k in row:
+                    if k in _DATE_FIELDS:
+                        row[k] = norm_date(row[k].strip())
+                    elif k in _TIME_FIELDS:
+                        row[k] = norm_time(row[k].strip())
+                rows.append(row)
         tables[stem] = rows
     for stem, cols in OPTIONAL_SCHEMA.items():
         path = os.path.join(data_dir, stem + ".csv")
