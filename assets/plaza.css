@@ -63,6 +63,8 @@ h1{line-height:1.08}
 .pz-book .pz-tag{font-size:13px}
 .pz-book h3{font-family:var(--font-display);font-weight:400;font-size:32px;margin-top:8px;letter-spacing:0}
 .pz-book p{color:var(--muted);font-size:15px;margin-top:8px}
+.pz-book .pz-apply{display:inline-block;margin-top:6px;padding:8px 16px;border:1.5px solid currentColor;border-radius:999px;color:var(--ink,inherit);font-weight:700;text-decoration:none}
+.pz-book .pz-apply:hover{background:var(--ink,#222);color:var(--bg)}
 
 /* 영상·소식 (extras.css 위에 1안 글꼴만 얹음) */
 .yt-section h2,.social-strip h2,.acct-block h2{font-family:var(--font-display);font-weight:400}

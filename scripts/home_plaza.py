@@ -96,10 +96,14 @@ def _books(tables, base):
                    % (base, POSTERS[bid], e(b.get('도서', ''))))
         date = fmt_days(b.get('날짜', ''))
         meta = ' · '.join(x for x in (b.get('제목', ''), b.get('상태', ''), date) if x)
+        apply = ''
+        if b.get('신청_url') and b.get('상태') in ('모집중', '진행중', '예고'):
+            apply = ('<p><a class="pz-apply" href="%s" target="_blank" rel="noopener">신청하기 ↗</a></p>'
+                     % e(b['신청_url']))
         cards.append('<article class="pz-book"><a href="%s/programs/#book-%s">%s</a><div><p class="pz-tag">%s</p>'
-                     '<h3>%s</h3>%s</div></article>'
+                     '<h3>%s</h3>%s%s</div></article>'
                      % (base, e(bid), img, e(meta), e(b.get('도서', '')),
-                        ('<p>%s</p>' % e(b['소개'])) if b.get('소개') else ''))
+                        ('<p>%s</p>' % e(b['소개'])) if b.get('소개') else '', apply))
     return ('<section class="pz-sec" aria-labelledby="pz-book-h"><h2 id="pz-book-h" class="pz-kicker">'
             '책에서 시작하는 대화 · 북클럽</h2><div class="pz-books">' + ''.join(cards) + '</div></section>')
 
