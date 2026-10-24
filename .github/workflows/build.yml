@@ -59,7 +59,7 @@ jobs:
           fi
       - name: 실제 시트로 정적 HTML 생성
         env:
-          SITE_BASE_PATH: ${{ vars.SITE_BASE_PATH }}
+          SITE_BASE_PATH: ''  # somniumagit.com 은 주소 맨 앞(/)에서 열린다
         run: python3 scripts/build.py --data data/live
       - uses: actions/upload-pages-artifact@v3
         with:
