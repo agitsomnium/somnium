@@ -11,7 +11,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from data import SCHEMA, load_tables, validate  # noqa: E402
+from data import SCHEMA, OPTIONAL_SCHEMA, load_tables, validate  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MAX_BYTES = 5 * 1024 * 1024
@@ -96,7 +96,7 @@ def fetch_all(config_path, outdir):
         raise ValueError("unsafe outdir")
     with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
-    if not isinstance(config, dict) or set(config.keys()) != set(SCHEMA.keys()):
+    if not isinstance(config, dict) or not set(SCHEMA) <= set(config) or not set(config) <= set(SCHEMA) | set(OPTIONAL_SCHEMA):
         raise ValueError("config keys mismatch")
     for k in SCHEMA:
         v = config.get(k)
@@ -107,7 +107,7 @@ def fetch_all(config_path, outdir):
     backup = None
     success = False
     try:
-        for k in SCHEMA:
+        for k in list(SCHEMA) + [k for k in OPTIONAL_SCHEMA if config.get(k)]:
             text = fetch_csv(config[k])
             with open(tmp / (k + ".csv"), "w", encoding="utf-8", newline="") as f:
                 f.write(text)

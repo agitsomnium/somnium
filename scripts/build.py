@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from data import load_tables, validate, public_rows  # noqa: E402
+from data import load_tables, validate, public_rows, overrides as data_overrides  # noqa: E402
 from render import shell, seminar_detail
 from home_plaza import home
 from extras import load_videos, load_instagram
@@ -141,6 +141,10 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         raise ValueError('invalid base path')
     target.parent.mkdir(parents=True, exist_ok=True)
     tables = load_tables(data_dir)
+    page_over, cfg_over = data_overrides(tables)
+    import extras as _ex
+    _ex.CONFIG_OVERRIDES.clear()
+    _ex.CONFIG_OVERRIDES.update(cfg_over)
     insta_events.merge(tables, load_instagram(data_dir, limit=80), _today())
     tables = validate(tables)
     stage = Path(tempfile.mkdtemp(prefix='.stage-', dir=str(target.parent)))
@@ -157,7 +161,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
             sdesc = ' '.join(x for x in (s.get('제목', ''), s.get('부제', ''), (s.get('소개') or '').split('\n')[0]) if x)
             sev = [ev for ev in events if ('seminars/%s/' % sid) in ev.get('url', '')]
             _page(stage, 'seminars/%s/index.html' % sid, s.get('제목', '세미나'), body, base, theme, preview, sdesc, sev)
-        content = {name: _read(name) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md','people.md')}
+        content = {name: page_over.get(name[:-3]) or _read(name) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md','people.md')}
         for slug, title, body in (
             ('about', '연구소 소개', about_page(content, markdown, base)),
             ('programs', '프로그램', program_page(tables, content, markdown, base)),

@@ -13,6 +13,14 @@ SCHEMA = {
     "공지": ["id","제목","본문","링크_url","게시일","공개","정렬"],
 }
 
+# 있어도 되고 없어도 되는 탭 — 시트에 있으면 홈페이지의 글·계좌·연락처를 시트가 덮어쓴다
+OPTIONAL_SCHEMA = {
+    "페이지글": ["id","제목","본문","공개"],
+    "계좌": ["용도","설명","은행","번호","예금주","안내","정렬","공개"],
+    "연락": ["항목","값"],
+}
+PAGE_IDS = ("about", "history", "people", "archive", "participate", "visit", "lectures", "agit", "board")
+
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
@@ -42,7 +50,49 @@ def load_tables(data_dir):
                     raise ValueError(f"{stem} row {lineno}: expected {len(cols)} fields got {len(raw)}")
                 rows.append(dict(zip(cols, raw)))
         tables[stem] = rows
+    for stem, cols in OPTIONAL_SCHEMA.items():
+        path = os.path.join(data_dir, stem + ".csv")
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r", encoding="utf-8-sig", newline="") as f:
+            rows_raw = list(csv.reader(f))
+        if not rows_raw:
+            continue
+        header = [h.strip() for h in rows_raw[0]]
+        if header != cols:
+            raise ValueError(f"{stem}: bad header {header!r} expected {cols!r}")
+        rows = []
+        for raw in rows_raw[1:]:
+            if all(c.strip() == "" for c in raw):
+                continue
+            raw = (raw + [""] * len(cols))[:len(cols)]
+            rows.append(dict(zip(cols, [c.strip() if k != "본문" else c for k, c in zip(cols, raw)])))
+        tables[stem] = rows
     return tables
+
+
+def overrides(tables):
+    """시트의 선택 탭 → (페이지 글 dict, 설정 덮어쓰기 dict)."""
+    pages = {}
+    for r in tables.get("페이지글", []):
+        if r.get("공개", "예") != "아니오" and r.get("id") in PAGE_IDS and (r.get("본문") or "").strip():
+            pages[r["id"]] = r["본문"].replace("\r\n", "\n")
+    cfg = {}
+    accts = [r for r in tables.get("계좌", []) if r.get("공개", "예") != "아니오" and r.get("번호")]
+    if accts:
+        accts.sort(key=lambda r: int(r.get("정렬") or 0) if (r.get("정렬") or "0").isdigit() else 0)
+        cfg["accounts"] = [{k: r[k] for k in ("용도", "설명", "은행", "번호", "예금주", "안내") if r.get(k)} for r in accts]
+    keymap = {"이메일": ("email",), "CMS 정기후원 주소": ("cms_url",), "유튜브 주소": ("youtube", "url"),
+              "인스타 주소": ("instagram", "url"), "페이스북 주소": ("facebook", "url"), "사이트 주소": ("site_url",)}
+    for r in tables.get("연락", []):
+        k, v = (r.get("항목") or "").strip(), (r.get("값") or "").strip()
+        if k in keymap and v and (k == "이메일" or v.startswith("https://")):
+            path = keymap[k]
+            if len(path) == 1:
+                cfg[path[0]] = v
+            else:
+                cfg.setdefault(path[0], {})[path[1]] = v
+    return pages, cfg
 
 
 def _err(name, i, msg):

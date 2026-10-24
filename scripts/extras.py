@@ -12,12 +12,21 @@ KST = _dt.timezone(_dt.timedelta(hours=9))
 WEEK = '월화수목금토일'
 
 
+CONFIG_OVERRIDES = {}  # 빌드 때 시트의 계좌·연락 탭으로 채운다
+
+
 def site_config():
     p = ROOT / 'config' / 'site.json'
     try:
-        return json.loads(p.read_text(encoding='utf-8'))
+        cfg = json.loads(p.read_text(encoding='utf-8'))
     except (OSError, ValueError):
-        return {}
+        cfg = {}
+    for k, v in CONFIG_OVERRIDES.items():
+        if isinstance(v, dict) and isinstance(cfg.get(k), dict):
+            cfg[k] = dict(cfg[k], **v)
+        else:
+            cfg[k] = v
+    return cfg
 
 
 def today():

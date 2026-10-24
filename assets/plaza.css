@@ -214,3 +214,9 @@ main.container>.pz-notice{padding-top:72px}
   .pay-row + .pay-row{padding-top:12px;border-top:1px solid rgba(255,255,255,.25)}
 }
 .pay-bar + .news-strip{margin-top:36px}
+/* 썸네일 비율 고정: HTML의 height 값 때문에 화면이 좁아지면 네모로 찌그러지던 것 바로잡음 */
+.yt-card img,.news-card img,.ig-tile img,.yt-bundle .yt-stack img{height:auto;max-width:100%}
+.yt-card img,.yt-bundle .yt-stack img{aspect-ratio:16/9;object-fit:cover}
+/* 따끈한 소식: 포스터 원래 비율 그대로 줄어들게(자르지 않음) */
+.news-card img{aspect-ratio:auto;height:auto;object-fit:contain}
+.news-row{align-items:start}

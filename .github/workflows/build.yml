@@ -38,6 +38,13 @@ jobs:
         run: python3 scripts/fetch_youtube.py data/live
       - name: 인스타 최신 글 받기
         run: python3 scripts/fetch_social.py data/live
+      - name: 60일 멈춤 방지(오래 조용하면 표시 파일 갱신)
+        if: github.event_name == 'schedule'
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt 3888000 ]; then
+            mkdir -p data/catalog && date -u +%F > data/catalog/keepalive.txt
+          fi
       - name: 새 영상을 누적 목록에 저장
         if: github.event_name != 'pull_request'
         run: |
