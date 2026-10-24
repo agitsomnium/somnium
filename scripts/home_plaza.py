@@ -122,20 +122,18 @@ def _notices(tables):
 def home(tables, base='', videos=None, insta=None):
     now = today()
     out = [
-        '<section class="band-navy pz-brand" aria-labelledby="pz-h1">',
+        '<section class="band-navy pz-hero" aria-labelledby="pz-h1">',
         '<h1 id="pz-h1" class="sr-only">솜니움 기독교정치사회연구소</h1>',
-        '<img class="brand-mark" src="%s/assets/somnium_wordmark_on_navy.svg" alt="솜니움" width="874" height="560">' % base,
-        '<p class="brand-hand" aria-hidden="true"><span class="pk">기독교</span> 정치사회연구소</p>',
-        '</section>',
-        '<section class="band-paper pz-intro" aria-label="솜니움 소개">',
-        '<div class="intro-l"><p class="intro-name">Somnium</p><p>라틴어로 ‘꿈’을 뜻합니다.</p></div>',
-        '<div class="intro-r"><p>기독교신앙을 근거로, 청년 시민들이 함께 오늘날의 정치사회이론과 현실을 공부하며 '
+        '<div class="hero-l"><img class="brand-mark" src="%s/assets/somnium_wordmark_on_navy.svg" alt="솜니움" width="874" height="560">' % base,
+        '<p class="brand-hand" aria-hidden="true"><span class="pk">기독교</span> 정치사회연구소</p></div>',
+        '<div class="hero-r"><p class="hero-name"><b>Somnium</b> 라틴어로 ‘꿈’을 뜻합니다.</p>'
+        '<p class="hero-about">기독교신앙을 근거로, 청년 시민들이 함께 오늘날의 정치사회이론과 현실을 공부하며 '
         '기독교의 ‘사회적 꿈’을 모색하는 단체입니다.</p>'
-        '<p>📚 북클럽 · 세미나 · 기획강좌　📍 합정–상수 사무실 + Zoom</p></div>',
+        '<p class="hero-meta">📚 북클럽 · 세미나 · 기획강좌　📍 합정–상수 사무실 + Zoom</p></div>',
         '</section>',
-        pay_bar(),
         news_strip(insta or []),
         program_cards(tables, base, now),
+        pay_bar(),
         '<section id="cal" class="pz-cal-wrap" aria-label="달력">', _calendar(tables, base, now), '</section>',
         youtube_section(videos or []),
         '<p class="archive-more"><a href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>' % base,
