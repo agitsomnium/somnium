@@ -111,7 +111,7 @@ def fetch_all(config_path, outdir):
             text = fetch_csv(config[k])
             with open(tmp / (k + ".csv"), "w", encoding="utf-8", newline="") as f:
                 f.write(text)
-        validate(load_tables(tmp))
+        validate(load_tables(tmp), lenient=True)
         out = Path(outdir).resolve()
         if out.exists():
             backup = Path(tempfile.mkdtemp(prefix="bak_", dir=str(data_dir)))

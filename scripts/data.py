@@ -4,6 +4,8 @@ import os
 import re
 from urllib.parse import urlparse
 
+import sheet_friendly
+
 SCHEMA = {
     "세미나": ["id","제목","부제","소개","상태","시작일","종료일","장소","강사진_id","신청_url","취소사유","공개","정렬","참가비","참여방법"],
     "회차": ["id","세미나_id","회차","제목","날짜","시간","자료_url","공개"],
@@ -32,10 +34,35 @@ _DATE_ANY = re.compile(r"^\s*(\d{4})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2
 _TIME_ANY = re.compile(r"^\s*(오전|오후|AM|PM|am|pm)?\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM|am|pm)?\s*$")
 
 
+_MD = re.compile(r"^\s*(\d{1,2})\s*[/.월]\s*(\d{1,2})\s*일?\s*(?:\(.\))?\s*$")
+
+
+def _year_for(month):
+    t = _today_kst()
+    y = t.year
+    if month < t.month - 6:
+        y += 1
+    elif month > t.month + 6:
+        y -= 1
+    return y
+
+
+def _today_kst():
+    raw = os.environ.get("SITE_TODAY", "").strip()
+    if raw:
+        return datetime.date.fromisoformat(raw)
+    return (datetime.datetime.utcnow() + datetime.timedelta(hours=9)).date()
+
+
 def norm_date(v):
-    """구글 시트가 바꿔 쓴 날짜(2026. 9. 17 · 2026/9/17)를 2026-09-17 로. 여러 날짜는 ; 로."""
+    """구글 시트가 바꿔 쓴 날짜(2026. 9. 17 · 2026/9/17 · 11/12 · 11월 12일)를 2026-09-17 로. 여러 날짜는 ; 로."""
     out = []
-    for part in (v or "").split(";"):
+    for part in re.split(r"[;,\n]", v or ""):
+        md = _MD.match(part)
+        if md and 1 <= int(md.group(1)) <= 12:
+            mo, d = int(md.group(1)), int(md.group(2))
+            out.append("%d-%02d-%02d" % (_year_for(mo), mo, d))
+            continue
         p2 = part.strip()
         if re.fullmatch(r"\d{5}(\.0+)?", p2) and 30000 < float(p2) < 80000:  # 시트의 날짜 일련번호
             d = datetime.date(1899, 12, 30) + datetime.timedelta(days=int(float(p2)))
@@ -51,6 +78,15 @@ def norm_time(v):
     if re.fullmatch(r"0?\.\d+", (v or "").strip()):  # 시트의 시간 소수(0.7916…)
         mins = round(float(v) * 24 * 60)
         return "%02d:%02d" % (mins // 60 % 24, mins % 60)
+    k = re.fullmatch(r"\s*(오전|오후|저녁|밤|낮|아침|새벽)?\s*(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분|반)?\s*", v or "")
+    if k:
+        h = int(k.group(2))
+        mi = int(k.group(3) or (30 if "반" in (v or "") else 0))
+        if k.group(1) in ("오후", "저녁", "밤") and h < 12:
+            h += 12
+        if k.group(1) == "낮" and h < 7:
+            h += 12
+        return "%02d:%02d" % (h % 24, mi)
     m = _TIME_ANY.match(v or "")
     if not m:
         return v
@@ -67,52 +103,53 @@ _DATE_FIELDS = {"시작일", "종료일", "날짜", "게시일"}
 _TIME_FIELDS = {"시간"}
 
 
-def load_tables(data_dir):
+def _read_rows(stem, path, cols):
+    with open(path, "r", encoding="utf-8-sig", newline="") as f:
+        rows_raw = list(csv.reader(f))
+    if not rows_raw or not any(c.strip() for c in rows_raw[0]):
+        raise ValueError(f"{stem}: empty file")
+    header = [h.strip() for h in rows_raw[0]]
+    mapping = sheet_friendly.map_header(stem, header, cols)
+    if mapping is None:
+        raise ValueError(f"{stem}: bad header {header!r} expected {cols!r}")
+    rows = []
+    for lineno, raw in enumerate(rows_raw[1:], start=2):
+        row = {c: "" for c in cols}
+        for c, val in zip(mapping, raw):
+            if c:
+                row[c] = val if c in ("본문", "소개") else val.strip()
+        if sheet_friendly.is_blank(row):
+            continue
+        for k in row:
+            if k in _DATE_FIELDS:
+                row[k] = norm_date(row[k])
+            elif k in _TIME_FIELDS:
+                row[k] = norm_time(row[k])
+        row["_line"] = lineno
+        rows.append(row)
+    return rows
+
+
+def load_tables(data_dir, resolve=True):
+    sheet_friendly.PROBLEMS.clear()
     tables = {}
     for stem, cols in SCHEMA.items():
         path = os.path.join(data_dir, stem + ".csv")
         if not os.path.isfile(path):
             raise ValueError(f"{stem}: missing file {path}")
-        with open(path, "r", encoding="utf-8-sig", newline="") as f:
-            reader = csv.reader(f)
-            try:
-                header = [h.strip() for h in next(reader)]
-            except StopIteration:
-                raise ValueError(f"{stem}: empty file")
-            if header != cols:
-                raise ValueError(f"{stem}: bad header {header!r} expected {cols!r}")
-            rows = []
-            for lineno, raw in enumerate(reader, start=2):
-                if all(c.strip() == "" for c in raw):
-                    continue
-                if len(raw) != len(cols):
-                    raise ValueError(f"{stem} row {lineno}: expected {len(cols)} fields got {len(raw)}")
-                row = dict(zip(cols, raw))
-                for k in row:
-                    if k in _DATE_FIELDS:
-                        row[k] = norm_date(row[k].strip())
-                    elif k in _TIME_FIELDS:
-                        row[k] = norm_time(row[k].strip())
-                rows.append(row)
-        tables[stem] = rows
+        tables[stem] = _read_rows(stem, path, cols)
     for stem, cols in OPTIONAL_SCHEMA.items():
         path = os.path.join(data_dir, stem + ".csv")
         if not os.path.isfile(path):
             continue
-        with open(path, "r", encoding="utf-8-sig", newline="") as f:
-            rows_raw = list(csv.reader(f))
-        if not rows_raw:
-            continue
-        header = [h.strip() for h in rows_raw[0]]
-        if header != cols:
-            raise ValueError(f"{stem}: bad header {header!r} expected {cols!r}")
-        rows = []
-        for raw in rows_raw[1:]:
-            if all(c.strip() == "" for c in raw):
+        try:
+            tables[stem] = _read_rows(stem, path, cols)
+        except ValueError as e:
+            if "empty file" in str(e):
                 continue
-            raw = (raw + [""] * len(cols))[:len(cols)]
-            rows.append(dict(zip(cols, [c.strip() if k != "본문" else c for k, c in zip(cols, raw)])))
-        tables[stem] = rows
+            raise
+    if resolve:
+        sheet_friendly.resolve(tables, _today_kst())
     return tables
 
 
@@ -210,7 +247,58 @@ def _check_sort(name, i, val):
         _err(name, i, f"정렬 must be integer >=0, got {val!r}")
 
 
-def validate(tables):
+def validate(tables, lenient=False):
+    if not lenient:
+        return _validate(tables)
+    dropped = {}
+    fix_field = [
+        (r"^(\S+) bad date|^(\S+) invalid date", None),
+        (r"^(\S+) bad time", None),
+        (r"^(\S+_url) (?:must|whitespace|userinfo)", None),
+        (r"^정렬 must", "정렬"),
+        (r"^bad 상태", "상태"),
+        (r"^시작일 > 종료일", "종료일"),
+    ]
+    for _ in range(2000):
+        try:
+            out = _validate(tables)
+            for k, n in dropped.items():
+                total = n + len(tables.get(k, []))
+                if n >= 3 and n * 2 > total:
+                    raise ValueError(f"{k}: 줄 절반 이상({n}/{total})이 틀려 반영을 멈춥니다 — 머리글이 지워졌는지 보세요")
+            return out
+        except ValueError as e:
+            m = re.match(r"^(\S+) row (\d+): (.*)$", str(e))
+            if not m or m.group(1) not in tables:
+                raise
+            name, i, msg = m.group(1), int(m.group(2)), m.group(3)
+            row = tables[name][i - 1]
+            field = None
+            for pat, fixed in fix_field:
+                mm = re.match(pat, msg)
+                if mm:
+                    field = fixed or next(g for g in mm.groups() if g)
+                    break
+            if field == "상태":
+                row["상태"] = sheet_friendly.auto_status(row, _today_kst(), ("시작일", "종료일", "날짜"))
+                sheet_friendly.note(name, row, sheet_friendly.easy(msg) + " (상태는 날짜를 보고 「%s」로 올렸습니다)" % row["상태"])
+                continue
+            if field and field in row and row[field]:
+                sheet_friendly.note(name, row, sheet_friendly.easy(msg) + " (「%s」 칸을 비우고 올렸습니다)" % field.replace("_url", " 링크"))
+                row[field] = ""
+                continue
+            if msg.startswith("취소 requires"):
+                row["취소사유"] = "사정이 생겨 열리지 않습니다"
+                sheet_friendly.note(name, row, sheet_friendly.easy(msg) + " (일단 「사정이 생겨 열리지 않습니다」로 올렸습니다)")
+                continue
+            tables[name].pop(i - 1)
+            sheet_friendly.note(name, row, sheet_friendly.easy(msg) + " (이 줄은 홈페이지에 안 나왔습니다)")
+            if "unknown 세미나_id" not in msg:
+                dropped[name] = dropped.get(name, 0) + 1
+    raise ValueError("too many bad rows")
+
+
+def _validate(tables):
     ids = {}
     for name, cols in SCHEMA.items():
         if name not in tables:

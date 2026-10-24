@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import sheet_friendly  # noqa: E402
 from data import load_tables, validate, public_rows, overrides as data_overrides  # noqa: E402
 from render import shell, seminar_detail
 from home_plaza import home
@@ -157,7 +158,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
     _ex.CONFIG_OVERRIDES.clear()
     _ex.CONFIG_OVERRIDES.update(cfg_over)
     insta_events.merge(tables, load_instagram(data_dir, limit=80), _today())
-    tables = validate(tables)
+    tables = validate(tables, lenient=True)
     stage = Path(tempfile.mkdtemp(prefix='.stage-', dir=str(target.parent)))
     try:
         seminars = public_rows(tables, '세미나')
@@ -192,6 +193,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         _write(stage / 'robots.txt', seo.robots_txt())
         _write(stage / 'llms.txt', seo.llms_txt(tables, base))
         rels = ['index.html'] + ['seminars/%s/' % str(x.get('id', '')) for x in seminars] + [p + '/' for p in ('about', 'programs', 'videos', 'archive', 'participate')] + [x[0][:-len('index.html')] for x in vpages]
+        _write(stage / 'sheet-check.csv', sheet_friendly.check_csv())
         sm = seo.sitemap_xml(rels)
         if sm:
             _write(stage / 'sitemap.xml', sm)

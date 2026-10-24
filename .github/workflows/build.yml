@@ -3,7 +3,7 @@ name: 시트에서 홈페이지 만들기
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 21 * * *'
+    - cron: '17 */3 * * *'
   push:
     branches: [main]
     paths: ['scripts/**', 'assets/**', 'content/**', 'config/**', '.github/workflows/build.yml', 'tests/**']

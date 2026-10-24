@@ -170,13 +170,23 @@ class OpsTest(unittest.TestCase):
             lambda t: t["세미나"][0].update(상태="취소", 취소사유=""),
             lambda t: t["강사진"][0].update(공개="아니오"),
         ]
+        import sheet_friendly
         for mutate in mutations:
             with self.subTest(mutate=mutate):
                 tables = copy.deepcopy(baseline)
                 mutate(tables)
-                with self.assertRaises(ValueError):
-                    self.run_build(tables)
-                self.assertEqual(baseline_hash, _hash_tree(self.output))
+                self.run_build(tables)  # 틀린 줄만 빠지고 홈페이지는 그대로 만들어진다
+                self.assertTrue((self.output / "index.html").exists())
+                self.assertTrue((self.output / "sheet-check.csv").exists())
+        # 표 절반 이상이 틀리면(머리글이 지워진 경우 등) 멈추고 어제 홈페이지를 지킨다
+        tables = copy.deepcopy(baseline)
+        for i in range(4):
+            r = dict(tables["공지"][0]); r.update(id="n%d" % i, 제목="", 본문="머리글이 지워진 경우"); tables["공지"].append(r)
+        tables["공지"] = tables["공지"][1:]
+        h = _hash_tree(self.output)
+        with self.assertRaises(ValueError):
+            self.run_build(tables)
+        self.assertEqual(h, _hash_tree(self.output))
 
         bad = Path(self.tmp.name) / "bad"
         bad.mkdir()
@@ -221,9 +231,10 @@ class OpsTest(unittest.TestCase):
 
         with mock.patch.object(fetch_sheets, "ROOT", root), \
                 mock.patch.object(fetch_sheets, "fetch_csv", side_effect=fake_fetch):
-            with self.assertRaisesRegex(ValueError, "날짜|시작일|date"):
-                fetch_sheets.fetch_all(cfg, live)
-        self.assertTrue(marker.exists())
+            fetch_sheets.fetch_all(cfg, live)  # 틀린 날짜 하나로 전체를 멈추지 않는다
+        self.assertFalse(marker.exists())
+        t = validate(load_tables(live), lenient=True)
+        self.assertEqual(t["세미나"][0]["시작일"], "")
 
         bad_tables = copy.deepcopy(self.tables)
         with mock.patch.object(fetch_sheets, "ROOT", root), \
