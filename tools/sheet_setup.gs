@@ -1,9 +1,10 @@
 /**
  * 솜니움 홈페이지 관리 시트 꾸미기 — 지금 시트에 든 내용을 쉬운 한글 꼴로 다시 정리하고 꾸민다.
- * 확장 프로그램 → Apps Script 에 붙여 넣고 「setup」 실행. 여러 번 실행해도 내용은 그대로 남는다.
+ * 솜니움 계정 Apps Script 프로젝트 「솜니움 홈페이지 시트 꾸미기」에 들어 있다. 「setup」 실행. 여러 번 실행해도 내용은 그대로 남는다.
  * 홈페이지는 머리글의 괄호 안 설명을 무시하고 읽으므로(scripts/sheet_friendly.py), 머리글 글자는 이 파일에서 고치면 된다.
  */
 var SITE = 'https://agitsomnium.github.io/somnium/';
+var SHEET_ID = '1f_uDJFAEtqDjbTBaKrQGOJmvNzI8vpabdfFzHEK3EQE';
 // [탭 이름, 예전 탭 이름, 탭 색, [[내부 칸, 머리글], ...]]
 var TABS = [
   ['세미나', '세미나', '#b5482a', [['제목', '제목'], ['부제', '부제 (한 줄)'], ['상태', '상태 (비우면 날짜 보고 자동)'],
@@ -72,7 +73,7 @@ function normDate_(s) {
 }
 
 function setup() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.openById(SHEET_ID);
   ss.setSpreadsheetLocale('ko_KR');
   var old = {};
   TABS.forEach(function (t) {
@@ -98,6 +99,7 @@ function setup() {
         if (t[0] === '소개 페이지 글' && c[0] === 'id') v = PAGE_KO[v] || v;
         if (c[0] === '공개') v = (v === 'FALSE' || v === '아니오') ? '아니오' : '예';
         if (['시작일', '종료일', '날짜', '게시일'].indexOf(c[0]) >= 0) v = normDate_(v);
+        if (v.charAt(0) === "'") v = "'" + v;  // 맨 앞 작은따옴표가 사라지지 않게
         return v;
       });
     });
@@ -110,7 +112,7 @@ function setup() {
   ss.setActiveSheet(guide);
   ss.moveActiveSheet(1);
   SpreadsheetApp.flush();
-  SpreadsheetApp.getUi().alert('다 됐습니다. 「안내」 탭부터 보시면 됩니다.');
+  Logger.log('다 됐습니다. 「안내」 탭부터 보시면 됩니다.');
 }
 
 function fillTab_(ss, sh, head, values) {
