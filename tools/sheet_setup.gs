@@ -3,7 +3,7 @@
  * 솜니움 계정 Apps Script 프로젝트 「솜니움 홈페이지 시트 꾸미기」에 들어 있다. 「setup」 실행. 여러 번 실행해도 내용은 그대로 남는다.
  * 홈페이지는 머리글의 괄호 안 설명을 무시하고 읽으므로(scripts/sheet_friendly.py), 머리글 글자는 이 파일에서 고치면 된다.
  */
-var SITE = 'https://agitsomnium.github.io/somnium/';
+var SITE = 'https://somniumagit.com/';
 var SHEET_ID = '1f_uDJFAEtqDjbTBaKrQGOJmvNzI8vpabdfFzHEK3EQE';
 // [탭 이름, 예전 탭 이름, 탭 색, [[내부 칸, 머리글], ...]]
 var TABS = [
