@@ -8,6 +8,7 @@ from html import escape as e
 from pathlib import Path
 
 from extras import site_config
+from fetch_youtube import is_short
 
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / 'data' / 'catalog' / 'youtube.json'
@@ -38,7 +39,8 @@ def _clean(rows):
     out = []
     for r in rows if isinstance(rows, list) else []:
         vid = str(r.get('id', ''))
-        if len(vid) == 11 and all(c.isalnum() or c in '-_' for c in vid):
+        if len(vid) == 11 and all(c.isalnum() or c in '-_' for c in vid) \
+                and not is_short(str(r.get('title', '')), str(r.get('url', ''))):
             out.append({'id': vid, 'title': str(r.get('title', '')), 'channel': str(r.get('channel', 'main')),
                         'published': str(r.get('published', ''))[:10]})
     return out

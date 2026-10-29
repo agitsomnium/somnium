@@ -84,3 +84,31 @@ class PosterTest(unittest.TestCase):
         self.assertIn('src="/preview/assets/sonjeol.webp"', html)
         self.assertNotIn('expired.jpg', html)
         self.assertTrue((ROOT / 'assets/sonjeol.webp').is_file())
+
+
+class YoutubeNoShortsTest(unittest.TestCase):
+    def test_feed_cache_catalog_and_home_fallback(self):
+        import sys
+        import tempfile
+        from unittest.mock import patch
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        from fetch_youtube import parse
+        from extras import load_videos
+        import videos_page
+        from build import _home_videos
+        xml = '''<feed xmlns="http://www.w3.org/2005/Atom" xmlns:yt="http://www.youtube.com/xml/schemas/2015">
+        <entry><yt:videoId>shorttitle1</yt:videoId><title>clip #Shorts</title></entry>
+        <entry><yt:videoId>shortslink1</yt:videoId><title>clip</title><link href="https://youtube.com/shorts/shortslink1"/></entry>
+        <entry><yt:videoId>lecture0001</yt:videoId><title>강의</title></entry></feed>'''.encode('utf-8')
+        self.assertEqual([v['id'] for v in parse(xml)], ['lecture0001'])
+        rows = [{'id': 'shorttitle1', 'title': '손절사회 #shorts', 'channel': 'main'},
+                {'id': 'lecture0001', 'title': '손절사회 강의', 'channel': 'main'}]
+        with tempfile.TemporaryDirectory() as folder:
+            catalog = Path(folder, 'catalog.json')
+            catalog.write_text(json.dumps(rows))
+            Path(folder, 'youtube.json').write_text(json.dumps(rows))
+            self.assertEqual([v['id'] for v in load_videos(folder)], ['lecture0001'])
+            with patch.object(videos_page, 'CATALOG', catalog):
+                self.assertEqual([v['id'] for v in videos_page.load_catalog(rows)], ['lecture0001'])
+                Path(folder, 'youtube.json').write_text('[]')
+                self.assertEqual([v['id'] for v in _home_videos(folder)], ['lecture0001'])

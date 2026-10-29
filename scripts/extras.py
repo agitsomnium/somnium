@@ -7,6 +7,7 @@ from pathlib import Path
 
 from data import public_rows
 from fetch_social import is_short_video
+from fetch_youtube import is_short
 
 ROOT = Path(__file__).resolve().parents[1]
 KST = _dt.timezone(_dt.timedelta(hours=9))
@@ -160,7 +161,8 @@ def load_videos(data_dir):
     clean = []
     for r in rows if isinstance(rows, list) else []:
         vid = str(r.get('id', ''))
-        if len(vid) == 11 and all(c.isalnum() or c in '-_' for c in vid):
+        if len(vid) == 11 and all(c.isalnum() or c in '-_' for c in vid) \
+                and not is_short(str(r.get('title', '')), str(r.get('url', ''))):
             clean.append({'id': vid, 'title': str(r.get('title', '')), 'published': str(r.get('published', ''))[:10]})
     return clean
 

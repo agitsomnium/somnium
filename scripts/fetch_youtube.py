@@ -2,6 +2,7 @@
 """유튜브 채널 RSS(최근 15개)를 받아 data/live/youtube.json 으로 저장. 키 필요 없음.
 실패하면 이전 파일을 그대로 두고 0으로 끝난다(홈페이지 빌드를 막지 않음)."""
 import json
+import re
 import sys
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -11,6 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 NS = {'a': 'http://www.w3.org/2005/Atom', 'yt': 'http://www.youtube.com/xml/schemas/2015'}
 
 
+def is_short(title, href=''):
+    """쇼츠는 홈페이지 수집·표시에서 제외하고 원본 채널에는 남긴다."""
+    return bool(re.search(r'#shorts?\b|쇼츠', title or '', re.I)
+                or '/shorts/' in (href or '').lower())
+
+
 def parse(xml_bytes):
     root = ET.fromstring(xml_bytes)
     out = []
@@ -18,7 +25,9 @@ def parse(xml_bytes):
         vid = en.findtext('yt:videoId', default='', namespaces=NS)
         title = en.findtext('a:title', default='', namespaces=NS)
         pub = en.findtext('a:published', default='', namespaces=NS)
-        if vid:
+        link = en.find('a:link', NS)
+        href = link.get('href', '') if link is not None else ''
+        if vid and not is_short(title, href):
             out.append({'id': vid, 'title': title, 'published': pub[:10]})
     return out
 
