@@ -47,3 +47,27 @@ class SocialFeedTest(unittest.TestCase):
         self.assertIn('ig-tile', html)
         self.assertNotIn('facebook.com/plugins', html)
         self.assertNotIn('javascript:', html)
+
+
+class NoShortsTest(unittest.TestCase):
+    def test_new_and_cached_reels_excluded_before_limit(self):
+        import sys
+        import tempfile
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        from fetch_social import normalize
+        from extras import load_instagram, news_strip
+        image = 'https://cdn.example/post.jpg'
+        reel = {'link': 'https://www.instagram.com/reel/SHORT/', 'image': image, 'caption': '쇼츠'}
+        poster = {'link': 'https://www.instagram.com/p/POST/', 'image': image, 'caption': '모임 안내'}
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, 'instagram.json').write_text(json.dumps([reel, poster]))
+            self.assertEqual(load_instagram(folder, limit=1), [poster])
+        html = news_strip([reel, poster])
+        self.assertNotIn(reel['link'], html)
+        self.assertIn(poster['link'], html)
+        self.assertEqual(news_strip([reel]), '')
+        raw = [{'permalink': reel['link'], 'thumbnailUrl': image},
+               {'permalink': poster['link'], 'mediaType': 'VIDEO', 'thumbnailUrl': image},
+               {'permalink': poster['link'], 'mediaProductType': 'REELS', 'thumbnailUrl': image},
+               {'permalink': poster['link'], 'mediaType': 'CAROUSEL_ALBUM', 'mediaUrl': image}]
+        self.assertEqual(len(normalize(raw)), 1)

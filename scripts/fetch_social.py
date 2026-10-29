@@ -5,14 +5,26 @@ import json
 import sys
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def is_short_video(post):
+    """새 피드와 기존 누적 목록의 릴스·쇼츠를 같은 기준으로 제외한다."""
+    link = post.get("permalink") or post.get("link") or ""
+    parts = urlsplit(str(link)).path.lower().split("/")
+    return (any(part in ("reel", "reels", "shorts") for part in parts)
+            or str(post.get("mediaProductType", "")).upper() in ("REEL", "REELS")
+            or str(post.get("mediaType", "")).upper() in ("VIDEO", "REEL", "REELS"))
 
 
 def normalize(data):
     posts = data.get('posts', data) if isinstance(data, dict) else data
     out = []
     for p in posts if isinstance(posts, list) else []:
+        if is_short_video(p):
+            continue
         sizes = p.get('sizes') or {}
         img = ((sizes.get('medium') or {}).get('mediaUrl') or p.get('thumbnailUrl')
                or (p.get('mediaUrl') if p.get('mediaType') != 'VIDEO' else ''))

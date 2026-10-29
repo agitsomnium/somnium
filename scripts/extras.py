@@ -6,6 +6,7 @@ from html import escape as e
 from pathlib import Path
 
 from data import public_rows
+from fetch_social import is_short_video
 
 ROOT = Path(__file__).resolve().parents[1]
 KST = _dt.timezone(_dt.timedelta(hours=9))
@@ -294,6 +295,8 @@ def news_strip(insta, limit=6):
     ig = site_config().get('instagram') or {}
     seen, cards = set(), []
     for p in insta:
+        if is_short_video(p):
+            continue
         text = (p.get('text') or p.get('caption') or '').strip()
         first = text.split('\n', 1)[0].strip()
         m = _re.match(r'^\[\s*(?:(\d{1,2})월\s*)?(.*?)\s*(?:\|\s*(.+?))?\s*\]', first)
@@ -317,6 +320,8 @@ def news_strip(insta, limit=6):
                         ('<time datetime="%s">%s 올림</time>' % (e(d), e(d[5:].replace('-', '.')))) if d else ''))
         if len(cards) >= limit:
             break
+    if not cards:
+        return ''
     return ('<section class="news-strip" aria-labelledby="news-h"><div class="news-head"><h2 id="news-h">따끈한 소식</h2>'
             '<a href="%s" target="_blank" rel="noopener">인스타그램에서 더 보기 ↗</a></div>'
             '<div class="news-row">%s</div></section>' % (e(ig.get('url', '')), ''.join(cards)))
@@ -341,7 +346,7 @@ def load_instagram(data_dir, limit=6):
     except (OSError, ValueError):
         return []
     return [r for r in rows if isinstance(r, dict) and str(r.get('link', '')).startswith('https://www.instagram.com/')
-            and str(r.get('image', '')).startswith('https://')][:limit]
+            and str(r.get('image', '')).startswith('https://') and not is_short_video(r)][:limit]
 
 
 def social_feeds(insta):
