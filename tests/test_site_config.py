@@ -71,3 +71,16 @@ class NoShortsTest(unittest.TestCase):
                {'permalink': poster['link'], 'mediaProductType': 'REELS', 'thumbnailUrl': image},
                {'permalink': poster['link'], 'mediaType': 'CAROUSEL_ALBUM', 'mediaUrl': image}]
         self.assertEqual(len(normalize(raw)), 1)
+
+
+class PosterTest(unittest.TestCase):
+    def test_sonjeol_uses_preserved_poster(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        from extras import news_strip
+        post = {'link': 'https://www.instagram.com/p/POST/', 'image': 'https://cdn.example/expired.jpg',
+                'caption': '[10월 솜니움 북클럽 | 손절사회]'}
+        html = news_strip([post], base='/preview')
+        self.assertIn('src="/preview/assets/sonjeol.webp"', html)
+        self.assertNotIn('expired.jpg', html)
+        self.assertTrue((ROOT / 'assets/sonjeol.webp').is_file())

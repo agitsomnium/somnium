@@ -287,7 +287,7 @@ def pay_bar():
             '<div class="pay-rows">%s</div></section>' % rows)
 
 
-def news_strip(insta, limit=6):
+def news_strip(insta, limit=6, base=''):
     """홈 맨 앞 «새 소식» — 인스타 홍보 포스터를 크게. 같은 홍보를 여러 번 올렸으면 최신 하나만."""
     import re as _re
     if not insta:
@@ -313,10 +313,13 @@ def news_strip(insta, limit=6):
             continue
         seen.add(key)
         d = p.get('date', '')
+        image = p['image']
+        if title == '손절사회':
+            image = base + '/assets/sonjeol.webp'
         cards.append('<a class="news-card" href="%s" target="_blank" rel="noopener">'
                      '<img src="%s" alt="%s 포스터" loading="lazy" width="432" height="540">'
                      '<span class="news-kind">%s</span><strong>%s</strong>%s</a>'
-                     % (e(p['link']), e(p['image']), e(title), e(kind or '소식'), e(title),
+                     % (e(p['link']), e(image), e(title), e(kind or '소식'), e(title),
                         ('<time datetime="%s">%s 올림</time>' % (e(d), e(d[5:].replace('-', '.')))) if d else ''))
         if len(cards) >= limit:
             break
