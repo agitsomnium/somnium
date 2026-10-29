@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><title>회원 강의실 시험 | 솜니움</title>
+<link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css"><link rel="stylesheet" href="/trial.css"><script src="/app.js" defer></script></head>
+<body><a class="skip-link" href="#main">본문으로</a>
+<div class="trial-banner">솜니움 회원 강의실 · 가상 정보로만 이용하는 로컬 시험</div>
+<header><a href="/" class="wordmark">솜니움</a><nav><a href="https://somniumagit.com" target="_blank" rel="noreferrer">공개 홈페이지 ↗</a><button id="theme" type="button">어둡게 보기</button><button id="logout" hidden>로그아웃</button></nav></header>
+<main id="main"><div class="intro"><p class="eyebrow">함께 공부하는 사람들을 위한</p><h1>회원 강의실</h1><p>후원회원 신청과 이메일 확인을 마치면,<br>관리자가 한빛누리 후원 내역을 확인해 이용을 안내합니다.</p></div>
+<p id="notice" role="status" aria-live="polite"></p>
+<div id="entry" class="columns"><section><h2>후원회원 이용 신청</h2><p>이 시험에서는 <strong>@example.test</strong> 주소와 가상 정보만 입력해 주세요.</p>
+<form id="apply"><label>이름<input name="name" autocomplete="name" required minlength="2" maxlength="40" placeholder="가상 회원"></label>
+<label>생년월일<input name="birth" type="date" required></label><label>휴대전화번호<input name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="01000000000"></label>
+<label>이메일<input name="email" type="email" inputmode="email" autocomplete="email" required placeholder="member@example.test"></label>
+<details><summary>개인정보 수집·이용 안내 (시험 문안)</summary><p>수집 항목: 이름·생년월일·휴대전화번호·이메일. 목적: 본인 확인, 후원 내역 수동 대조, 강의실 이용 권한 관리 및 안내. 동의를 거부할 수 있으며 거부 시 신청할 수 없습니다.</p><p>운영 전 보유 기간·삭제 절차·담당 연락처·처리 위탁을 단체에서 확정해야 합니다. 현재는 가상 정보만 시험하며 실제 개인정보를 수집하지 않습니다.</p></details>
+<label class="check"><input name="consent" type="checkbox" required> 개인정보 수집·이용에 동의합니다.</label><button type="submit">신청하고 이메일 확인하기</button></form></section>
+<section><h2>이메일로 로그인</h2><p>승인된 회원은 이메일 인증번호로 로그인합니다.</p><form id="login"><label>이메일<input name="email" type="email" autocomplete="email" required placeholder="member@example.test"></label><button type="submit">인증번호 받기</button></form>
+<aside><h3>시험 관리자</h3><p>admin.one@example.test<br>admin.two@example.test</p><p>각 계정으로 승인·보류·중지와 시험 강의 등록을 확인할 수 있습니다. 이 시험 계정과 시험 메일함은 외부 서비스에 연결되어 있지 않습니다.</p></aside></section></div>
+<section id="verification" hidden><h2>이메일 인증번호 확인</h2><p>실제 메일은 발송하지 않았습니다. 아래 시험 메일함으로 동작을 확인하세요.</p><button id="mail" type="button">이번 시험 메일 보기</button><p id="mail-code"></p><form id="verify"><label>6자리 인증번호<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button type="submit">확인</button></form></section>
+<section id="classroom" hidden><h2>나의 강의</h2><p id="identity"></p><div id="lessons"></div></section>
+<section id="admin" hidden><h2>회원 관리</h2><p>한빛누리에서 후원을 직접 대조한 뒤 승인해 주세요. 후원금액·거래 내역은 이곳에 옮기지 않습니다.</p><div id="members"></div>
+<h2>시험 강의·자료 등록</h2><form id="upload"><label>강의 제목<input name="title" required maxlength="100"></label><label>이용 대상<select name="audience"><option value="supporter">후원회원</option><option value="agit_member">아지트솜니움 회원 (별도 권한)</option><option value="paid_student">기존 유료 수강생 (별도 권한)</option></select></label>
+<label>시험 MP4 영상 (10MB 이하)<input name="video" type="file" accept="video/mp4" required></label><label>시험 자료<textarea name="material" required maxlength="50000"></textarea></label><button type="submit">강의와 자료 등록</button></form><h3>관리 이력</h3><div id="audit"></div></section>
+</main><footer>후원·기부금 처리는 한빛누리의 기존 절차를 따릅니다. 이 강의실은 이용 권한만 관리합니다.</footer></body></html>

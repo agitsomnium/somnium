@@ -1,0 +1,319 @@
+"""Loopback-only, synthetic-data classroom trial. Never deploy this test adapter.
+
+No SMTP, external model, Hub member data, or public YouTube integration.
+Production must replace SQLite/mailbox with an organization-owned service.
+"""
+import base64
+import datetime as dt
+import hashlib
+import json
+import mimetypes
+import re
+import secrets
+import sqlite3
+import time
+from contextlib import contextmanager
+from http.cookies import SimpleCookie
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlsplit
+
+ROOT = Path(__file__).resolve().parent
+REPO = ROOT.parent
+POLICY = 'trial-2026-10-29'
+
+
+def digest(value):
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+class Trial:
+    def __init__(self, folder):
+        self.folder = Path(folder).resolve()
+        self.folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.db = self.folder / 'trial.sqlite3'
+        with self.connect() as db:
+            db.executescript('''
+            create table if not exists members (
+              email text primary key, name text not null, birth text not null,
+              phone text not null, consent_version text not null, consent_at real not null,
+              verified integer not null default 0, status text not null default 'pending',
+              role text not null default 'member', audience text not null default 'supporter');
+            create table if not exists otps (
+              challenge text primary key, email text not null, purpose text not null,
+              code_hash text not null, expires real not null, attempts integer not null default 0,
+              used integer not null default 0, sent real not null);
+            create table if not exists sessions (
+              token_hash text primary key, email text not null, expires real not null, csrf text not null);
+            create table if not exists lessons (
+              id text primary key, title text not null, audience text not null,
+              published integer not null default 0, video text not null, material text not null);
+            create table if not exists audit (
+              at real not null, actor text not null, action text not null, target text not null);
+            ''')
+            for email in ('admin.one@example.test', 'admin.two@example.test'):
+                db.execute("insert or ignore into members values (?,?,?,?,?,?,1,'approved','admin','supporter')",
+                           (email, '시험 관리자', '1990-01-01', '01000000000', POLICY, time.time()))
+        self.mailbox = {}  # test mailbox is process-local; codes are never written to logs
+
+    @contextmanager
+    def connect(self):
+        db = sqlite3.connect(self.db)
+        db.row_factory = sqlite3.Row
+        try:
+            with db:
+                yield db
+        finally:
+            db.close()
+
+    def issue(self, db, email, purpose):
+        last = db.execute('select max(sent) from otps where email=?', (email,)).fetchone()[0]
+        if last and time.time() - last < 2:
+            raise ValueError('잠시 후 다시 요청해 주세요.')
+        db.execute('update otps set used=1 where email=? and purpose=?', (email, purpose))
+        challenge, code = secrets.token_urlsafe(24), f'{secrets.randbelow(1000000):06}'
+        now = time.time()
+        db.execute('insert into otps values (?,?,?,?,?,0,0,?)',
+                   (challenge, email, purpose, digest(challenge + code), now + 300, now))
+        self.mailbox[challenge] = {'code': code, 'email': email, 'purpose': purpose}
+        return challenge
+
+    def member(self, db, token):
+        return db.execute('''select m.*,s.csrf from sessions s join members m on m.email=s.email
+          where s.token_hash=? and s.expires>?''', (digest(token), time.time())).fetchone()
+
+    def allowed(self, member, lesson):
+        return bool(member and member['verified'] and member['status'] == 'approved'
+                    and lesson and lesson['published']
+                    and (member['role'] == 'admin' or member['audience'] == lesson['audience']))
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = 'SomniumTrial'
+
+    def log_message(self, *_):
+        pass  # no URLs, form values, email addresses, cookies, or OTPs in access logs
+
+    @property
+    def trial(self):
+        return self.server.trial
+
+    def reply(self, status, data, mime='application/json; charset=utf-8', headers=None):
+        if isinstance(data, (dict, list)):
+            data = json.dumps(data, ensure_ascii=False).encode()
+        elif isinstance(data, str):
+            data = data.encode()
+        self.send_response(status)
+        for k, v in {
+            'Content-Type': mime, 'Content-Length': str(len(data)), 'Cache-Control': 'no-store',
+            'X-Robots-Tag': 'noindex, nofollow, noarchive', 'X-Content-Type-Options': 'nosniff',
+            'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
+            'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; "
+            "font-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; "
+            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+            **(headers or {})
+        }.items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(data)
+
+    def boundary(self):
+        host = self.headers.get('Host', '')
+        expected = f'127.0.0.1:{self.server.server_port}'
+        if host != expected or self.client_address[0] != '127.0.0.1':
+            self.reply(403, {'error': '로컬 시험 주소로만 접근할 수 있습니다.'})
+            return False
+        if self.command == 'POST' and self.headers.get('Origin') != 'http://' + expected:
+            self.reply(403, {'error': '출처가 일치하지 않습니다.'})
+            return False
+        return True
+
+    def token(self):
+        try:
+            c = SimpleCookie(self.headers.get('Cookie', ''))
+            return c['trial_session'].value if 'trial_session' in c else ''
+        except Exception:
+            return ''
+
+    def do_GET(self):
+        if not self.boundary():
+            return
+        path = urlsplit(self.path).path
+        if path == '/':
+            return self.reply(200, (ROOT / 'index.html').read_bytes(), 'text/html; charset=utf-8')
+        static = {'/app.js': ROOT / 'app.js', '/trial.css': ROOT / 'trial.css',
+                  '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
+                  '/fonts-display.css': REPO / 'assets/fonts-display.css'}
+        if re.fullmatch(r'/fonts/(?:display/)?[a-zA-Z0-9_.-]+\.woff2', path):
+            static[path] = REPO / 'assets' / path.lstrip('/')
+        if path in static and static[path].is_file():
+            return self.reply(200, static[path].read_bytes(), mimetypes.guess_type(str(static[path]))[0] or 'application/octet-stream')
+        if path == '/robots.txt':
+            return self.reply(200, 'User-agent: *\nDisallow: /\n', 'text/plain')
+        with self.trial.connect() as db:
+            member = self.trial.member(db, self.token())
+            if path == '/api/me':
+                return self.reply(200, {'member': {k: member[k] for k in ('email', 'name', 'status', 'role', 'audience', 'csrf')} if member else None})
+            if path == '/api/lessons':
+                if not member or member['status'] != 'approved' or not member['verified']:
+                    return self.reply(403, {'error': '승인된 회원만 이용할 수 있습니다.'})
+                rows = db.execute('select * from lessons order by rowid desc').fetchall()
+                return self.reply(200, [dict(r) for r in rows if self.trial.allowed(member, r)])
+            if path == '/api/admin/members':
+                if not self.admin(member):
+                    return
+                return self.reply(200, [dict(r) for r in db.execute('select email,name,birth,phone,verified,status,audience,consent_version,consent_at from members where role=\'member\'')])
+            if path == '/api/admin/audit':
+                if not self.admin(member):
+                    return
+                return self.reply(200, [dict(r) for r in db.execute('select * from audit order by at desc limit 30')])
+            match = re.fullmatch(r'/media/([a-zA-Z0-9_-]+)/(video|material)', path)
+            if match:
+                lesson = db.execute('select * from lessons where id=?', (match[1],)).fetchone()
+                if not self.trial.allowed(member, lesson):
+                    return self.reply(403, {'error': '이 자료를 이용할 권한이 없습니다.'})
+                file = self.trial.folder / lesson[match[2]]
+                if not file.is_file():
+                    return self.reply(404, {'error': '파일이 없습니다.'})
+                data = file.read_bytes()
+                mime = 'video/mp4' if match[2] == 'video' else 'text/plain; charset=utf-8'
+                headers = {'Accept-Ranges': 'bytes'}
+                if match[2] == 'material':
+                    headers['Content-Disposition'] = 'attachment; filename="somnium-trial-notes.txt"'
+                requested = self.headers.get('Range')
+                if requested:
+                    m = re.fullmatch(r'bytes=(\d*)-(\d*)', requested)
+                    if not m or not (m[1] or m[2]):
+                        return self.reply(416, b'', headers={'Content-Range': f'bytes */{len(data)}'})
+                    start = int(m[1]) if m[1] else max(0, len(data) - int(m[2]))
+                    end = min(int(m[2]), len(data)-1) if m[1] and m[2] else len(data)-1
+                    if start > end or start >= len(data):
+                        return self.reply(416, b'', headers={'Content-Range': f'bytes */{len(data)}'})
+                    headers['Content-Range'] = f'bytes {start}-{end}/{len(data)}'
+                    return self.reply(206, data[start:end+1], mime, headers)
+                return self.reply(200, data, mime, headers)
+        self.reply(404, {'error': '찾을 수 없습니다.'})
+
+    def admin(self, member):
+        if not member or member['role'] != 'admin' or member['status'] != 'approved':
+            self.reply(403, {'error': '관리자 권한이 필요합니다.'})
+            return False
+        return True
+
+    def do_POST(self):
+        if not self.boundary():
+            return
+        try:
+            size = int(self.headers.get('Content-Length', '0'))
+            if size < 1 or size > 15_000_000 or self.headers.get_content_type() != 'application/json':
+                return self.reply(400, {'error': '요청 형식 또는 크기를 확인해 주세요.'})
+            payload = json.loads(self.rfile.read(size))
+            if not isinstance(payload, dict):
+                raise ValueError('요청을 확인해 주세요.')
+            with self.trial.connect() as db:
+                self.post(db, urlsplit(self.path).path, payload)
+        except (ValueError, KeyError, TypeError, sqlite3.IntegrityError):
+            self.reply(400, {'error': '입력과 처리 상태를 확인해 주세요.'})
+
+    def post(self, db, path, p):
+        member = self.trial.member(db, self.token())
+        if path in ('/api/apply', '/api/otp'):
+            email = str(p.get('email', '')).strip().lower()
+            if not re.fullmatch(r'[a-z0-9._+-]{1,60}@example\.test', email):
+                raise ValueError('가상 주소만 허용')
+            if path == '/api/apply':
+                birth = dt.date.fromisoformat(p['birth'])
+                if birth > dt.date.today() or birth.year < 1900 or p.get('consent') is not True:
+                    raise ValueError('동의와 날짜 확인')
+                name, phone = str(p.get('name', '')).strip(), re.sub(r'[- ]', '', str(p.get('phone', '')))
+                if not 2 <= len(name) <= 40 or not re.fullmatch(r'010\d{8}', phone):
+                    raise ValueError('필수 항목 확인')
+                existing = db.execute('select * from members where email=?', (email,)).fetchone()
+                if existing:
+                    return self.reply(409, {'error': '이미 신청한 주소입니다. 로그인 또는 관리자 문의를 이용해 주세요.'})
+                db.execute('insert into members(email,name,birth,phone,consent_version,consent_at) values (?,?,?,?,?,?)',
+                           (email, name, p['birth'], phone, POLICY, time.time()))
+                challenge = self.trial.issue(db, email, 'verify')
+            else:
+                row = db.execute('select * from members where email=?', (email,)).fetchone()
+                if not row or not row['verified'] or row['status'] != 'approved':
+                    return self.reply(403, {'error': '이메일 확인과 관리자 승인이 필요합니다.'})
+                challenge = self.trial.issue(db, email, 'login')
+            return self.reply(200, {'challenge': challenge})
+        if path == '/api/test-mail':
+            # Explicit local test adapter. Never expose on a hosted environment.
+            mail = self.trial.mailbox.get(str(p.get('challenge', '')))
+            return self.reply(200 if mail else 404, mail or {'error': '시험 메일 없음'})
+        if path == '/api/verify':
+            challenge, code = str(p.get('challenge', '')), str(p.get('code', ''))
+            row = db.execute('select * from otps where challenge=?', (challenge,)).fetchone()
+            if not row or row['used'] or row['attempts'] >= 5 or row['expires'] < time.time():
+                return self.reply(400, {'error': '인증번호가 만료되었거나 사용할 수 없습니다.'})
+            db.execute('update otps set attempts=attempts+1 where challenge=?', (challenge,))
+            if not secrets.compare_digest(row['code_hash'], digest(challenge + code)):
+                return self.reply(400, {'error': '인증번호가 일치하지 않습니다.'})
+            db.execute('update otps set used=1 where challenge=?', (challenge,))
+            self.trial.mailbox.pop(challenge, None)
+            if row['purpose'] == 'verify':
+                db.execute('update members set verified=1 where email=?', (row['email'],))
+                return self.reply(200, {'message': '이메일을 확인했습니다. 관리자가 후원 내역을 대조한 뒤 승인합니다.'})
+            current = db.execute('select * from members where email=?', (row['email'],)).fetchone()
+            if current['status'] != 'approved' or not current['verified']:
+                return self.reply(403, {'error': '이용 권한이 없습니다.'})
+            token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(24)
+            db.execute('insert into sessions values (?,?,?,?)', (digest(token), row['email'], time.time()+3600, csrf))
+            return self.reply(200, {'message': '로그인했습니다.'}, headers={
+                'Set-Cookie': f'trial_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600'})
+        if not member or not secrets.compare_digest(member['csrf'], str(p.get('csrf', ''))):
+            return self.reply(403, {'error': '로그인 상태를 다시 확인해 주세요.'})
+        if path == '/api/logout':
+            db.execute('delete from sessions where token_hash=?', (digest(self.token()),))
+            return self.reply(200, {}, headers={'Set-Cookie': 'trial_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})
+        if not self.admin(member):
+            return
+        if path == '/api/admin/status':
+            status, email = p.get('status'), p.get('email')
+            if status not in ('approved', 'held', 'suspended'):
+                raise ValueError('상태 확인')
+            row = db.execute("select * from members where email=? and role='member'", (email,)).fetchone()
+            if not row or (status == 'approved' and (not row['verified'] or not p.get('matched'))):
+                return self.reply(409, {'error': '이메일 확인 및 한빛누리 수동 대조 확인이 필요합니다.'})
+            db.execute('update members set status=? where email=?', (status, email))
+            if status != 'approved':
+                db.execute('delete from sessions where email=?', (email,))
+            db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], status, email))
+            return self.reply(200, {'message': '처리했습니다.'})
+        if path == '/api/admin/lessons':
+            title = str(p.get('title', '')).strip()
+            if not title or len(title) > 100 or p.get('audience') not in ('supporter', 'agit_member', 'paid_student'):
+                raise ValueError('강의 정보 확인')
+            video = base64.b64decode(p['video'], validate=True)
+            material = str(p['material']).encode()
+            if len(video) > 10_000_000 or len(video) < 16 or b'ftyp' not in video[:32] or len(material) > 100_000:
+                raise ValueError('시험 MP4/자료 확인')
+            lesson_id = secrets.token_urlsafe(18)
+            video_name, material_name = lesson_id + '.mp4', lesson_id + '.txt'
+            (self.trial.folder / video_name).write_bytes(video)
+            (self.trial.folder / material_name).write_bytes(material)
+            db.execute('insert into lessons values (?,?,?,1,?,?)',
+                       (lesson_id, title, p['audience'], video_name, material_name))
+            db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], 'lesson_created', lesson_id))
+            return self.reply(201, {'id': lesson_id})
+        self.reply(404, {'error': '찾을 수 없습니다.'})
+
+
+def make_server(folder, port=8765):
+    server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    server.trial = Trial(folder)
+    return server
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--state', type=Path, required=True)
+    parser.add_argument('--port', type=int, default=8765)
+    args = parser.parse_args()
+    server = make_server(args.state, args.port)
+    print(f'가상 데이터 전용 · http://127.0.0.1:{server.server_port} · 외부 배포 금지', flush=True)
+    server.serve_forever()
