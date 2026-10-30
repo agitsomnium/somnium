@@ -17,6 +17,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
+import commerce
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
@@ -54,6 +55,7 @@ class Trial:
             for email in ('admin.one@example.test', 'admin.two@example.test'):
                 db.execute("insert or ignore into members values (?,?,?,?,?,?,1,'approved','admin','supporter')",
                            (email, '시험 관리자', '1990-01-01', '01000000000', POLICY, time.time()))
+            commerce.setup(db)
         self.mailbox = {}  # test mailbox is process-local; codes are never written to logs
 
     @contextmanager
@@ -82,10 +84,8 @@ class Trial:
         return db.execute('''select m.*,s.csrf from sessions s join members m on m.email=s.email
           where s.token_hash=? and s.expires>?''', (digest(token), time.time())).fetchone()
 
-    def allowed(self, member, lesson):
-        return bool(member and member['verified'] and member['status'] == 'approved'
-                    and lesson and lesson['published']
-                    and (member['role'] == 'admin' or member['audience'] == lesson['audience']))
+    def allowed(self, db, member, lesson):
+        return commerce.allowed(db, member, lesson)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -152,17 +152,21 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, 'User-agent: *\nDisallow: /\n', 'text/plain')
         with self.trial.connect() as db:
             member = self.trial.member(db, self.token())
+            if commerce.get(self, db, member, path):
+                return
             if path == '/api/me':
-                return self.reply(200, {'member': {k: member[k] for k in ('email', 'name', 'status', 'role', 'audience', 'csrf')} if member else None})
+                return self.reply(200, {'member': ({k: member[k] for k in ('email', 'name', 'status', 'role', 'csrf')}
+                    | {'supporter':commerce.is_supporter(db,member['email'])}) if member else None})
             if path == '/api/lessons':
                 if not member or member['status'] != 'approved' or not member['verified']:
                     return self.reply(403, {'error': '승인된 회원만 이용할 수 있습니다.'})
                 rows = db.execute('select * from lessons order by rowid desc').fetchall()
-                return self.reply(200, [dict(r) for r in rows if self.trial.allowed(member, r)])
+                return self.reply(200, [{k:r[k] for k in ('id','title','era','series_id')} for r in rows if self.trial.allowed(db, member, r)])
             if path == '/api/admin/members':
                 if not self.admin(member):
                     return
-                return self.reply(200, [dict(r) for r in db.execute('select email,name,birth,phone,verified,status,audience,consent_version,consent_at from members where role=\'member\'')])
+                return self.reply(200, [dict(r) | {'supporter':commerce.is_supporter(db,r['email']),
+                    'supporter_review':commerce.supporter_review(db,r['email'])} for r in db.execute('select email,name,birth,phone,verified,status,consent_version,consent_at from members where role=\'member\'')])
             if path == '/api/admin/audit':
                 if not self.admin(member):
                     return
@@ -170,7 +174,7 @@ class Handler(BaseHTTPRequestHandler):
             match = re.fullmatch(r'/media/([a-zA-Z0-9_-]+)/(video|material)', path)
             if match:
                 lesson = db.execute('select * from lessons where id=?', (match[1],)).fetchone()
-                if not self.trial.allowed(member, lesson):
+                if not self.trial.allowed(db, member, lesson):
                     return self.reply(403, {'error': '이 자료를 이용할 권한이 없습니다.'})
                 file = self.trial.folder / lesson[match[2]]
                 if not file.is_file():
@@ -231,8 +235,11 @@ class Handler(BaseHTTPRequestHandler):
                 existing = db.execute('select * from members where email=?', (email,)).fetchone()
                 if existing:
                     return self.reply(409, {'error': '이미 신청한 주소입니다. 로그인 또는 관리자 문의를 이용해 주세요.'})
-                db.execute('insert into members(email,name,birth,phone,consent_version,consent_at) values (?,?,?,?,?,?)',
-                           (email, name, p['birth'], phone, POLICY, time.time()))
+                intent=p.get('intent','supporter')
+                if intent not in ('supporter','purchase'):
+                    raise ValueError('신청 목적 확인')
+                db.execute('insert into members(email,name,birth,phone,consent_version,consent_at,audience) values (?,?,?,?,?,?,?)',
+                           (email, name, p['birth'], phone, POLICY, time.time(),intent))
                 challenge = self.trial.issue(db, email, 'verify')
             else:
                 row = db.execute('select * from members where email=?', (email,)).fetchone()
@@ -256,7 +263,8 @@ class Handler(BaseHTTPRequestHandler):
             self.trial.mailbox.pop(challenge, None)
             if row['purpose'] == 'verify':
                 db.execute('update members set verified=1 where email=?', (row['email'],))
-                return self.reply(200, {'message': '이메일을 확인했습니다. 관리자가 후원 내역을 대조한 뒤 승인합니다.'})
+                db.execute("update members set status='approved' where email=? and audience='purchase' and status='pending'", (row['email'],))
+                return self.reply(200, {'message': '이메일을 확인했습니다. 강좌 구매 신청자는 로그인할 수 있으며, 후원 강의는 관리자 자격 확인 후 열립니다.'})
             current = db.execute('select * from members where email=?', (row['email'],)).fetchone()
             if current['status'] != 'approved' or not current['verified']:
                 return self.reply(403, {'error': '이용 권한이 없습니다.'})
@@ -269,6 +277,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/logout':
             db.execute('delete from sessions where token_hash=?', (digest(self.token()),))
             return self.reply(200, {}, headers={'Set-Cookie': 'trial_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})
+        if commerce.post(self, db, member, path, p):
+            return
         if not self.admin(member):
             return
         if path == '/api/admin/status':
@@ -279,13 +289,19 @@ class Handler(BaseHTTPRequestHandler):
             if not row or (status == 'approved' and (not row['verified'] or not p.get('matched'))):
                 return self.reply(409, {'error': '이메일 확인 및 한빛누리 수동 대조 확인이 필요합니다.'})
             db.execute('update members set status=? where email=?', (status, email))
+            if status == 'approved':
+                db.execute('''insert into supporters(email,qualified,checked_at,checked_by) values (?,1,?,?) on conflict(email) do update set
+                  qualified=1,checked_at=excluded.checked_at,checked_by=excluded.checked_by''',
+                  (email,time.time(),member['email']))
             if status != 'approved':
                 db.execute('delete from sessions where email=?', (email,))
             db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], status, email))
             return self.reply(200, {'message': '처리했습니다.'})
         if path == '/api/admin/lessons':
             title = str(p.get('title', '')).strip()
-            if not title or len(title) > 100 or p.get('audience') not in ('supporter', 'agit_member', 'paid_student'):
+            era=p.get('era')
+            series=str(p.get('series_id','')).strip()
+            if 'audience' in p or not title or len(title) > 100 or era not in ('archive','current','future') or not re.fullmatch(r'[a-z0-9-]{0,60}',series):
                 raise ValueError('강의 정보 확인')
             video = base64.b64decode(p['video'], validate=True)
             material = str(p['material']).encode()
@@ -295,8 +311,9 @@ class Handler(BaseHTTPRequestHandler):
             video_name, material_name = lesson_id + '.mp4', lesson_id + '.txt'
             (self.trial.folder / video_name).write_bytes(video)
             (self.trial.folder / material_name).write_bytes(material)
-            db.execute('insert into lessons values (?,?,?,1,?,?)',
-                       (lesson_id, title, p['audience'], video_name, material_name))
+            db.execute('''insert into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable)
+              values (?,?,'supporter',1,?,?,?,?,?,?)''',
+              (lesson_id,title,video_name,material_name,series,era,'included' if era=='archive' else 'undecided',int(era!='archive')))
             db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], 'lesson_created', lesson_id))
             return self.reply(201, {'id': lesson_id})
         self.reply(404, {'error': '찾을 수 없습니다.'})

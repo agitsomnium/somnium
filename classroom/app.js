@@ -1,48 +1,37 @@
-'use strict';
-const el = id => document.getElementById(id);
-let current = null, challenge = '';
-const statusNames = {pending:'승인 대기',approved:'승인',held:'보류',suspended:'이용 중지'};
-async function api(path, data) {
-  const options = data === undefined ? {} : {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,csrf:current?.csrf})};
-  const response = await fetch(path, options);
-  const result = await response.json();
-  if (!response.ok) throw new Error(result.error || '처리하지 못했습니다.');
-  return result;
-}
-function node(tag, text, parent) {const n=document.createElement(tag); if(text)n.textContent=text; if(parent)parent.append(n); return n;}
+"use strict";
+const el=id=>document.getElementById(id);
+let current=null,challenge='',view='catalog',catalog=[];
+const states={pending:'승인 대기',approved:'이용 가능',held:'보류',suspended:'계정 중지'};
+const reviewStates={pending:'후원 확인 대기',qualified:'후원 자격 확인됨',held:'후원 심사 보류',withdrawn:'후원 자격 종료'};
+const orderStates={awaiting:'입금 확인 대기',confirmed:'수강권 부여 완료',cancelled:'취소·수강권 회수'};
+const eraNames={archive:'이전 강의 · 후원회원 전용',current:'현대 자본주의 · 구매 신청 시험',future:'2027 신규 강좌 · 판매 준비'};
+function node(tag,text,parent){const n=document.createElement(tag);if(text)n.textContent=text;if(parent)parent.append(n);return n;}
+function button(text,parent,fn){const b=node('button',text,parent);b.type='button';b.onclick=async()=>{b.disabled=true;try{await fn();}catch(e){notice(e.message);}finally{b.disabled=false;}};return b;}
 function notice(text){el('notice').textContent=text;}
-function submit(id, fn){el(id).addEventListener('submit',async event=>{
-  event.preventDefault(); const button=event.submitter; button.disabled=true;
-  try{await fn(new FormData(event.target));}catch(error){notice(error.message);}finally{button.disabled=false;}
-});}
-function startVerify(result){challenge=result.challenge;el('entry').hidden=true;el('verification').hidden=false;el('mail-code').textContent='';el('verify').reset();el('verify').elements.code.focus();notice('시험 인증번호를 준비했습니다.');}
-submit('apply',async f=>{startVerify(await api('/api/apply',{name:f.get('name'),birth:f.get('birth'),phone:f.get('phone'),email:f.get('email'),consent:f.get('consent')==='on'}));});
-submit('login',async f=>{startVerify(await api('/api/otp',{email:f.get('email')}));});
-el('mail').onclick=async()=>{try{const mail=await api('/api/test-mail',{challenge});el('mail-code').textContent=`가상 수신자 ${mail.email} · 시험 인증번호 ${mail.code} · 유효시간 5분`; }catch(e){notice(e.message);}};
-submit('verify',async f=>{const r=await api('/api/verify',{challenge,code:f.get('code')});challenge='';el('verification').hidden=true;el('mail-code').textContent='';await refresh();notice(r.message);});
-el('logout').onclick=async()=>{try{await api('/api/logout',{});await refresh();notice('로그아웃했습니다.');}catch(e){notice(e.message);}};
-el('theme').onclick=()=>{document.body.classList.toggle('theme-a');el('theme').textContent=document.body.classList.contains('theme-a')?'밝게 보기':'어둡게 보기';};
-async function refresh(){
-  current=(await api('/api/me')).member;
-  el('entry').hidden=!!current;el('logout').hidden=!current;el('classroom').hidden=!current;el('admin').hidden=current?.role!=='admin';
-  el('lessons').replaceChildren();el('members').replaceChildren();el('audit').replaceChildren();
-  if(!current)return;
-  el('identity').textContent=`${current.name} · ${current.email} · ${statusNames[current.status]}`;
-  try{const lessons=await api('/api/lessons');if(!lessons.length)node('p','등록된 강의가 없습니다.',el('lessons'));
-    for(const lesson of lessons){const article=node('article','',el('lessons'));article.className='lesson';node('h3',lesson.title,article);
-      const video=node('video','',article);video.controls=true;video.playsInline=true;video.preload='metadata';video.src=`/media/${lesson.id}/video`;
-      const link=node('a','자료 내려받기',article);link.href=`/media/${lesson.id}/material`;link.download='somnium-trial-notes.txt';}}
-  catch(e){notice(e.message);}
-  if(current.role!=='admin')return;
-  const members=await api('/api/admin/members');
-  if(!members.length)node('p','아직 가입 신청이 없습니다.',el('members'));
-  for(const m of members){const row=node('article','',el('members'));row.className='member';node('h3',`${m.name} · ${statusNames[m.status]}`,row);node('p',`${m.email} / ${m.birth} / ${m.phone}`,row);node('p',`이메일 ${m.verified?'확인됨':'미확인'} · 동의 ${m.consent_version}`,row);
-    const label=node('label','',row);label.className='check';const matched=node('input','',label);matched.type='checkbox';node('span','한빛누리 후원 내역을 수동 대조했습니다.',label);
-    const actions=node('div','',row);actions.className='actions';
-    for(const state of ['approved','held','suspended']){const b=node('button',statusNames[state],actions);b.disabled=state==='approved'&&!m.verified;b.onclick=async()=>{b.disabled=true;try{await api('/api/admin/status',{email:m.email,status:state,matched:matched.checked});await refresh();notice('회원 상태를 변경했습니다.');}catch(e){notice(e.message);b.disabled=false;}};}}
-  for(const a of await api('/api/admin/audit'))node('p',`${new Date(a.at*1000).toLocaleString('ko-KR')} · ${a.actor} · ${a.action} · ${a.target}`,el('audit'));
-}
-submit('upload',async f=>{const file=f.get('video');if(file.size>10000000)throw new Error('10MB 이하 시험 영상만 올릴 수 있습니다.');const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));await api('/api/admin/lessons',{title:f.get('title'),audience:f.get('audience'),video:btoa(binary),material:f.get('material')});el('upload').reset();await refresh();notice('시험 강의와 자료를 등록했습니다.');});
-// Recheck rights on return; media byte/range requests always check the current database state.
+async function api(path,data){const o=data===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,csrf:current?.csrf})};const r=await fetch(path,o);const v=await r.json();if(!r.ok)throw new Error(v.error||'처리하지 못했습니다.');return v;}
+function submit(id,fn){el(id).addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await fn(new FormData(e.target));}catch(x){notice(x.message);}finally{b.disabled=false;}});}
+function selectView(name){if(name!=='catalog'&&!current){notice('먼저 이메일로 로그인해 주세요.');return;}if(name==='admin'&&current?.role!=='admin')return;view=name;for(const v of ['catalog','mine','admin'])el(v+'-view').hidden=v!==view;document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-current',b.dataset.view===view?'page':'false'));}
+for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>selectView(b.dataset.view);
+for(const b of document.querySelectorAll('[data-admin]'))b.onclick=()=>{for(const v of ['members','orders','upload'])el(v==='orders'?'admin-orders-panel':v+'-panel').hidden=v!==b.dataset.admin;};
+for(const b of document.querySelectorAll('[data-email]'))b.onclick=()=>{el('login').elements.email.value=b.dataset.email;el('login').elements.email.focus();notice('인증번호 받기를 누른 뒤 시험 메일함을 확인해 주세요.');};
+el('theme').onclick=()=>{document.body.classList.toggle('theme-a');el('theme').textContent=document.body.classList.contains('theme-a')?'밝게':'어둡게';};
+function startVerify(result){challenge=result.challenge;el('entry').hidden=true;el('verification').hidden=false;el('mail-code').textContent='';el('verify').reset();el('verify').elements.code.focus();notice('실제 발송 없이 시험 인증번호를 준비했습니다.');}
+submit('apply',async f=>startVerify(await api('/api/apply',{...Object.fromEntries(f),consent:f.get('consent')==='on'})));
+submit('login',async f=>startVerify(await api('/api/otp',{email:f.get('email')})));
+el('mail').onclick=async()=>{try{const m=await api('/api/test-mail',{challenge});el('mail-code').textContent=`가상 수신자 ${m.email} · 시험 인증번호 ${m.code} · 유효시간 5분`;}catch(e){notice(e.message);}};
+el('back-login').onclick=()=>{challenge='';el('verification').hidden=true;el('entry').hidden=false;el('mail-code').textContent='';};
+submit('verify',async f=>{const r=await api('/api/verify',{challenge,code:f.get('code')});challenge='';el('verification').hidden=true;el('mail-code').textContent='';await refresh(true);notice(r.message);});
+el('logout').onclick=async()=>{try{await api('/api/logout',{});view='catalog';await refresh();notice('로그아웃했습니다.');}catch(e){notice(e.message);}};
+async function order(kind,id){if(!current){notice('이용 목적을 구매 신청으로 선택해 가입·이메일 확인 후 로그인해 주세요.');return;}const r=await api('/api/orders',{target_type:kind,target_id:id});await refresh();notice(r.duplicate?'이미 같은 시험 신청이 있습니다. 나의 강의실에서 확인하세요.':'시험 신청을 접수했습니다. 운영관리자가 시험 입금을 확인하기 전에는 강의가 열리지 않습니다. 실제 입금하지 마세요.');}
+function seriesName(id){return catalog.find(l=>l.series_id===id)?.title.split('·')[0].trim()||'시리즈 강좌';}
+function targetName(o){if(o.target_type==='series')return `시리즈 전체 · ${seriesName(o.target_id)}`;return catalog.find(l=>l.id===o.target_id)?.title||'등록 강좌';}
+function lessonRow(l,parent){const row=node('article','',parent);row.className='catalog-row';const text=node('div','',row);node('h3',l.title,text);node('p',l.era==='archive'?'월 1만 원 이상 후원 확인 후 이용 · 개별 판매 없음':`판매가격·시청기간 미정 · 후원회원 포함 여부 미정`,text).className='muted';const actions=node('div','',row);actions.className='row-actions';if(l.accessible)button('강의 보기',actions,async()=>{selectView('mine');await showPlayer(l.id);});else node('span','접근 제한',actions).className='lock-label';if(l.purchasable)button('단강좌 시험 신청',actions,()=>order('lesson',l.id));}
+function renderCatalog(){el('catalog').replaceChildren();for(const era of ['archive','current','future']){const list=catalog.filter(l=>l.era===era);if(!list.length)continue;const group=node('div','',el('catalog'));group.className='catalog-group';node('h3',eraNames[era],group).className='group-title';for(const l of list)lessonRow(l,group);const series=[...new Set(list.map(l=>l.series_id).filter(Boolean))];for(const id of series){if(era==='archive')continue;const bar=node('div','',group);bar.className='series-bar';node('p',`${seriesName(id)} · 등록 시험 강의 ${list.filter(l=>l.series_id===id).length}개`,bar);button('시리즈 전체 시험 신청',bar,()=>order('series',id));}}if(!catalog.length)node('p','등록된 시험 강의가 없습니다.',el('catalog'));}
+async function showPlayer(id){const r=catalog.find(l=>l.id===id);if(!r?.accessible){notice('이용 권한이 없습니다.');return;}const old=document.getElementById('player');if(old)old.remove();const box=node('article','',el('lessons'));box.id='player';node('h3',r.title,box);const v=node('video','',box);v.controls=true;v.playsInline=true;v.preload='metadata';v.src=`/media/${id}/video`;const a=node('a','자료 내려받기',box);a.href=`/media/${id}/material`;a.download='somnium-trial-notes.txt';box.scrollIntoView({block:'nearest'});}
+async function renderMine(){el('lessons').replaceChildren();el('orders').replaceChildren();el('notifications').replaceChildren();el('identity').textContent=`${current.name} · ${current.supporter?'후원 자격 확인됨':'후원 자격 없음'} · ${states[current.status]}`;const accessible=catalog.filter(l=>l.accessible);if(!accessible.length)node('p','아직 이용 가능한 강의가 없습니다. 신청·입금 확인 상태를 확인해 주세요.',el('lessons'));for(const l of accessible){const line=node('div','',el('lessons'));line.className='owned-row';node('span',l.title,line);button('재생·자료',line,()=>showPlayer(l.id));}const orders=await api('/api/orders');if(!orders.length)node('p','구매 신청 내역이 없습니다.',el('orders'));for(const o of orders){const row=node('article','',el('orders'));row.className='order-row';node('h3',targetName(o),row);node('p',`${orderStates[o.status]} · 시험 신청`,row);if(o.status==='awaiting')button('신청 취소',row,async()=>{await api('/api/orders/cancel',{id:o.id});await refresh();});}const messages=await api('/api/notifications');if(!messages.length)node('p','수강권이 열리면 시험 안내 내용이 표시됩니다.',el('notifications'));for(const n of messages)node('p',n.body,el('notifications'));}
+async function renderAdmin(){el('members').replaceChildren();el('admin-orders').replaceChildren();el('audit').replaceChildren();for(const m of await api('/api/admin/members')){const row=node('article','',el('members'));row.className='member';node('h3',`${m.name} · ${states[m.status]} · ${reviewStates[m.supporter_review]||'후원 확인 대기'}`,row);node('p',`${m.email} / ${m.birth} / ${m.phone} · 이메일 ${m.verified?'확인됨':'미확인'}`,row);const label=node('label','',row);label.className='check';const check=node('input','',label);check.type='checkbox';node('span','한빛누리에서 월 1만 원 이상 후원을 확인했습니다.',label);const actions=node('div','',row);actions.className='actions';const grant=button('후원 자격 승인',actions,async()=>{await api('/api/admin/supporter',{email:m.email,qualified:true,minimum_confirmed:check.checked});await refresh();notice('후원 자격을 승인했습니다.');});grant.disabled=!m.verified;button('후원 심사 보류',actions,async()=>{await api('/api/admin/supporter',{email:m.email,qualified:false,hold:true});await refresh();notice('후원 심사를 보류했습니다. 구매 수강권은 유지됩니다.');});button('후원 자격 종료',actions,async()=>{await api('/api/admin/supporter',{email:m.email,qualified:false});await refresh();notice('후원 자격을 종료했습니다. 구매 수강권은 유지됩니다.');});button(m.status==='suspended'?'계정 이용 재개':'계정 이용 중지',actions,async()=>{await api('/api/admin/account',{email:m.email,status:m.status==='suspended'?'approved':'suspended'});await refresh();notice('계정 이용 상태를 변경했습니다.');});}
+const orders=await api('/api/admin/orders');if(!orders.length)node('p','아직 구매 시험 신청이 없습니다.',el('admin-orders'));for(const o of orders){const row=node('article','',el('admin-orders'));row.className='order-row';node('h3',targetName(o),row);node('p',`${o.name} · ${o.email} · ${orderStates[o.status]}`,row);if(o.status==='awaiting'){const label=node('label','',row);label.className='check';const c=node('input','',label);c.type='checkbox';node('span','가상 신청의 시험 입금 확인을 완료했습니다.',label);button('시험 입금 확인·수강권 부여',row,async()=>{const r=await api('/api/admin/orders',{id:o.id,status:'confirmed',matched:c.checked});await refresh();notice(r.message);});}if(o.status!=='cancelled')button('신청 취소·수강권 회수',row,async()=>{const r=await api('/api/admin/orders',{id:o.id,status:'cancelled'});await refresh();notice(r.message);});}for(const a of await api('/api/admin/audit'))node('p',`${new Date(a.at*1000).toLocaleString('ko-KR')} · ${a.actor} · ${a.action}`,el('audit'));}
+async function refresh(afterLogin=false){current=(await api('/api/me')).member;catalog=await api('/api/catalog');el('entry').hidden=!!current||!!challenge;el('logout').hidden=!current;el('signed-in').hidden=!current;el('mine-nav').hidden=!current;el('admin-nav').hidden=current?.role!=='admin';el('signed-in').textContent=current?`${current.role==='admin'?'운영관리자':'수강자'} · ${current.name} · ${current.email}`:'';renderCatalog();if(current){await renderMine();if(current.role==='admin')await renderAdmin();if(afterLogin)view=current.role==='admin'?'admin':'mine';}else{view='catalog';for(const id of ['lessons','orders','notifications','members','admin-orders','audit'])el(id).replaceChildren();}selectView(view);}
+submit('upload',async f=>{const file=f.get('video');if(file.size>10000000)throw new Error('10MB 이하 시험 MP4만 등록할 수 있습니다.');const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));await api('/api/admin/lessons',{title:f.get('title'),era:f.get('era'),series_id:f.get('series_id'),video:btoa(binary),material:f.get('material')});el('upload').reset();await refresh();notice('시험 강의·자료를 등록했습니다.');});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh().catch(e=>notice(e.message));});
 refresh().catch(e=>notice(e.message));
