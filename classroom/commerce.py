@@ -38,6 +38,8 @@ def setup(db):
         select email,1,?,'legacy-trial' from members
         where role='member' and status='approved' and audience='supporter' ''', (time.time(),))
     db.execute("update supporters set review_state='qualified' where qualified=1")
+    # User decision, 2026-10-30: qualified supporters also get current and 2027 lectures.
+    db.execute("update lessons set supporter_access='included' where supporter_access='undecided'")
 
 
 def active(member):

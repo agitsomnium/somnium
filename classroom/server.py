@@ -313,7 +313,7 @@ class Handler(BaseHTTPRequestHandler):
             (self.trial.folder / material_name).write_bytes(material)
             db.execute('''insert into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable)
               values (?,?,'supporter',1,?,?,?,?,?,?)''',
-              (lesson_id,title,video_name,material_name,series,era,'included' if era=='archive' else 'undecided',int(era!='archive')))
+              (lesson_id,title,video_name,material_name,series,era,'included',int(era!='archive')))
             db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], 'lesson_created', lesson_id))
             return self.reply(201, {'id': lesson_id})
         self.reply(404, {'error': '찾을 수 없습니다.'})

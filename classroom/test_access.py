@@ -96,7 +96,7 @@ class AccessTest(unittest.TestCase):
             self.assertEqual(self.call(url)[0], 403)
         self.request('/api/otp', {'email':self.email},403)
 
-    def test_supporter_cannot_access_undecided_sale_lectures_or_manage_members(self):
+    def test_supporter_includes_current_and_future_but_cannot_manage_members(self):
         self.verify(self.email)
         self.admin()
         paid = self.lesson('current','capitalism')
@@ -106,9 +106,9 @@ class AccessTest(unittest.TestCase):
         self.assertEqual(self.call('/api/admin/members')[0],403)
         self.request('/api/admin/supporter',{'email':self.email,'qualified':True,'minimum_confirmed':True},403)
         self.request('/api/admin/lessons',{'title':'bad'},403)
-        self.assertEqual(self.call(f'/media/{paid}/video')[0],403)
-        self.assertEqual(self.call(f'/media/{future}/material')[0],403)
-        self.assertEqual(json.loads(self.call('/api/lessons')[1]),[])
+        self.assertEqual(self.call(f'/media/{paid}/video')[0],200)
+        self.assertEqual(self.call(f'/media/{future}/material')[0],200)
+        self.assertEqual(len(json.loads(self.call('/api/lessons')[1])),2)
 
     def test_purchase_verification_does_not_grant_any_lecture(self):
         self.verify(self.email,'purchase')

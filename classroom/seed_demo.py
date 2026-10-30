@@ -38,7 +38,7 @@ def seed(folder, video):
                 material.write_text('가상 회원용 시험 자료입니다. 실제 강의 원문이 아닙니다.\nPRIVATE_DRAFT_CANARY_20261030')
             db.execute('''insert or ignore into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable)
               values (?,?,'supporter',1,?,?,?,?,?,?)''',
-              (lid,title,vname,mname,series,era,'included' if era=='archive' else 'undecided',int(era!='archive')))
+              (lid,title,vname,mname,series,era,'included',int(era!='archive')))
     return {'synthetic_members':3,'test_lessons':4,'real_data':False}
 
 
