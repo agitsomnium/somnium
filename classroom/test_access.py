@@ -1,4 +1,5 @@
 """HTTP integration tests: state transitions, actual bytes, privilege boundaries."""
+import concurrent.futures
 import base64
 import http.client
 import json
@@ -209,6 +210,7 @@ class AccessTest(unittest.TestCase):
         self.request('/api/admin/orders',{'id':o['id'],'status':'cancelled'})
         self.cookie,self.csrf=buyer
         self.assertEqual(self.call(f'/media/{a}/material')[0],403)
+        self.assertIn('회수했습니다',json.loads(self.call('/api/notifications')[1])[0]['body'])
         self.assertEqual(self.call(f'/media/{b}/video',headers={'Range':'bytes=0-3'})[0],403)
 
     def test_buyer_cannot_cancel_or_see_another_buyers_order(self):
@@ -291,6 +293,85 @@ class AccessTest(unittest.TestCase):
         lesson=self.lesson()
         self.assertEqual(self.call(f'/media/{lesson}/video',headers={'Range':'bytes=-8'})[0],206)
         self.assertEqual(self.call(f'/media/{lesson}/video',headers={'Range':'bytes=100000-'})[0],416)
+
+    def test_resend_verification_invalidates_previous_and_cannot_change_verified_account(self):
+        c,_=self.request('/api/apply', {'email':self.email,'name':'가상 회원','birth':'1990-01-01',
+            'phone':'01000000000','consent':True})
+        old=c['challenge']
+        old_code=self.server.trial.mailbox[old]['code']
+        self.request('/api/resend-verification', {'email':self.email},400)
+        with self.server.trial.connect() as db:
+            db.execute('update otps set sent=0')
+        c,_=self.request('/api/resend-verification', {'email':self.email})
+        self.request('/api/verify', {'challenge':old,'code':old_code},400)
+        self.challenge(c['challenge'])
+        self.request('/api/resend-verification', {'email':self.email},409)
+
+    def test_concurrent_otp_is_consumed_once_and_state_is_committed_before_success(self):
+        self.verify(self.email,'purchase')
+        with self.server.trial.connect() as db:
+            db.execute('update otps set sent=0')
+        c,_=self.request('/api/otp', {'email':self.email})
+        challenge=c['challenge']
+        code=self.server.trial.mailbox[challenge]['code']
+        gate=threading.Barrier(6)
+        def run(_):
+            gate.wait()
+            return self.call('/api/verify',{'challenge':challenge,'code':code},cookie='')[0]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            statuses=list(pool.map(run,range(6)))
+        self.assertEqual(statuses.count(200),1,statuses)
+        self.assertEqual(statuses.count(400),5,statuses)
+        with self.server.trial.connect() as db:
+            self.assertEqual(db.execute('select count(*) from sessions where email=?',(self.email,)).fetchone()[0],1)
+
+    def test_hidden_lesson_blocks_existing_supporter_bytes_and_can_be_republished(self):
+        self.verify(self.email)
+        self.admin()
+        lesson=self.lesson()
+        self.approve(self.email)
+        admin_cookie,admin_csrf=self.cookie,self.csrf
+        self.login(self.email)
+        user_cookie,user_csrf=self.cookie,self.csrf
+        self.request('/api/admin/lesson-publication',{'id':lesson,'published':False},403)
+        self.cookie,self.csrf=admin_cookie,admin_csrf
+        self.request('/api/admin/lesson-publication',{'id':lesson,'published':'false'},400)
+        self.request('/api/admin/lesson-publication',{'id':lesson,'published':False})
+        rows=json.loads(self.call('/api/admin/lessons')[1])
+        self.assertEqual(rows[0]['published'],0)
+        self.assertNotIn('video',rows[0])
+        self.cookie,self.csrf=user_cookie,user_csrf
+        self.assertEqual(json.loads(self.call('/api/catalog')[1]),[])
+        self.assertEqual(json.loads(self.call('/api/lessons')[1]),[])
+        for suffix in ('video','material'):
+            self.assertEqual(self.call(f'/media/{lesson}/{suffix}',headers={'Range':'bytes=0-7'})[0],403)
+        self.cookie,self.csrf=admin_cookie,admin_csrf
+        self.request('/api/admin/lesson-publication',{'id':lesson,'published':True})
+        self.cookie,self.csrf=user_cookie,user_csrf
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
+
+    def test_concurrent_order_and_confirmation_create_one_right_and_one_notice(self):
+        self.verify(self.email,'purchase')
+        self.admin()
+        lesson=self.lesson('current','concurrent')
+        admin_cookie,admin_csrf=self.cookie,self.csrf
+        self.login(self.email)
+        def order(_):
+            return self.call('/api/orders', {'target_type':'lesson','target_id':lesson})
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            results=list(pool.map(order,range(6)))
+        self.assertEqual(sum(r[0]==201 for r in results),1)
+        self.assertTrue(all(r[0] in (200,201) for r in results))
+        ids={json.loads(r[1])['id'] for r in results}
+        self.assertEqual(len(ids),1)
+        self.cookie,self.csrf=admin_cookie,admin_csrf
+        def confirm(_):
+            return self.call('/api/admin/orders',{'id':next(iter(ids)),'status':'confirmed','matched':True})[0]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            self.assertEqual(list(pool.map(confirm,range(6))),[200]*6)
+        with self.server.trial.connect() as db:
+            self.assertEqual(db.execute('select count(*) from notifications').fetchone()[0],1)
+            self.assertEqual(db.execute("select count(*) from audit where action='order_confirmed'").fetchone()[0],1)
 
 
 if __name__=='__main__':

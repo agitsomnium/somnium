@@ -191,6 +191,9 @@ def post(handler, db, member, path, p):
     if new=='confirmed':
         db.execute('insert or ignore into notifications values (?,?,?,?)',
           (row['id'],row['email'],'[발송하지 않은 시험 안내] 수강 권한이 열렸습니다. 로그인 후 나의 강의실에서 확인하세요. 원본 영상 공유 링크는 보내지 않습니다.',time.time()))
+    else:
+        db.execute('update notifications set body=? where order_id=?',
+          ('[발송하지 않은 시험 안내] 이 신청의 수강권을 회수했습니다. 다른 구매·후원 자격은 별도로 유지됩니다. 실제 환불은 처리하지 않았습니다.',row['id']))
     db.execute('insert into audit values (?,?,?,?)',
                (time.time(),member['email'],'order_'+new,row['id']))
     handler.reply(200, {'message':'시험 입금 확인·수강권 부여 완료' if new=='confirmed' else '수강권을 회수했습니다. 실제 환불은 처리하지 않습니다.'})

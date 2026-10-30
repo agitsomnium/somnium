@@ -22,8 +22,12 @@ def snapshot(source, destination):
         raise ValueError('시험 DB 없음')
     manifest_path = source / 'backup-manifest.json'
     if manifest_path.exists():
-        for name, value in json.loads(manifest_path.read_text()).items():
-            if Path(name).name != name or sha(source / name) != value:
+        manifest = json.loads(manifest_path.read_text())
+        if not isinstance(manifest, dict) or 'trial.sqlite3' not in manifest:
+            raise ValueError('백업 목록 확인 필요')
+        for name, value in manifest.items():
+            file = source / name
+            if Path(name).name != name or file.is_symlink() or not file.is_file() or sha(file) != value:
                 raise ValueError('백업 지문 불일치')
     destination.mkdir(mode=0o700, parents=True)
     original = sqlite3.connect(f'file:{source / "trial.sqlite3"}?mode=ro', uri=True)
@@ -33,7 +37,8 @@ def snapshot(source, destination):
         copied.execute('delete from sessions')
         copied.execute('delete from otps')
         copied.commit()
-        assert copied.execute('pragma integrity_check').fetchone()[0] == 'ok'
+        if copied.execute('pragma integrity_check').fetchone()[0] != 'ok':
+            raise ValueError('시험 DB 무결성 검사 실패')
         rows = copied.execute('select video,material from lessons').fetchall()
     finally:
         original.close()
@@ -42,6 +47,8 @@ def snapshot(source, destination):
         for name in row:
             if Path(name).name != name:
                 raise ValueError('자료 경로 확인 필요')
+            if (source / name).is_symlink() or (manifest_path.exists() and name not in manifest):
+                raise ValueError('백업 자료 목록 확인 필요')
             shutil.copyfile(source / name, destination / name)
     manifest = {p.name: sha(p) for p in destination.iterdir() if p.is_file()}
     (destination / 'backup-manifest.json').write_text(json.dumps(manifest, indent=2))

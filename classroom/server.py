@@ -99,6 +99,10 @@ class Handler(BaseHTTPRequestHandler):
         return self.server.trial
 
     def reply(self, status, data, mime='application/json; charset=utf-8', headers=None):
+        # A successful HTTP response must never precede the durable transaction.
+        writing = getattr(self, '_writing', None)
+        if writing is not None:
+            writing.commit()
         if isinstance(data, (dict, list)):
             data = json.dumps(data, ensure_ascii=False).encode()
         elif isinstance(data, str):
@@ -171,6 +175,11 @@ class Handler(BaseHTTPRequestHandler):
                 if not self.admin(member):
                     return
                 return self.reply(200, [dict(r) for r in db.execute('select * from audit order by at desc limit 30')])
+            if path == '/api/admin/lessons':
+                if not self.admin(member):
+                    return
+                return self.reply(200, [dict(r) for r in db.execute(
+                    'select id,title,era,series_id,published from lessons order by rowid desc')])
             match = re.fullmatch(r'/media/([a-zA-Z0-9_-]+)/(video|material)', path)
             if match:
                 lesson = db.execute('select * from lessons where id=?', (match[1],)).fetchone()
@@ -215,13 +224,20 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError('요청을 확인해 주세요.')
             with self.trial.connect() as db:
-                self.post(db, urlsplit(self.path).path, payload)
+                # Serialize read/check/write transitions (OTP reuse, duplicate orders,
+                # cancellation vs confirmation). Read the actor only after acquiring it.
+                db.execute('begin immediate')
+                self._writing = db
+                try:
+                    self.post(db, urlsplit(self.path).path, payload)
+                finally:
+                    self._writing = None
         except (ValueError, KeyError, TypeError, sqlite3.IntegrityError):
             self.reply(400, {'error': '입력과 처리 상태를 확인해 주세요.'})
 
     def post(self, db, path, p):
         member = self.trial.member(db, self.token())
-        if path in ('/api/apply', '/api/otp'):
+        if path in ('/api/apply', '/api/otp', '/api/resend-verification'):
             email = str(p.get('email', '')).strip().lower()
             if not re.fullmatch(r'[a-z0-9._+-]{1,60}@example\.test', email):
                 raise ValueError('가상 주소만 허용')
@@ -240,6 +256,11 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError('신청 목적 확인')
                 db.execute('insert into members(email,name,birth,phone,consent_version,consent_at,audience) values (?,?,?,?,?,?,?)',
                            (email, name, p['birth'], phone, POLICY, time.time(),intent))
+                challenge = self.trial.issue(db, email, 'verify')
+            elif path == '/api/resend-verification':
+                row = db.execute('select * from members where email=?', (email,)).fetchone()
+                if not row or row['verified'] or row['status'] == 'suspended':
+                    return self.reply(409, {'error': '신청·이메일 확인 상태를 확인해 주세요.'})
                 challenge = self.trial.issue(db, email, 'verify')
             else:
                 row = db.execute('select * from members where email=?', (email,)).fetchone()
@@ -281,6 +302,15 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not self.admin(member):
             return
+        if path == '/api/admin/lesson-publication':
+            lesson_id, published = p.get('id'), p.get('published')
+            row = db.execute('select id from lessons where id=?', (lesson_id,)).fetchone()
+            if not row or type(published) is not bool:
+                return self.reply(400, {'error': '강의와 표시 상태를 확인해 주세요.'})
+            db.execute('update lessons set published=? where id=?', (int(published), lesson_id))
+            db.execute('insert into audit values (?,?,?,?)',
+                       (time.time(), member['email'], 'lesson_published' if published else 'lesson_hidden', lesson_id))
+            return self.reply(200, {'message': '회원 강의 목록에 표시했습니다.' if published else '강의를 숨겼습니다. 영상·자료 접근도 차단됩니다.'})
         if path == '/api/admin/status':
             status, email = p.get('status'), p.get('email')
             if status not in ('approved', 'held', 'suspended'):
@@ -300,8 +330,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/admin/lessons':
             title = str(p.get('title', '')).strip()
             era=p.get('era')
+            published=p.get('published', True)
             series=str(p.get('series_id','')).strip()
-            if 'audience' in p or not title or len(title) > 100 or era not in ('archive','current','future') or not re.fullmatch(r'[a-z0-9-]{0,60}',series):
+            if 'audience' in p or type(published) is not bool or not title or len(title) > 100 or era not in ('archive','current','future') or not re.fullmatch(r'[a-z0-9-]{0,60}',series):
                 raise ValueError('강의 정보 확인')
             video = base64.b64decode(p['video'], validate=True)
             material = str(p['material']).encode()
@@ -312,8 +343,8 @@ class Handler(BaseHTTPRequestHandler):
             (self.trial.folder / video_name).write_bytes(video)
             (self.trial.folder / material_name).write_bytes(material)
             db.execute('''insert into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable)
-              values (?,?,'supporter',1,?,?,?,?,?,?)''',
-              (lesson_id,title,video_name,material_name,series,era,'included',int(era!='archive')))
+              values (?,?,'supporter',?,?,?,?,?,?,?)''',
+              (lesson_id,title,int(published),video_name,material_name,series,era,'included',int(era!='archive')))
             db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], 'lesson_created', lesson_id))
             return self.reply(201, {'id': lesson_id})
         self.reply(404, {'error': '찾을 수 없습니다.'})
