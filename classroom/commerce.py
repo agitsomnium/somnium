@@ -23,6 +23,9 @@ def setup(db):
       create table if not exists supporters (
         email text primary key, qualified integer not null default 0,
         checked_at real, checked_by text);
+      create table if not exists directors (
+        email text primary key, enabled integer not null default 0,
+        checked_at real, checked_by text);
       create table if not exists orders (
         id text primary key, email text not null, target_type text not null,
         target_id text not null, status text not null default 'awaiting',
@@ -64,23 +67,30 @@ def is_supporter(db, email):
     return bool(row and row['qualified'])
 
 
+def is_director(db, email):
+    row=db.execute('select enabled from directors where email=?',(email,)).fetchone()
+    return bool(row and row['enabled'])
+
+
 def supporter_review(db, email):
     row=db.execute('select review_state from supporters where email=?', (email,)).fetchone()
     if row:
         return row['review_state']
     member=db.execute('select audience from members where email=?',(email,)).fetchone()
-    return 'not_requested' if member and member['audience']=='purchase' else 'pending'
+    return 'not_requested' if member and member['audience']!='supporter' else 'pending'
 
 
-def allowed(db, member, lesson):
+def allowed(db, member, lesson, purchases_enabled=False):
     if not active(member) or not lesson or not lesson['published']:
         return False
     if member['role'] == 'admin':
         return True
+    if is_director(db,member['email']):
+        return True
     if lesson['supporter_access'] == 'included' and is_supporter(db, member['email']):
         return True
     # Historical lectures cannot be sold or unlocked through a purchase, even with a forged order.
-    if lesson['era'] == 'archive':
+    if lesson['era'] == 'archive' or not purchases_enabled:
         return False
     return bool(db.execute('''select 1 from orders o join order_lessons i on i.order_id=o.id
       where o.email=? and o.status='confirmed' and i.lesson_id=? limit 1''',
@@ -118,9 +128,13 @@ def get(handler, db, member, path):
     if path == '/api/catalog':
         rows = db.execute('select * from lessons where published=1 order by era,series_id,position,id').fetchall()
         handler.reply(200, [{k:r[k] for k in ('id','title','series_id','era','supporter_access','purchasable','description','position','series_title')}
-            | {'accessible':allowed(db,member,r)} for r in rows])
+            | {'accessible':handler.trial.allowed(db,member,r),
+               'purchasable':int(handler.trial.purchases_enabled and r['purchasable'])} for r in rows])
         return True
     if path in ('/api/orders', '/api/notifications', '/api/admin/orders'):
+        if not handler.trial.purchases_enabled:
+            handler.reply(403, {'error':'현재는 후원회원·이사 강의실을 운영합니다. 구매 기능은 보류 중입니다.'})
+            return True
         if not active(member):
             handler.reply(403, {'error':'로그인이 필요합니다.'})
             return True
@@ -139,8 +153,11 @@ def get(handler, db, member, path):
 
 
 def post(handler, db, member, path, p):
-    if path not in ('/api/orders','/api/orders/cancel','/api/admin/orders','/api/admin/supporter','/api/admin/account'):
+    if path not in ('/api/orders','/api/orders/cancel','/api/admin/orders','/api/admin/supporter','/api/admin/account','/api/admin/director'):
         return False
+    if path in ('/api/orders','/api/orders/cancel','/api/admin/orders') and not handler.trial.purchases_enabled:
+        handler.reply(403, {'error':'구매 기능은 보류 중입니다.'})
+        return True
     if not active(member):
         handler.reply(403, {'error':'로그인 상태를 확인해 주세요.'})
         return True
@@ -171,6 +188,20 @@ def post(handler, db, member, path, p):
         return True
     if not handler.admin(member):
         return True
+    if path == '/api/admin/director':
+        row=db.execute("select * from members where email=? and role='member'",(p.get('email'),)).fetchone()
+        enabled=p.get('enabled')
+        if not row or not row['verified'] or type(enabled) is not bool or (enabled and p.get('roster_confirmed') is not True):
+            handler.reply(409, {'error':'이메일 확인과 이사 명단 대조가 필요합니다.'})
+            return True
+        db.execute('''insert into directors values (?,?,?,?) on conflict(email) do update set
+            enabled=excluded.enabled,checked_at=excluded.checked_at,checked_by=excluded.checked_by''',
+            (row['email'],int(enabled),time.time(),member['email']))
+        if enabled and row['status'] in ('pending','held'):
+            db.execute("update members set status='approved' where email=?",(row['email'],))
+        db.execute('insert into audit values (?,?,?,?)',(time.time(),member['email'],'director_granted' if enabled else 'director_revoked',row['email']))
+        handler.reply(200, {'message':'이사 강의 이용 자격을 변경했습니다. 운영관리·회계 열람 권한은 부여하지 않습니다.'})
+        return True
     if path == '/api/admin/account':
         row=db.execute("select * from members where email=? and role='member'", (p.get('email'),)).fetchone()
         status=p.get('status')
@@ -181,7 +212,7 @@ def post(handler, db, member, path, p):
         if status=='suspended':
             db.execute('delete from sessions where email=?', (row['email'],))
         db.execute('insert into audit values (?,?,?,?)', (time.time(),member['email'],'account_'+status,row['email']))
-        handler.reply(200, {'message':'계정 상태를 변경했습니다. 후원·구매 자격은 별도로 관리합니다.'})
+        handler.reply(200, {'message':'계정 상태를 변경했습니다. 회원 자격은 별도로 관리합니다.'})
         return True
     if path == '/api/admin/supporter':
         row=db.execute("select * from members where email=? and role='member'", (p.get('email'),)).fetchone()
@@ -201,7 +232,7 @@ def post(handler, db, member, path, p):
             db.execute("update members set status='approved' where email=?", (row['email'],))
         db.execute('insert into audit values (?,?,?,?)',
                    (time.time(),member['email'],'supporter_'+review,row['email']))
-        handler.reply(200, {'message':'후원 자격을 변경했습니다. 구매 수강권은 별도로 유지됩니다.'})
+        handler.reply(200, {'message':'후원 자격을 변경했습니다. 다른 이용 자격은 별도로 유지됩니다.'})
         return True
     row=db.execute('select * from orders where id=?', (p.get('id'),)).fetchone()
     new=p.get('status')

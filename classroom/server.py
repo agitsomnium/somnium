@@ -30,7 +30,8 @@ def digest(value):
 
 
 class Trial:
-    def __init__(self, folder):
+    def __init__(self, folder, purchases_enabled=False):
+        self.purchases_enabled = purchases_enabled is True
         self.folder = Path(folder).resolve()
         self.folder.mkdir(parents=True, exist_ok=True, mode=0o700)
         restored = verified_manifest(self.folder)
@@ -92,7 +93,7 @@ class Trial:
           where s.token_hash=? and s.expires>?''', (digest(token), time.time())).fetchone()
 
     def allowed(self, db, member, lesson):
-        return commerce.allowed(db, member, lesson)
+        return commerce.allowed(db, member, lesson, self.purchases_enabled)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -161,13 +162,18 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(200, static[path].read_bytes(), mimetypes.guess_type(str(static[path]))[0] or 'application/octet-stream')
         if path == '/robots.txt':
             return self.reply(200, 'User-agent: *\nDisallow: /\n', 'text/plain')
+        if path == '/api/features':
+            return self.reply(200, {'purchases':self.trial.purchases_enabled,'accounting_visibility':'unpublished'})
+        if path == '/api/accounting':
+            return self.reply(403, {'error':'회계 보고는 공개 범위 검토 중이며 아직 게시하지 않았습니다.'})
         with self.trial.connect() as db:
             member = self.trial.member(db, self.token())
             if commerce.get(self, db, member, path):
                 return
             if path == '/api/me':
                 return self.reply(200, {'member': ({k: member[k] for k in ('email', 'name', 'status', 'role', 'csrf')}
-                    | {'supporter':commerce.is_supporter(db,member['email']), 'supporter_review':commerce.supporter_review(db,member['email'])}) if member else None})
+                    | {'supporter':commerce.is_supporter(db,member['email']), 'supporter_review':commerce.supporter_review(db,member['email']),
+                       'director':commerce.is_director(db,member['email'])}) if member else None})
             if path == '/api/lessons':
                 if not member or member['status'] != 'approved' or not member['verified']:
                     return self.reply(403, {'error': '승인된 회원만 이용할 수 있습니다.'})
@@ -177,7 +183,13 @@ class Handler(BaseHTTPRequestHandler):
                 if not self.admin(member):
                     return
                 return self.reply(200, [dict(r) | {'supporter':commerce.is_supporter(db,r['email']),
-                    'supporter_review':commerce.supporter_review(db,r['email'])} for r in db.execute('select email,name,birth,phone,verified,status,consent_version,consent_at from members where role=\'member\'')])
+                    'director':commerce.is_director(db,r['email']),
+                    'supporter_review':commerce.supporter_review(db,r['email'])} for r in db.execute('select email,name,birth,phone,verified,status,audience,consent_version,consent_at from members where role=\'member\'')])
+            if path == '/api/admin/accounting-preview':
+                if not self.admin(member):
+                    return
+                return self.reply(200, {'status':'unpublished','visibility':'undecided','reports':[],
+                    'message':'회계 공개 범위는 이사진 전용 또는 전체 공개 중 검토 중입니다. 실제 회계 자료는 등록·게시하지 않았습니다.'})
             if path == '/api/admin/audit':
                 if not self.admin(member):
                     return
@@ -263,8 +275,10 @@ class Handler(BaseHTTPRequestHandler):
                 if existing:
                     return self.reply(409, {'error': '이미 신청한 주소입니다. 로그인 또는 관리자 문의를 이용해 주세요.'})
                 intent=p.get('intent','supporter')
-                if intent not in ('supporter','purchase'):
+                if intent not in ('supporter','director','purchase'):
                     raise ValueError('신청 목적 확인')
+                if intent=='purchase' and not self.trial.purchases_enabled:
+                    return self.reply(403, {'error':'현재는 후원회원·이사 이용 신청만 받습니다.'})
                 db.execute('insert into members(email,name,birth,phone,consent_version,consent_at,audience) values (?,?,?,?,?,?,?)',
                            (email, name, p['birth'], phone, POLICY, time.time(),intent))
                 challenge = self.trial.issue(db, email, 'verify')
@@ -295,8 +309,9 @@ class Handler(BaseHTTPRequestHandler):
             self.trial.mailbox.pop(challenge, None)
             if row['purpose'] == 'verify':
                 db.execute('update members set verified=1 where email=?', (row['email'],))
-                db.execute("update members set status='approved' where email=? and audience='purchase' and status='pending'", (row['email'],))
-                return self.reply(200, {'message': '이메일을 확인했습니다. 강좌 구매 신청자는 로그인할 수 있으며, 후원 강의는 관리자 자격 확인 후 열립니다.'})
+                if self.trial.purchases_enabled:
+                    db.execute("update members set status='approved' where email=? and audience='purchase' and status='pending'", (row['email'],))
+                return self.reply(200, {'message': '이메일을 확인했습니다. 후원 또는 이사 자격을 관리자가 확인한 뒤 강의를 이용할 수 있습니다.'})
             current = db.execute('select * from members where email=?', (row['email'],)).fetchone()
             if current['status'] != 'approved' or not current['verified']:
                 return self.reply(403, {'error': '이용 권한이 없습니다.'})
@@ -389,9 +404,9 @@ class Handler(BaseHTTPRequestHandler):
         self.reply(404, {'error': '찾을 수 없습니다.'})
 
 
-def make_server(folder, port=8765):
+def make_server(folder, port=8765, purchases_enabled=False):
     server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
-    server.trial = Trial(folder)
+    server.trial = Trial(folder,purchases_enabled=purchases_enabled)
     return server
 
 
@@ -400,7 +415,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--state', type=Path, required=True)
     parser.add_argument('--port', type=int, default=8765)
+    parser.add_argument('--enable-purchase-trial', action='store_true', help='과거 구매 흐름 회귀 시험 전용. 현재 검토에는 사용하지 않습니다.')
     args = parser.parse_args()
-    server = make_server(args.state, args.port)
+    server = make_server(args.state, args.port,purchases_enabled=args.enable_purchase_trial)
     print(f'가상 데이터 전용 · http://127.0.0.1:{server.server_port} · 외부 배포 금지', flush=True)
     server.serve_forever()

@@ -19,6 +19,7 @@ class BackupTest(unittest.TestCase):
             db.execute("insert into sessions values ('secret','admin.one@example.test',9999999999,'csrf')")
             self.trial.issue(db,'admin.one@example.test','login')
             db.execute("insert into supporters(email,qualified,review_state) values ('member@example.test',1,'qualified')")
+            db.execute("insert into directors values ('director@example.test',1,1,'admin.one@example.test')")
             db.execute("insert into orders(id,email,target_type,target_id,status,created_at) values ('order','member@example.test','lesson','one','confirmed',1)")
     def tearDown(self):
         self.temp.cleanup()
@@ -35,6 +36,7 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(db.execute('select count(*) from otps').fetchone()[0],0)
             self.assertEqual(db.execute("select status from orders where id='order'").fetchone()[0],'confirmed')
             self.assertEqual(db.execute("select qualified from supporters where email='member@example.test'").fetchone()[0],1)
+            self.assertEqual(db.execute("select enabled from directors where email='director@example.test'").fetchone()[0],1)
         self.assertEqual((restored/'notes.txt').read_text(),'private canary')
         self.assertFalse((restored/'backup-manifest.json').exists())
         self.assertEqual(len(list(restored.glob('restored-origin-*.json'))),1)

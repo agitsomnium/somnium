@@ -13,7 +13,7 @@ from server import make_server
 class AccessTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.server = make_server(self.temp.name, 0)
+        self.server = make_server(self.temp.name, 0, purchases_enabled=True)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
         self.cookie = ''
@@ -468,6 +468,101 @@ class AccessTest(unittest.TestCase):
         self.verify(self.email,'purchase')
         self.login(self.email)
         self.assertEqual(json.loads(self.call('/api/me')[1])['member']['supporter_review'],'not_requested')
+
+    def test_membership_first_defaults_disable_purchase_and_keep_legacy_data(self):
+        from server import Trial
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertFalse(Trial(folder).purchases_enabled)
+        self.verify(self.email,'purchase')
+        self.admin()
+        lesson=self.lesson('current','kept')
+        self.login(self.email)
+        order,_=self.request('/api/orders',{'target_type':'lesson','target_id':lesson},201)
+        buyer=self.cookie,self.csrf
+        self.admin()
+        self.request('/api/admin/orders',{'id':order['id'],'status':'confirmed','matched':True})
+        self.server.trial.purchases_enabled=False
+        self.assertEqual(json.loads(self.call('/api/features')[1])['purchases'],False)
+        self.assertTrue(all(l['purchasable']==0 for l in json.loads(self.call('/api/catalog')[1])))
+        self.assertEqual(self.call(f'/media/{lesson}/video',cookie=buyer[0])[0],403)
+        for path in ('/api/orders','/api/admin/orders','/api/notifications'):
+            self.assertEqual(self.call(path)[0],403)
+        for path,p in [('/api/orders',{'target_type':'lesson','target_id':lesson}),
+                       ('/api/orders/cancel',{'id':order['id']}),
+                       ('/api/admin/orders',{'id':order['id'],'status':'confirmed','matched':True})]:
+            self.request(path,p,403)
+        self.request('/api/apply',{'email':'new@example.test','name':'가상 회원','birth':'1990-01-01',
+            'phone':'01000000000','consent':True,'intent':'purchase'},403)
+        with self.server.trial.connect() as db:
+            self.assertEqual(db.execute('select status from orders where id=?',(order['id'],)).fetchone()[0],'confirmed')
+        self.server.trial.purchases_enabled=True
+        self.assertEqual(self.call(f'/media/{lesson}/video',cookie=buyer[0])[0],200)
+
+    def test_director_requires_roster_approval_not_self_selected_intent(self):
+        self.server.trial.purchases_enabled=False
+        c,_=self.request('/api/apply',{'email':self.email,'name':'가상 이사','birth':'1990-01-01',
+            'phone':'01000000000','consent':True,'intent':'director','director':True,'role':'admin','status':'approved'})
+        self.challenge(c['challenge'])
+        self.request('/api/otp',{'email':self.email},403)
+        self.admin()
+        old=self.lesson('archive')
+        current=self.lesson('current')
+        future=self.lesson('future')
+        self.request('/api/admin/director',{'email':self.email,'enabled':True},409)
+        self.request('/api/admin/director',{'email':self.email,'enabled':True,'roster_confirmed':True})
+        self.login(self.email)
+        member=json.loads(self.call('/api/me')[1])['member']
+        self.assertTrue(member['director'])
+        self.assertFalse(member['supporter'])
+        self.assertEqual(member['role'],'member')
+        for lesson in (old,current,future):
+            self.assertEqual(self.call(f'/media/{lesson}/video',headers={'Range':'bytes=0-7'})[0],206)
+            self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
+        self.assertEqual(self.call('/api/admin/members')[0],403)
+        self.assertEqual(self.call('/api/admin/accounting-preview')[0],403)
+        self.assertEqual(self.call('/api/accounting')[0],403)
+        self.request('/api/admin/director',{'email':self.email,'enabled':True,'roster_confirmed':True},403)
+
+    def test_director_revocation_and_supporter_independence_and_suspension(self):
+        self.server.trial.purchases_enabled=False
+        self.verify(self.email,'director')
+        self.admin()
+        lesson=self.lesson()
+        self.request('/api/admin/director',{'email':self.email,'enabled':True,'roster_confirmed':True})
+        self.login(self.email)
+        board=self.cookie,self.csrf
+        self.admin()
+        self.request('/api/admin/director',{'email':self.email,'enabled':False})
+        self.assertEqual(self.call(f'/media/{lesson}/video',cookie=board[0])[0],403)
+        self.approve(self.email)
+        self.assertEqual(self.call(f'/media/{lesson}/material',cookie=board[0])[0],200)
+        self.request('/api/admin/director',{'email':self.email,'enabled':True,'roster_confirmed':True})
+        self.request('/api/admin/supporter',{'email':self.email,'qualified':False})
+        self.assertEqual(self.call(f'/media/{lesson}/material',cookie=board[0])[0],200)
+        self.request('/api/admin/account',{'email':self.email,'status':'suspended'})
+        self.assertEqual(self.call(f'/media/{lesson}/material',cookie=board[0])[0],403)
+        self.request('/api/admin/director',{'email':self.email,'enabled':False})
+        self.request('/api/admin/account',{'email':self.email,'status':'approved'})
+        self.login(self.email)
+        self.assertFalse(json.loads(self.call('/api/me')[1])['member']['director'])
+        self.assertEqual(self.call(f'/media/{lesson}/video')[0],403)
+
+    def test_accounting_is_unpublished_even_to_directors_and_admin_preview_has_no_data(self):
+        self.server.trial.purchases_enabled=False
+        self.assertEqual(self.call('/api/accounting',cookie='')[0],403)
+        self.assertEqual(self.call('/api/admin/accounting-preview',cookie='')[0],403)
+        self.verify(self.email)
+        self.admin()
+        self.approve(self.email)
+        self.login(self.email)
+        self.assertEqual(self.call('/api/accounting')[0],403)
+        self.assertEqual(self.call('/api/admin/accounting-preview')[0],403)
+        self.admin()
+        result=json.loads(self.call('/api/admin/accounting-preview')[1])
+        self.assertEqual(result,{'status':'unpublished','visibility':'undecided','reports':[],
+            'message':'회계 공개 범위는 이사진 전용 또는 전체 공개 중 검토 중입니다. 실제 회계 자료는 등록·게시하지 않았습니다.'})
+        self.assertEqual(self.call('/api/accounting')[0],403)
+        self.request('/api/admin/accounting-preview',{'visibility':'public'},404)
 
 
 if __name__=='__main__':
