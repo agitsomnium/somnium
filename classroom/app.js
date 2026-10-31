@@ -129,9 +129,10 @@ function lessonRow(l, parent) {
 }
 function renderCatalog() {
   el('catalog').replaceChildren(); const q = el('catalog-search').value.trim().toLowerCase();
-  const filtered = catalog.filter(l => `${l.title} ${l.description} ${l.series_title}`.toLowerCase().includes(q));
+  const series = el('catalog-series').value;
+  const filtered = catalog.filter(l => (!series || l.series_title === series) && `${l.title} ${l.description} ${l.series_title}`.toLowerCase().includes(q));
   el('catalog-count').textContent = `등록 강의 ${catalog.length}개 · 검색 결과 ${filtered.length}개`;
-  for (const era of ['archive','current','future']) {
+  for (const era of ['current','archive','future']) {
     const list = filtered.filter(l => l.era === era); if (!list.length) continue;
     const group = node('div','',el('catalog')); group.className = 'catalog-group'; node('h3',eraNames[era],group).className = 'group-title';
     for (const l of list) lessonRow(l,group);
@@ -148,6 +149,7 @@ function renderCatalog() {
   if (!filtered.length) node('p',q ? '검색한 강의가 없습니다. 다른 검색어를 입력해 주세요.' : (current ? '현재 이용 가능한 강의가 없습니다. 후원하셨다면 나의 강의실에서 확인을 요청해 주세요.' : '로그인 후 이용 가능한 강의를 확인해 주세요.'),el('catalog'));
 }
 el('catalog-search').oninput = renderCatalog;
+el('catalog-series').onchange = renderCatalog;
 async function showPlayer(id) {
   const viewer=current?.email;
   let playback;
@@ -308,6 +310,11 @@ async function refresh(afterLogin = false) {
     for (const id of ['lessons','orders','notifications','members','admin-orders','audit','admin-lessons','admin-summary','director-roster-list','player-region']) el(id).replaceChildren();
   }
   if (!current || !catalog.some(l => l.id === playingId && l.accessible)) { el('player-region').replaceChildren(); playingId = ''; }
+  const chosenSeries=el('catalog-series').value;
+  el('catalog-series').replaceChildren(); node('option','전체 시리즈',el('catalog-series')).value='';
+  const titles=[...new Set(catalog.map(l=>l.series_title).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+  for (const title of titles) node('option',title,el('catalog-series')).value=title;
+  el('catalog-series').value=titles.includes(chosenSeries)?chosenSeries:'';
   renderCatalog(); selectView(view);
 }
 submit('director-roster',async f => { const r=await api('/api/admin/director',{email:f.get('email'),enabled:true,roster_confirmed:f.get('roster_confirmed')==='on'}); el('director-roster').reset(); await refresh(); notice(r.message); });
