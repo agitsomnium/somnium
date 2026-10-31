@@ -14,12 +14,8 @@ def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def snapshot(source, destination):
-    source, destination = Path(source).resolve(), Path(destination).resolve()
-    if destination.exists():
-        raise ValueError('새 디렉터리만 사용할 수 있습니다.')
-    if not (source / 'trial.sqlite3').is_file():
-        raise ValueError('시험 DB 없음')
+def verified_manifest(source):
+    source = Path(source)
     manifest_path = source / 'backup-manifest.json'
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text())
@@ -29,6 +25,24 @@ def snapshot(source, destination):
             file = source / name
             if Path(name).name != name or file.is_symlink() or not file.is_file() or sha(file) != value:
                 raise ValueError('백업 지문 불일치')
+        db = sqlite3.connect(f'file:{source / "trial.sqlite3"}?mode=ro', uri=True)
+        try:
+            for row in db.execute('select video,material from lessons'):
+                if any(name not in manifest for name in row):
+                    raise ValueError('백업 자료 목록 누락')
+        finally:
+            db.close()
+        return manifest
+    return None
+
+
+def snapshot(source, destination):
+    source, destination = Path(source).resolve(), Path(destination).resolve()
+    if destination.exists():
+        raise ValueError('새 디렉터리만 사용할 수 있습니다.')
+    if not (source / 'trial.sqlite3').is_file() or (source / 'trial.sqlite3').is_symlink():
+        raise ValueError('시험 DB 없음 또는 잘못된 경로')
+    manifest = verified_manifest(source)
     destination.mkdir(mode=0o700, parents=True)
     original = sqlite3.connect(f'file:{source / "trial.sqlite3"}?mode=ro', uri=True)
     copied = sqlite3.connect(destination / 'trial.sqlite3')
@@ -47,7 +61,7 @@ def snapshot(source, destination):
         for name in row:
             if Path(name).name != name:
                 raise ValueError('자료 경로 확인 필요')
-            if (source / name).is_symlink() or (manifest_path.exists() and name not in manifest):
+            if (source / name).is_symlink() or (manifest is not None and name not in manifest):
                 raise ValueError('백업 자료 목록 확인 필요')
             shutil.copyfile(source / name, destination / name)
     manifest = {p.name: sha(p) for p in destination.iterdir() if p.is_file()}

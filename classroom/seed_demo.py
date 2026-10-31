@@ -21,12 +21,14 @@ def seed(folder, video):
             db.execute('''insert or ignore into members values (?,?,?,?,?,?,1,?,'member',?)''',
                        (email,name,'1990-01-01','01000000000','trial-2026-10-29',time.time(),status,audience))
         db.execute("insert or ignore into supporters(email,qualified,checked_at,checked_by,review_state) values ('supporter@example.test',1,?,'synthetic-demo','qualified')",(time.time(),))
-        for lid,title,series,era in (
+        fixtures = [
             ('demo-archive','이전 강의 아카이브 · 시험 영상','','archive'),
             ('demo-capitalism-1','현대 자본주의 이해하기 · 시험 1강','capitalism-season1','current'),
             ('demo-capitalism-2','현대 자본주의 이해하기 · 시험 2강','capitalism-season1','current'),
             ('demo-2027','2027 신규 강좌 · 판매 준비 시험','new-2027','future'),
-        ):
+        ]
+        fixtures += [(f'demo-capitalism-{i}',f'현대 자본주의 이해하기 · 시험 {i}강','capitalism-season1','current') for i in range(3,7)]
+        for lid,title,series,era in fixtures:
             vname,mname=lid+'.mp4',lid+'.txt'
             target=trial.folder/vname
             if target.exists() and hashlib.sha256(target.read_bytes()).digest()!=hashlib.sha256(video.read_bytes()).digest():
@@ -39,7 +41,10 @@ def seed(folder, video):
             db.execute('''insert or ignore into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable)
               values (?,?,'supporter',1,?,?,?,?,?,?)''',
               (lid,title,vname,mname,series,era,'included',int(era!='archive')))
-    return {'synthetic_members':3,'test_lessons':4,'real_data':False}
+            number=int(lid.rsplit('-',1)[-1]) if series=='capitalism-season1' else 1
+            db.execute("update lessons set description=case when description='' then ? else description end, position=?,series_title=case when series_title='' then ? else series_title end where id=?",
+                ('시험 영상과 자료로 강의실 이용 흐름을 살펴보는 가상 강의입니다. 실제 강의 내용은 포함하지 않았습니다.',number,'현대 자본주의 이해하기 · 시즌 1' if series=='capitalism-season1' else ('2027 신규 강좌' if series else ''),lid))
+    return {'synthetic_members':3,'test_lessons':8,'real_data':False}
 
 
 if __name__=='__main__':

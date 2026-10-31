@@ -13,6 +13,9 @@ def setup(db):
         'era': "text not null default 'archive'",
         'supporter_access': "text not null default 'included'",
         'purchasable': 'integer not null default 0',
+        'description': "text not null default ''",
+        'position': 'integer not null default 1',
+        'series_title': "text not null default ''",
     }.items():
         if name not in columns:
             db.execute(f'alter table lessons add column {name} {declaration}')
@@ -30,13 +33,23 @@ def setup(db):
         on orders(email,target_type,target_id) where status != 'cancelled';
       create table if not exists notifications (
         order_id text primary key, email text not null, body text not null, created_at real not null);
+      create table if not exists order_lessons (
+        order_id text not null, lesson_id text not null, title text not null,
+        position integer not null, primary key(order_id,lesson_id));
     ''')
+    order_columns = {r['name'] for r in db.execute('pragma table_info(orders)')}
+    for name, declaration in {'target_label': "text not null default ''", 'snapshot_version': 'integer not null default 0'}.items():
+        if name not in order_columns:
+            db.execute(f'alter table orders add column {name} {declaration}')
+    # One-time migration of synthetic orders; later additions never expand a purchase.
+    for order in db.execute('select * from orders where snapshot_version=0').fetchall():
+        rows = db.execute("select * from lessons where era!='archive' and ((?='lesson' and id=?) or (?='series' and series_id=?)) order by position,id",
+            (order['target_type'],order['target_id'],order['target_type'],order['target_id'])).fetchall()
+        capture(db, order['id'], order['target_type'], rows)
     if 'review_state' not in {r['name'] for r in db.execute('pragma table_info(supporters)')}:
         db.execute("alter table supporters add column review_state text not null default 'pending'")
-    # Preserve yesterday's already-approved synthetic supporters; never override a withdrawal.
-    db.execute('''insert or ignore into supporters(email,qualified,checked_at,checked_by)
-        select email,1,?,'legacy-trial' from members
-        where role='member' and status='approved' and audience='supporter' ''', (time.time(),))
+    # Account approval and an application intent never prove donor qualification.
+    # Keep explicit supporter rows; legacy accounts without one need manual review.
     db.execute("update supporters set review_state='qualified' where qualified=1")
     # User decision, 2026-10-30: qualified supporters also get current and 2027 lectures.
     db.execute("update lessons set supporter_access='included' where supporter_access='undecided'")
@@ -53,7 +66,10 @@ def is_supporter(db, email):
 
 def supporter_review(db, email):
     row=db.execute('select review_state from supporters where email=?', (email,)).fetchone()
-    return row['review_state'] if row else 'pending'
+    if row:
+        return row['review_state']
+    member=db.execute('select audience from members where email=?',(email,)).fetchone()
+    return 'not_requested' if member and member['audience']=='purchase' else 'pending'
 
 
 def allowed(db, member, lesson):
@@ -66,10 +82,22 @@ def allowed(db, member, lesson):
     # Historical lectures cannot be sold or unlocked through a purchase, even with a forged order.
     if lesson['era'] == 'archive':
         return False
-    return bool(db.execute('''select 1 from orders where email=? and status='confirmed'
-      and ((target_type='lesson' and target_id=?)
-        or (target_type='series' and target_id=? and target_id!='')) limit 1''',
-      (member['email'], lesson['id'], lesson['series_id'])).fetchone())
+    return bool(db.execute('''select 1 from orders o join order_lessons i on i.order_id=o.id
+      where o.email=? and o.status='confirmed' and i.lesson_id=? limit 1''',
+      (member['email'], lesson['id'])).fetchone())
+
+
+def capture(db, order_id, kind, rows):
+    label = rows[0]['title'] if rows else '강좌 확인 필요'
+    if kind == 'series' and rows:
+        label = (rows[0]['series_title'] or rows[0]['title'].split('·')[0].strip()) + ' · 시리즈'
+    db.execute('update orders set target_label=?,snapshot_version=1 where id=?', (label,order_id))
+    db.executemany('insert or ignore into order_lessons values (?,?,?,?)',
+        [(order_id,r['id'],r['title'],r['position']) for r in rows])
+
+
+def items(db, order_id):
+    return [dict(r) for r in db.execute('select lesson_id,title,position from order_lessons where order_id=? order by position,lesson_id',(order_id,))]
 
 
 def target_rows(db, kind, target):
@@ -78,7 +106,7 @@ def target_rows(db, kind, target):
     if kind == 'lesson':
         rows = db.execute('select * from lessons where id=?', (target,)).fetchall()
     elif kind == 'series' and target:
-        rows = db.execute('select * from lessons where series_id=?', (target,)).fetchall()
+        rows = db.execute('select * from lessons where series_id=? order by position,id', (target,)).fetchall()
     else:
         return []
     if not rows or any(not r['published'] or not r['purchasable'] or r['era'] == 'archive' for r in rows):
@@ -88,8 +116,8 @@ def target_rows(db, kind, target):
 
 def get(handler, db, member, path):
     if path == '/api/catalog':
-        rows = db.execute('select * from lessons where published=1 order by era,id').fetchall()
-        handler.reply(200, [{k:r[k] for k in ('id','title','series_id','era','supporter_access','purchasable')}
+        rows = db.execute('select * from lessons where published=1 order by era,series_id,position,id').fetchall()
+        handler.reply(200, [{k:r[k] for k in ('id','title','series_id','era','supporter_access','purchasable','description','position','series_title')}
             | {'accessible':allowed(db,member,r)} for r in rows])
         return True
     if path in ('/api/orders', '/api/notifications', '/api/admin/orders'):
@@ -105,7 +133,7 @@ def get(handler, db, member, path):
             rows=db.execute('select * from orders where email=? order by created_at desc', (member['email'],)).fetchall()
         else:
             rows=db.execute('select * from notifications where email=? order by created_at desc', (member['email'],)).fetchall()
-        handler.reply(200, [dict(r) for r in rows])
+        handler.reply(200, [dict(r) | ({'lessons':items(db,r['id'])} if path!='/api/notifications' else {}) for r in rows])
         return True
     return False
 
@@ -118,7 +146,8 @@ def post(handler, db, member, path, p):
         return True
     if path == '/api/orders':
         kind,target=p.get('target_type'),p.get('target_id')
-        if not target_rows(db,kind,target):
+        selected=target_rows(db,kind,target)
+        if not selected:
             handler.reply(400, {'error':'구매 시험 대상이 아닙니다. 이전 강의는 후원회원 전용입니다.'})
             return True
         existing=db.execute("select id from orders where email=? and target_type=? and target_id=? and status!='cancelled'",
@@ -129,6 +158,7 @@ def post(handler, db, member, path, p):
         oid=secrets.token_urlsafe(18)
         db.execute('insert into orders(id,email,target_type,target_id,created_at) values (?,?,?,?,?)',
                    (oid,member['email'],kind,target,time.time()))
+        capture(db,oid,kind,selected)
         handler.reply(201, {'id':oid,'message':'시험 신청을 접수했습니다. 실제 입금하지 마세요.'})
         return True
     if path == '/api/orders/cancel':
@@ -182,8 +212,12 @@ def post(handler, db, member, path, p):
         handler.reply(200, {'message':'이미 처리된 시험 신청입니다.','duplicate':True})
         return True
     buyer=db.execute('select * from members where email=?', (row['email'],)).fetchone()
+    captured=db.execute('''select l.* from order_lessons i join lessons l on l.id=i.lesson_id
+      where i.order_id=?''',(row['id'],)).fetchall()
+    valid_capture=bool(captured) and len(captured)==len(items(db,row['id'])) and all(
+        l['published'] and l['purchasable'] and l['era']!='archive' for l in captured)
     if new=='confirmed' and (row['status']!='awaiting' or p.get('matched') is not True
-        or not active(buyer) or not target_rows(db,row['target_type'],row['target_id'])):
+        or not active(buyer) or not valid_capture):
         handler.reply(409, {'error':'유효한 신청·회원·시험 입금 확인이 필요합니다.'})
         return True
     db.execute('update orders set status=?,confirmed_at=?,confirmed_by=? where id=?',

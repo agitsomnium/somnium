@@ -1,16 +1,71 @@
 <!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>강의실 초안 | 솜니움</title><link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css"><link rel="stylesheet" href="/trial.css"><script src="/app.js" defer></script></head>
-<body><a class="skip-link" href="#main">본문으로</a><div class="trial-banner">로컬 초안 · 가상 회원과 시험 영상만 사용합니다 · 실제 입금·메일 발송 없음</div>
-<header><a href="/" class="wordmark">솜니움</a><nav aria-label="주요 메뉴"><button data-view="catalog">강의 목록</button><button data-view="mine" id="mine-nav" hidden>나의 강의실</button><button data-view="admin" id="admin-nav" hidden>운영관리</button><a href="https://somniumagit.com" target="_blank" rel="noreferrer">공개 홈페이지 ↗</a><button id="refresh">상태 새로고침</button><button id="theme">어둡게</button><button id="logout" hidden>로그아웃</button></nav></header>
-<main id="main"><div class="intro"><p class="eyebrow">기독교정치사회연구소</p><h1>솜니움 강의실</h1><p>월 1만 원 이상 후원회원의 강의와 자료,<br>그리고 한 강좌부터 시리즈까지 이어지는 공부.</p><div class="policy-line"><span>이전 강의는 후원회원 전용</span><span>현대 자본주의부터 구매 신청 시험</span><span>2027년 신규 강좌 판매 준비</span></div></div>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><title>강의실 검토본 | 솜니움</title>
+<link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css"><link rel="stylesheet" href="/trial.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">본문으로</a>
+<div class="trial-banner">검토용 로컬 강의실 · 가상 회원·시험 영상 · 실제 입금·메일 발송 없음</div>
+<header><a href="/" class="wordmark">솜니움</a><nav aria-label="주요 메뉴">
+<button data-view="catalog">강의 목록</button><button data-view="guide">이용 안내</button>
+<button data-view="mine" id="mine-nav" hidden>나의 강의실</button><button data-view="admin" id="admin-nav" hidden>운영관리</button>
+<a href="https://somniumagit.com" target="_blank" rel="noreferrer">공개 홈페이지 ↗</a>
+<button id="refresh">상태 새로고침</button><button id="theme">어둡게</button><button id="logout" hidden>로그아웃</button>
+</nav></header>
+<main id="main">
+<div class="intro"><p class="eyebrow">기독교정치사회연구소</p><h1>솜니움 강의실</h1>
+<p>강의를 다시 보고, 자료를 읽고,<br>함께 공부한 질문을 이어 갑니다.</p>
+<div class="policy-line"><span>월 1만 원 이상 후원회원 · 모든 강의 포함</span><span>현대자본주의부터 단강좌·시리즈 구매 준비</span></div></div>
 <p id="notice" role="status" aria-live="polite"></p><div id="signed-in" hidden></div>
-<div id="entry" class="columns"><section><h2>강의실 이용 신청</h2><p>가상 정보와 <strong>@example.test</strong> 주소로 신청해 주세요.</p><form id="apply"><label>이용 목적<select name="intent"><option value="supporter">후원회원 강의 이용 신청</option><option value="purchase">단강좌·시리즈 구매 신청</option></select></label><label>이름<input name="name" autocomplete="name" required minlength="2" maxlength="40" placeholder="가상 회원"></label><div class="field-pair"><label>생년월일<input name="birth" type="date" required></label><label>휴대전화번호<input name="phone" type="tel" inputmode="tel" required placeholder="01000000000"></label></div><label>이메일<input name="email" type="email" autocomplete="email" required placeholder="member@example.test"></label><details><summary>개인정보 수집·이용 안내 (시험 문안)</summary><p>이름·생년월일·전화·이메일을 본인 확인·후원 자격 대조·수강 권한 관리에 사용합니다. 거부 시 신청할 수 없습니다. 현재는 가상 정보만 사용합니다. 실제 운영 전 보유·삭제 기간과 문의 담당을 확정합니다.</p></details><label class="check"><input name="consent" type="checkbox" required> 개인정보 수집·이용에 동의합니다.</label><button type="submit">신청하고 이메일 확인</button></form></section>
-<section><h2>이메일로 로그인</h2><p>인증번호로 로그인한 뒤 이용 가능한 강의를 확인합니다.</p><form id="login"><label>이메일<input name="email" type="email" autocomplete="email" required placeholder="member@example.test"></label><button type="submit">인증번호 받기</button><button type="button" id="resume-verification">신청 이메일 확인 이어가기</button></form><aside><h3>초안 살펴보기</h3><p>계정을 선택하면 로그인 이메일을 채웁니다. 인증은 화면의 시험 메일함으로 진행합니다.</p><div class="fixture-buttons"><button data-email="supporter@example.test">후원회원</button><button data-email="buyer@example.test">강좌 구매자</button><button data-email="admin.one@example.test">운영관리자</button></div><p>이사·아지트솜니움 별도 역할은 없습니다. 간사 업무를 운영관리자에 통합했습니다.</p></aside></section></div>
-<section id="verification" hidden><h2>이메일 인증번호</h2><p>실제 이메일은 보내지 않습니다. 이번 요청의 가상 인증번호를 확인하세요.</p><button id="resend">인증번호 다시 받기</button> <button id="mail">시험 메일 확인</button><p id="mail-code"></p><form id="verify"><label>6자리 인증번호<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button type="submit">확인</button></form><button id="back-login">신청·로그인으로 돌아가기</button></section>
-<section id="catalog-view"><div class="section-title"><h2>강의 목록</h2><p>판매가격은 미정입니다. 아래 버튼은 신청·권한 흐름을 확인하는 시험입니다.</p></div><div id="catalog"></div></section>
-<section id="mine-view" hidden><h2>나의 강의실</h2><p id="identity"></p><div id="lessons"></div><h2>나의 구매 신청</h2><div id="orders"></div><h2>수강 안내</h2><p class="muted">실제 발송 전, 시스템에 생성한 안내 내용을 확인하는 시험 메일함입니다.</p><div id="notifications"></div></section>
-<section id="admin-view" hidden><div class="section-title"><h2>운영관리</h2><p>회원·입금·강의를 관리합니다. 실제 후원금 장부는 한빛누리에 둡니다.</p></div><nav class="admin-tabs" aria-label="관리 항목"><button data-admin="members">회원·후원</button><button data-admin="orders">구매 신청·입금</button><button data-admin="upload">강의·자료 등록</button></nav>
-<div id="members-panel"><h3>회원과 후원 자격</h3><p>후원 자격 종료와 계정 이용 중지는 별도입니다. 계정 이용 중지는 구매 강의도 차단합니다.</p><div id="members"></div></div>
-<div id="admin-orders-panel" hidden><h3>구매 신청·입금 확인</h3><p>이 초안에서는 시험 확인만 합니다. 실제 운영은 구글폼 신청 → 계좌이체 → 관리자 입금 확인 → 수강권·안내메일 순서입니다.</p><div id="admin-orders"></div></div>
-<div id="upload-panel" hidden><h3>강의·자료 등록</h3><form id="upload"><label>강의 제목<input name="title" required maxlength="100"></label><label>자료 구분<select name="era"><option value="archive">현대자본주의 이전 · 후원회원 전용</option><option value="current">현대자본주의부터 · 구매 신청 시험</option><option value="future">2027 신규 촬영분 · 판매 준비</option></select></label><label>시리즈 ID<input name="series_id" pattern="[a-z0-9-]{0,60}" maxlength="60" placeholder="capitalism-season1"></label><p class="muted">이전 강의·현대자본주의·2027 신규 강의 모두 월 1만 원 이상 후원회원에게 포함됩니다.</p><label>시험 MP4 영상 (10MB 이하)<input name="video" type="file" accept="video/mp4" required></label><label>시험 자료<textarea name="material" required maxlength="50000"></textarea></label><label class="check"><input name="published" type="checkbox"> 등록 후 회원 강의 목록에 표시 (미선택 시 숨김)</label><button type="submit">강의와 자료 등록</button></form><h3>등록 강의 관리</h3><p>숨기면 기존 수강권이 있어도 영상·자료를 이용할 수 없습니다. 다시 표시하면 기존 수강권으로 이용합니다.</p><div id="admin-lessons"></div></div><details><summary>최근 관리 이력</summary><div id="audit"></div></details></section>
-</main><footer>후원·기부금 처리는 한빛누리의 기존 절차를 따릅니다. 강좌 구매는 별도 수강권으로 관리합니다.<br>이 화면은 집 맥북에서 실행하는 시험 초안입니다. 실제 회원 서비스·결제·메일은 연결하지 않았습니다.</footer></body></html>
+<div id="entry" class="entry-shell">
+<div class="entry-tabs" aria-label="신청과 로그인"><button data-entry="login" aria-pressed="true">로그인</button><button data-entry="apply" aria-pressed="false">처음 이용 신청</button></div>
+<div class="columns">
+<section id="login-section"><h2>이메일로 로그인</h2><p>이메일 인증번호로 로그인하고 이용 가능한 강의를 확인합니다.</p>
+<form id="login"><label>이메일<input name="email" type="email" autocomplete="email" required placeholder="member@example.test"></label><button type="submit">인증번호 받기</button><button type="button" id="resume-verification">신청 이메일 확인 이어가기</button></form></section>
+<section id="apply-section" hidden><h2>강의실 이용 신청</h2><p>가상 정보와 <strong>@example.test</strong> 주소로 신청해 주세요.</p>
+<form id="apply"><label>이용 목적<select name="intent"><option value="supporter">후원회원 강의 이용 신청</option><option value="purchase">단강좌·시리즈 구매 신청</option></select></label>
+<label>이름<input name="name" autocomplete="name" required minlength="2" maxlength="40" placeholder="가상 회원"></label>
+<div class="field-pair"><label>생년월일<input name="birth" type="date" required></label><label>휴대전화번호<input name="phone" type="tel" inputmode="tel" required placeholder="01000000000"></label></div>
+<label>이메일<input name="email" type="email" autocomplete="email" required placeholder="member@example.test"></label>
+<details><summary>개인정보 수집·이용 안내 (시험 문안)</summary><p>이름·생년월일·전화·이메일을 본인 확인·후원 자격 대조·수강 권한 관리에 사용합니다. 동의를 거부하면 신청할 수 없습니다. 현재는 가상 정보만 사용합니다. 실제 운영 전 보유·삭제 기간과 문의 담당을 확정합니다.</p></details>
+<label class="check"><input name="consent" type="checkbox" required> 개인정보 수집·이용에 동의합니다.</label><button type="submit">신청하고 이메일 확인</button></form></section>
+<aside><h3>검토용 계정으로 살펴보기</h3><p>역할을 선택하고 인증번호를 받으세요. 다음 화면의 ‘시험 메일 확인’에서 가상 인증번호를 확인할 수 있습니다.</p>
+<div class="fixture-buttons"><button data-email="supporter@example.test">후원회원</button><button data-email="buyer@example.test">강좌 구매자</button><button data-email="admin.one@example.test">운영관리자</button></div>
+<p>후원회원은 모든 강의를, 구매자는 입금 확인된 강의를 이용합니다. 운영관리자에는 간사 업무가 포함됩니다.</p></aside>
+</div></div>
+<section id="verification" hidden><h2>이메일 인증번호</h2><p>실제 이메일은 보내지 않습니다. 이번 요청의 가상 인증번호를 확인하세요.</p>
+<button id="resend">인증번호 다시 받기</button> <button id="mail">시험 메일 확인</button><p id="mail-code"></p>
+<form id="verify"><label>6자리 인증번호<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button type="submit">확인</button></form><button id="back-login">신청·로그인으로 돌아가기</button></section>
+<section id="catalog-view"><div class="section-title"><h2>강의 목록</h2><p>시험 영상으로 구성한 검토본입니다. 판매가격·시청기간은 미정입니다.</p></div>
+<label class="search-label">강의 검색<input id="catalog-search" type="search" placeholder="강의·시리즈 이름으로 찾기"></label><p id="catalog-count" class="muted"></p><div id="catalog"></div></section>
+<section id="guide-view" hidden><h2>강의실 이용 안내</h2><div class="guide-grid">
+<article><p class="eyebrow">후원회원</p><h3>후원 확인 후 모든 강의를 봅니다</h3><ol><li>이용 신청과 이메일 확인을 마칩니다.</li><li>관리자가 한빛누리에서 월 1만 원 이상 후원 여부를 대조합니다.</li><li>승인 후 이메일 인증번호로 로그인합니다.</li></ol><p>이전 강의, 현대자본주의, 2027년 신규 강의까지 추가 구매 없이 이용합니다. 후원·기부금 처리는 한빛누리의 기존 절차를 따릅니다.</p></article>
+<article><p class="eyebrow">강좌 구매자</p><h3>한 강좌 또는 시리즈를 신청합니다</h3><ol><li>구매 신청용 계정의 이메일을 확인합니다.</li><li>이용할 강좌를 신청합니다.</li><li>관리자가 입금을 확인하면 수강권이 열립니다.</li></ol><p>실제 운영은 구글폼 신청과 계좌이체를 연결할 예정입니다. 현재 버튼은 이 흐름을 확인하는 시험이며 실제 입금하지 않습니다.</p></article></div>
+<div class="faq"><h3>자주 묻는 내용</h3>
+<details><summary>로그인했는데 강의가 보이지 않아요</summary><p>후원 자격 승인 또는 신청 강좌의 입금 확인이 필요합니다. ‘나의 강의실’에서 신청 상태를 확인하고, 처리 후 ‘상태 새로고침’을 눌러 주세요.</p></details>
+<details><summary>이전 강의도 개별 구매할 수 있나요?</summary><p>현대자본주의 이전 강의는 후원회원에게 공개합니다. 단강좌·시리즈 구매는 현대자본주의부터 준비합니다.</p></details>
+<details><summary>시리즈에 나중에 추가된 강의도 포함되나요?</summary><p>이 검토본은 신청 당시 포함 강의 목록을 보존합니다. 이후 추가 강의는 기존 구매에 자동으로 포함하지 않는 시험안입니다. 실제 판매 전 포함 회차와 기간을 확정합니다. 후원회원은 추가 강의도 이용합니다.</p></details>
+<details><summary>후원이 끝나면 구매 강의도 닫히나요?</summary><p>후원 자격과 구매 수강권을 따로 관리합니다. 후원 자격 종료 후에도 유효한 구매 수강권은 유지됩니다. 계정 이용 중지는 모든 강의 이용을 제한합니다.</p></details>
+<details><summary>이메일·영상·자료는 지금 실제 서비스인가요?</summary><p>현재는 집 맥북에서 가상 정보로 시험합니다. 실제 본인 확인 메일, 클라우드 저장소, 구글폼, 결제는 연결하지 않았습니다. 기관 소유의 서비스에 연결한 뒤 실사용 검증을 진행합니다.</p></details></div></section>
+<section id="mine-view" hidden><div class="section-title"><h2>나의 강의실</h2><p id="mine-summary"></p></div><p id="identity"></p><div id="lessons"></div><div id="player-region"></div>
+<h2>나의 구매 신청</h2><div id="orders"></div><h2>수강 안내</h2><p class="muted">실제 발송 없이 생성한 시험 안내입니다.</p><div id="notifications"></div></section>
+<section id="admin-view" hidden><div class="section-title"><h2>운영관리</h2><p>회원·입금·강의를 관리합니다. 후원금 장부는 한빛누리에 둡니다.</p></div><div id="admin-summary" class="summary-strip"></div>
+<nav class="admin-tabs" aria-label="관리 항목"><button data-admin="members" aria-pressed="true">회원·후원</button><button data-admin="orders">구매 신청·입금</button><button data-admin="upload">강의·자료 등록</button></nav>
+<div id="members-panel"><h3>회원과 후원 자격</h3><p>후원 자격 종료와 계정 이용 중지는 별도입니다. 계정 이용 중지는 구매 강의도 차단합니다.</p>
+<div class="filters"><label>회원 검색<input id="member-search" type="search" placeholder="이름·이메일"></label><label>후원·계정 상태<select id="member-filter"><option value="all">전체</option><option value="pending">후원 확인 대기</option><option value="qualified">후원 자격 확인됨</option><option value="held">후원 심사 보류</option><option value="withdrawn">후원 자격 종료</option><option value="suspended">계정 중지</option></select></label></div><p id="member-count" class="muted"></p><div id="members"></div></div>
+<div id="admin-orders-panel" hidden><h3>구매 신청·입금 확인</h3><p>실제 운영 예정: 구글폼 신청 → 계좌이체 → 관리자 입금 확인 → 수강권·안내메일. 이 화면에서는 시험 확인만 합니다.</p>
+<div class="filters"><label>구매 신청 검색<input id="order-search" type="search" placeholder="이름·이메일·강좌"></label><label>신청 상태<select id="order-filter"><option value="all">전체</option><option value="awaiting">입금 확인 대기</option><option value="confirmed">수강권 부여 완료</option><option value="cancelled">취소·회수</option></select></label></div><p id="order-count" class="muted"></p><div id="admin-orders"></div></div>
+<div id="upload-panel" hidden><h3>강의·자료 등록</h3><form id="upload"><label>강의 제목<input name="title" required maxlength="100"></label><label>강의 소개<textarea name="description" maxlength="1200" placeholder="이 강의에서 함께 살펴볼 내용을 적어 주세요."></textarea></label>
+<label>자료 구분<select name="era"><option value="archive">현대자본주의 이전 · 후원회원 전용</option><option value="current">현대자본주의부터 · 구매 신청 시험</option><option value="future">2027 신규 촬영분 · 판매 준비</option></select></label>
+<label>시리즈 선택<select name="series_id"><option value="">독립 강좌</option><option value="__new">새 시리즈</option></select></label><label id="new-series-label" hidden>새 시리즈 이름<input name="series_title" maxlength="100" disabled></label>
+<label>표시 순서<input name="position" type="number" min="1" max="999" value="1" required></label><p class="muted">모든 강의는 월 1만 원 이상 후원회원에게 포함됩니다. 자료 구분이 다른 강의는 같은 시리즈에 등록할 수 없습니다.</p>
+<label>시험 MP4 영상 (10MB 이하)<input name="video" type="file" accept="video/mp4" required></label><label>시험 자료<textarea name="material" required maxlength="50000"></textarea></label>
+<label class="check"><input name="published" type="checkbox"> 등록 후 회원 강의 목록에 표시 (미선택 시 숨김)</label><button type="submit">강의와 자료 등록</button></form>
+<h3>등록 강의 관리</h3><p>숨기면 기존 수강권이 있어도 이 강의를 이용할 수 없습니다. 다시 표시하면 기존 수강권으로 이용합니다.</p><label>등록 강의 검색<input id="lesson-search" type="search" placeholder="강의·시리즈 이름"></label><div id="admin-lessons"></div></div>
+<details><summary>최근 관리 이력</summary><div id="audit"></div></details></section>
+</main>
+<footer>후원·기부금은 한빛누리의 기존 절차로, 강좌 구매는 별도 수강권으로 관리합니다.<br>집 맥북에서 실행하는 가상 시험본입니다. 실제 회원 서비스·메일·결제는 연결하지 않았습니다.</footer>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body"><h2 id="confirm-title"></h2><p id="confirm-body"></p><div class="actions"><button id="confirm-no" type="button">돌아가기</button><button id="confirm-yes" type="button">확인하고 진행</button></div></dialog>
+</body></html>

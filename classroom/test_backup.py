@@ -36,6 +36,11 @@ class BackupTest(unittest.TestCase):
             self.assertEqual(db.execute("select status from orders where id='order'").fetchone()[0],'confirmed')
             self.assertEqual(db.execute("select qualified from supporters where email='member@example.test'").fetchone()[0],1)
         self.assertEqual((restored/'notes.txt').read_text(),'private canary')
+        self.assertFalse((restored/'backup-manifest.json').exists())
+        self.assertEqual(len(list(restored.glob('restored-origin-*.json'))),1)
+        with trial.connect() as db:
+            db.execute("update lessons set title='edited after restore'")
+        snapshot(restored,self.root/'backup-after-restored-use')
         with self.assertRaises(ValueError): snapshot(self.source,saved)
     def test_modified_missing_unlisted_and_symlink_material_are_rejected(self):
         for kind in ('changed','missing','unlisted','symlink'):
@@ -52,3 +57,4 @@ class BackupTest(unittest.TestCase):
                     del manifest['notes.txt']
                     (saved/'backup-manifest.json').write_text(json.dumps(manifest))
                 with self.assertRaises(ValueError): snapshot(saved,self.root/('reject-'+kind))
+                with self.assertRaises(ValueError): Trial(saved)

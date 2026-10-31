@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 import commerce
+from backup_trial import verified_manifest
 
 ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
@@ -32,6 +33,7 @@ class Trial:
     def __init__(self, folder):
         self.folder = Path(folder).resolve()
         self.folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+        restored = verified_manifest(self.folder)
         self.db = self.folder / 'trial.sqlite3'
         with self.connect() as db:
             db.executescript('''
@@ -56,6 +58,11 @@ class Trial:
                 db.execute("insert or ignore into members values (?,?,?,?,?,?,1,'approved','admin','supporter')",
                            (email, '시험 관리자', '1990-01-01', '01000000000', POLICY, time.time()))
             commerce.setup(db)
+        if restored is not None:
+            # Preserve restore provenance, then treat this as live mutable state.
+            # Otherwise the next legitimate DB edit would make every later backup fail.
+            (self.folder / 'backup-manifest.json').rename(
+                self.folder / ('restored-origin-' + secrets.token_hex(8) + '.json'))
         self.mailbox = {}  # test mailbox is process-local; codes are never written to logs
 
     @contextmanager
@@ -160,7 +167,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == '/api/me':
                 return self.reply(200, {'member': ({k: member[k] for k in ('email', 'name', 'status', 'role', 'csrf')}
-                    | {'supporter':commerce.is_supporter(db,member['email'])}) if member else None})
+                    | {'supporter':commerce.is_supporter(db,member['email']), 'supporter_review':commerce.supporter_review(db,member['email'])}) if member else None})
             if path == '/api/lessons':
                 if not member or member['status'] != 'approved' or not member['verified']:
                     return self.reply(403, {'error': '승인된 회원만 이용할 수 있습니다.'})
@@ -179,7 +186,7 @@ class Handler(BaseHTTPRequestHandler):
                 if not self.admin(member):
                     return
                 return self.reply(200, [dict(r) for r in db.execute(
-                    'select id,title,era,series_id,published from lessons order by rowid desc')])
+                    'select id,title,era,series_id,published,description,position,series_title from lessons order by era,series_id,position,id')])
             match = re.fullmatch(r'/media/([a-zA-Z0-9_-]+)/(video|material)', path)
             if match:
                 lesson = db.execute('select * from lessons where id=?', (match[1],)).fetchone()
@@ -223,6 +230,10 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(size))
             if not isinstance(payload, dict):
                 raise ValueError('요청을 확인해 주세요.')
+            text_fields = ('id','email','status','target_id','target_type','challenge','code',
+                           'title','birth','phone','name','series_id','series_title','description','material','intent')
+            if any(k in payload and not isinstance(payload[k],str) for k in text_fields):
+                raise ValueError('문자 입력 확인')
             with self.trial.connect() as db:
                 # Serialize read/check/write transitions (OTP reuse, duplicate orders,
                 # cancellation vs confirmation). Read the actor only after acquiring it.
@@ -302,6 +313,20 @@ class Handler(BaseHTTPRequestHandler):
             return
         if not self.admin(member):
             return
+        if path == '/api/admin/lesson-details':
+            # Purchase scope is immutable here. Changing an era or series must not
+            # silently move a lecture across a prior purchase's authorization boundary.
+            if set(p)-{'csrf','id','title','description','position'}:
+                raise ValueError('수정 항목 확인')
+            row=db.execute('select id from lessons where id=?',(p.get('id'),)).fetchone()
+            title=str(p.get('title','')).strip()
+            description=str(p.get('description','')).strip()
+            position=p.get('position')
+            if not row or not 1<=len(title)<=100 or len(description)>1200 or type(position) is not int or not 1<=position<=999:
+                raise ValueError('강의 정보 확인')
+            db.execute('update lessons set title=?,description=?,position=? where id=?',(title,description,position,row['id']))
+            db.execute('insert into audit values (?,?,?,?)',(time.time(),member['email'],'lesson_updated',row['id']))
+            return self.reply(200, {'message':'강의 소개와 순서를 저장했습니다. 기존 신청 명세는 유지됩니다.'})
         if path == '/api/admin/lesson-publication':
             lesson_id, published = p.get('id'), p.get('published')
             row = db.execute('select id from lessons where id=?', (lesson_id,)).fetchone()
@@ -316,7 +341,7 @@ class Handler(BaseHTTPRequestHandler):
             if status not in ('approved', 'held', 'suspended'):
                 raise ValueError('상태 확인')
             row = db.execute("select * from members where email=? and role='member'", (email,)).fetchone()
-            if not row or (status == 'approved' and (not row['verified'] or not p.get('matched'))):
+            if not row or (status == 'approved' and (not row['verified'] or p.get('matched') is not True)):
                 return self.reply(409, {'error': '이메일 확인 및 한빛누리 수동 대조 확인이 필요합니다.'})
             db.execute('update members set status=? where email=?', (status, email))
             if status == 'approved':
@@ -332,6 +357,20 @@ class Handler(BaseHTTPRequestHandler):
             era=p.get('era')
             published=p.get('published', True)
             series=str(p.get('series_id','')).strip()
+            series_title=str(p.get('series_title','')).strip()
+            description=str(p.get('description','')).strip()
+            position=p.get('position',1)
+            if len(series_title)>100 or len(description)>1200 or type(position) is not int or not 1<=position<=999:
+                raise ValueError('강의 소개 확인')
+            if not series and series_title:
+                existing=db.execute('select series_id from lessons where series_title=? and series_id!=\'\' limit 1',(series_title,)).fetchone()
+                series=existing['series_id'] if existing else secrets.token_hex(8)
+            if series:
+                existing=db.execute('select era,series_title from lessons where series_id=? limit 1',(series,)).fetchone()
+                if existing and existing['era']!=era:
+                    raise ValueError('자료 구분이 다른 시리즈')
+                if existing:
+                    series_title=existing['series_title'] or series_title
             if 'audience' in p or type(published) is not bool or not title or len(title) > 100 or era not in ('archive','current','future') or not re.fullmatch(r'[a-z0-9-]{0,60}',series):
                 raise ValueError('강의 정보 확인')
             video = base64.b64decode(p['video'], validate=True)
@@ -342,9 +381,9 @@ class Handler(BaseHTTPRequestHandler):
             video_name, material_name = lesson_id + '.mp4', lesson_id + '.txt'
             (self.trial.folder / video_name).write_bytes(video)
             (self.trial.folder / material_name).write_bytes(material)
-            db.execute('''insert into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable)
-              values (?,?,'supporter',?,?,?,?,?,?,?)''',
-              (lesson_id,title,int(published),video_name,material_name,series,era,'included',int(era!='archive')))
+            db.execute('''insert into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable,description,position,series_title)
+              values (?,?,'supporter',?,?,?,?,?,?,?,?,?,?)''',
+              (lesson_id,title,int(published),video_name,material_name,series,era,'included',int(era!='archive'),description,position,series_title))
             db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], 'lesson_created', lesson_id))
             return self.reply(201, {'id': lesson_id})
         self.reply(404, {'error': '찾을 수 없습니다.'})

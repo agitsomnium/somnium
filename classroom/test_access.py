@@ -139,7 +139,9 @@ class AccessTest(unittest.TestCase):
     def test_historical_series_cannot_be_purchased_even_with_current_lecture(self):
         self.admin()
         self.lesson('archive','mixed')
-        self.lesson('current','mixed')
+        other=self.lesson('current','separate')
+        with self.server.trial.connect() as db:
+            db.execute('update lessons set series_id=? where id=?',('mixed',other))
         self.verify(self.email,'purchase')
         self.login(self.email)
         self.request('/api/orders',{'target_type':'series','target_id':'mixed'},400)
@@ -372,6 +374,100 @@ class AccessTest(unittest.TestCase):
         with self.server.trial.connect() as db:
             self.assertEqual(db.execute('select count(*) from notifications').fetchone()[0],1)
             self.assertEqual(db.execute("select count(*) from audit where action='order_confirmed'").fetchone()[0],1)
+
+    def test_purchase_snapshot_does_not_expand_and_title_survives_hiding(self):
+        self.verify(self.email,'purchase')
+        self.admin()
+        a=self.lesson('current','frozen')
+        b=self.lesson('current','frozen')
+        self.login(self.email)
+        order,_=self.request('/api/orders',{'target_type':'series','target_id':'frozen'},201)
+        buyer=self.cookie,self.csrf
+        self.admin()
+        added=self.lesson('current','frozen')
+        self.request('/api/admin/orders',{'id':order['id'],'status':'confirmed','matched':True})
+        self.assertEqual(self.call(f'/media/{a}/video',cookie=buyer[0])[0],200)
+        self.assertEqual(self.call(f'/media/{b}/material',cookie=buyer[0])[0],200)
+        self.assertEqual(self.call(f'/media/{added}/video',cookie=buyer[0])[0],403)
+        self.request('/api/admin/lesson-publication',{'id':a,'published':False})
+        self.cookie,self.csrf=buyer
+        rows=json.loads(self.call('/api/orders')[1])
+        self.assertTrue(rows[0]['target_label'])
+        self.assertEqual({i['lesson_id'] for i in rows[0]['lessons']},{a,b})
+        self.assertNotIn('video',str(rows))
+
+    def test_pending_purchase_cannot_confirm_if_captured_lecture_is_hidden(self):
+        self.verify(self.email,'purchase')
+        self.admin()
+        lesson=self.lesson('current')
+        self.login(self.email)
+        order,_=self.request('/api/orders',{'target_type':'lesson','target_id':lesson},201)
+        self.admin()
+        self.request('/api/admin/lesson-publication',{'id':lesson,'published':False})
+        self.request('/api/admin/orders',{'id':order['id'],'status':'confirmed','matched':True},409)
+
+    def test_lesson_metadata_edit_does_not_rewrite_order_or_scope(self):
+        self.verify(self.email,'purchase')
+        self.admin()
+        lesson=self.lesson('current','metadata')
+        self.login(self.email)
+        order,_=self.request('/api/orders',{'target_type':'lesson','target_id':lesson},201)
+        self.request('/api/admin/lesson-details',{'id':lesson,'title':'new','description':'x','position':2},403)
+        self.admin()
+        self.request('/api/admin/lesson-details',{'id':lesson,'title':'수정한 제목','description':'강의 소개','position':2})
+        for patch in ({'position':True},{'position':0},{'description':'x'*1201},{'era':'archive'},{'series_id':'other'}):
+            self.request('/api/admin/lesson-details',{'id':lesson,'title':'수정한 제목','description':'소개','position':2,**patch},400)
+        catalog=json.loads(self.call('/api/catalog')[1])
+        self.assertEqual(catalog[0]['title'],'수정한 제목')
+        self.assertEqual(catalog[0]['position'],2)
+        self.assertEqual(catalog[0]['description'],'강의 소개')
+        orders=json.loads(self.call('/api/admin/orders')[1])
+        self.assertEqual(orders[0]['target_label'],'비공개 시험 강의')
+        self.assertEqual(orders[0]['lessons'][0]['title'],'비공개 시험 강의')
+
+    def test_new_named_series_creation_and_mixed_eras_rejected(self):
+        self.admin()
+        video=base64.b64encode(b'\x00\x00\x00\x18ftypisom'+b'\x00'*64).decode()
+        p={'title':'신규 강의','description':'가상 강의','era':'current','series_title':'이름으로 만든 시리즈','position':1,'video':video,'material':'시험','published':False}
+        created,_=self.request('/api/admin/lessons',p,201)
+        rows=json.loads(self.call('/api/admin/lessons')[1])
+        self.assertEqual(rows[0]['series_title'],p['series_title'])
+        self.assertTrue(rows[0]['series_id'])
+        self.assertEqual(json.loads(self.call('/api/catalog')[1]),[])
+        self.request('/api/admin/lessons',{**p,'era':'archive','series_id':rows[0]['series_id']},400)
+        self.request('/api/admin/lessons',{**p,'position':True},400)
+
+    def test_account_resume_and_restart_never_implicitly_qualify_a_supporter(self):
+        self.verify(self.email)
+        self.admin()
+        lesson=self.lesson()
+        self.request('/api/admin/account',{'email':self.email,'status':'approved'})
+        self.login(self.email)
+        self.assertFalse(json.loads(self.call('/api/me')[1])['member']['supporter'])
+        self.assertEqual(self.call(f'/media/{lesson}/video')[0],403)
+        from server import Trial
+        self.server.trial=Trial(self.temp.name)
+        self.assertFalse(json.loads(self.call('/api/me')[1])['member']['supporter'])
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],403)
+        self.admin()
+        self.request('/api/admin/supporter',{'email':self.email,'qualified':True},409)
+        self.approve(self.email)
+        self.login(self.email)
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
+
+    def test_malformed_binding_types_return_json_without_mutation(self):
+        self.admin()
+        for path,p in [('/api/orders',{'target_id':[]}),('/api/orders/cancel',{'id':{}}),
+                       ('/api/admin/orders',{'id':[]}),('/api/admin/account',{'email':[]}),
+                       ('/api/admin/supporter',{'email':{}}),('/api/admin/lesson-details',{'id':[]})]:
+            self.request(path,p,400)
+        self.assertEqual(json.loads(self.call('/api/admin/orders')[1]),[])
+        self.assertEqual(json.loads(self.call('/api/admin/audit')[1]),[])
+
+    def test_purchase_intent_is_not_shown_as_unrequested_supporter_review(self):
+        self.verify(self.email,'purchase')
+        self.login(self.email)
+        self.assertEqual(json.loads(self.call('/api/me')[1])['member']['supporter_review'],'not_requested')
 
 
 if __name__=='__main__':
