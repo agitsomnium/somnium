@@ -16,6 +16,7 @@ def seed(folder, video):
         for email,name,audience,status in (
             ('supporter@example.test','가상 후원회원','supporter','approved'),
             ('buyer@example.test','가상 강좌 구매자','purchase','approved'),
+            ('general@example.test','가상 일반회원','member','approved'),
             ('director@example.test','가상 이사','director','approved'),
             ('pending@example.test','가상 승인 대기자','supporter','pending'),
         ):
@@ -47,7 +48,7 @@ def seed(folder, video):
             number=int(lid.rsplit('-',1)[-1]) if series=='capitalism-season1' else 1
             db.execute("update lessons set description=case when description='' then ? else description end, position=?,series_title=case when series_title='' then ? else series_title end where id=?",
                 ('시험 영상과 자료로 강의실 이용 흐름을 살펴보는 가상 강의입니다. 실제 강의 내용은 포함하지 않았습니다.',number,'현대 자본주의 이해하기 · 시즌 1' if series=='capitalism-season1' else ('2027 신규 강좌' if series else ''),lid))
-    return {'synthetic_members':4,'test_lessons':8,'real_data':False}
+    return {'synthetic_members':5,'test_lessons':8,'real_data':False}
 
 
 if __name__=='__main__':

@@ -7,7 +7,7 @@ const states = {pending:'승인 대기', approved:'이용 가능', held:'보류'
 const reviewStates = {not_requested:'후원 신청 없음', pending:'후원 확인 대기', qualified:'후원 자격 확인됨', held:'후원 심사 보류', withdrawn:'후원 자격 종료'};
 const orderStates = {awaiting:'입금 확인 대기', confirmed:'수강권 부여 완료', cancelled:'취소·수강권 회수'};
 const eraNames = {archive:'이전 강의 · 회원 전용', current:'현대 자본주의', future:'2027 신규 강좌'};
-const auditActions = {director_granted:'이사 자격 승인',director_revoked:'이사 자격 종료',account_approved:'계정 이용 재개', account_suspended:'계정 이용 중지', supporter_qualified:'후원 자격 승인', supporter_held:'후원 심사 보류', supporter_withdrawn:'후원 자격 종료', order_confirmed:'시험 입금 확인·수강권 부여', order_cancelled:'신청 취소·수강권 회수', lesson_created:'강의 등록', lesson_updated:'강의 소개 수정', lesson_hidden:'강의 숨김', lesson_published:'강의 표시', approved:'이전 방식 승인', held:'이전 방식 보류', suspended:'이전 방식 중지'};
+const auditActions = {supporter_requested:'후원 확인 요청',director_granted:'이사 자격 승인',director_revoked:'이사 자격 종료',account_approved:'계정 이용 재개', account_suspended:'계정 이용 중지', supporter_qualified:'후원 자격 승인', supporter_held:'후원 심사 보류', supporter_withdrawn:'후원 자격 종료', order_confirmed:'시험 입금 확인·수강권 부여', order_cancelled:'신청 취소·수강권 회수', lesson_created:'강의 등록', lesson_updated:'강의 소개 수정', lesson_hidden:'강의 숨김', lesson_published:'강의 표시', approved:'이전 방식 승인', held:'이전 방식 보류', suspended:'이전 방식 중지'};
 function node(tag, text, parent) {
   const n = document.createElement(tag);
   if (text) n.textContent = text;
@@ -117,7 +117,7 @@ function lessonRow(l, parent) {
   const row = node('article','',parent); row.className = 'catalog-row';
   const text = node('div','',row); node('h3',l.title,text);
   if (l.description) node('p',l.description,text).className = 'lesson-description';
-  node('p',features.purchases ? (l.era === 'archive' ? '후원회원·이사 전용' : '후원회원·이사는 추가 구매 없이 이용') : '관리자에게 후원·이사 자격을 확인받은 후 이용합니다.',text).className = 'muted';
+  node('p',features.purchases ? (l.era === 'archive' ? '후원회원·이사 전용' : '후원회원·이사는 추가 구매 없이 이용') : '후원 확인을 마친 회원이 이용할 수 있습니다.',text).className = 'muted';
   const actions = node('div','',row); actions.className = 'row-actions';
   if (l.accessible) button('강의 보기',actions,async () => { selectView('mine'); showPlayer(l.id); });
   else {
@@ -164,10 +164,13 @@ function showPlayer(id) {
 }
 function renderMine(messages) {
   for (const id of ['lessons','orders','notifications']) el(id).replaceChildren();
-  el('identity').textContent = `${current.name} · ${current.director ? '이사 자격 확인됨' : reviewStates[current.supporter_review] || '후원 자격 없음'} · ${states[current.status]}`;
+  el('identity').textContent = `${current.name} · ${current.director || current.supporter ? '회원 강의 이용 가능' : current.supporter_review === 'not_requested' ? '일반회원' : reviewStates[current.supporter_review]} · ${states[current.status]}`;
+  el('supporter-request-panel').hidden = current.role === 'admin' || current.supporter || current.director;
+  el('supporter-request').disabled = current.supporter_review === 'pending';
+  el('supporter-request').textContent = current.supporter_review === 'pending' ? '후원 확인 대기 중' : '후원 확인 요청';
   const available = catalog.filter(l => l.accessible);
   el('mine-summary').textContent = `이용 가능 ${available.length}강` + (features.purchases ? ` · 입금 확인 대기 ${ownOrders.filter(o => o.status === 'awaiting').length}건` : ' · 비공개 회원 강의');
-  if (!available.length) node('p','아직 이용 가능한 강의가 없습니다. 신청·입금 확인 상태를 확인해 주세요.',el('lessons'));
+  if (!available.length) node('p','아직 이용 가능한 회원 강의가 없습니다. 후원하셨다면 확인을 요청해 주세요.',el('lessons'));
   for (const l of available) { const row = node('div','',el('lessons')); row.className = 'owned-row'; node('span',l.title,row); button('재생·자료',row,() => showPlayer(l.id)); }
   if (!ownOrders.length) node('p','구매 신청 내역이 없습니다. 후원회원은 추가 구매가 필요하지 않습니다.',el('orders'));
   for (const o of ownOrders) {
@@ -262,11 +265,16 @@ for (const id of ['member-search','member-filter']) el(id).oninput = renderMembe
 for (const id of ['order-search','order-filter']) el(id).oninput = renderOrders;
 el('lesson-search').oninput = renderLessonAdmin;
 async function renderAdmin() {
-  const results = await Promise.all([api('/api/admin/members'),features.purchases ? api('/api/admin/orders') : Promise.resolve([]),api('/api/admin/lessons'),api('/api/admin/audit'),api('/api/admin/accounting-preview')]);
+  const results = await Promise.all([api('/api/admin/members'),features.purchases ? api('/api/admin/orders') : Promise.resolve([]),api('/api/admin/lessons'),api('/api/admin/audit'),api('/api/admin/accounting-preview'),api('/api/admin/directors')]);
   el('accounting-status').textContent = results[4].message;
   [adminMembers,adminOrders,adminLessons] = results;
+  el('director-roster-list').replaceChildren();
+  for (const d of results[5]) {
+    const row = node('article','',el('director-roster-list')); row.className = 'order-row'; node('p',`${d.email} · ${d.enabled ? '명단 유효' : '자격 종료'} · ${d.verified ? '이메일 확인 완료' : '가입·이메일 확인 대기'}`,row);
+    if (d.enabled) button('명단 적용 해제',row,async () => { if (!await ask('명단 적용을 해제할까요?',d.email)) return; await api('/api/admin/director',{email:d.email,enabled:false}); await refresh(); });
+  }
   el('admin-summary').replaceChildren();
-  for (const [count,text] of [[adminMembers.filter(m => m.supporter_review === 'pending').length,'후원 확인 대기'],[adminMembers.filter(m => m.audience === 'director' && !m.director).length,'이사 확인 대기'],[adminMembers.filter(m => m.status === 'suspended').length,'중지 계정'],[adminLessons.filter(l => l.published).length,'표시 중 강의']]) {
+  for (const [count,text] of [[adminMembers.filter(m => m.supporter_review === 'pending').length,'후원 확인 대기'],[adminMembers.filter(m => m.director).length,'내부 강의 이용 자격'],[adminMembers.filter(m => m.status === 'suspended').length,'중지 계정'],[adminLessons.filter(l => l.published).length,'표시 중 강의']]) {
     const box = node('div','',el('admin-summary')); node('strong',String(count),box); node('span',text,box);
   }
   renderMembers(); renderOrders(); renderLessonAdmin(); el('audit').replaceChildren();
@@ -283,15 +291,18 @@ async function refresh(afterLogin = false) {
   if (current) {
     const [orders,messages] = features.purchases ? await Promise.all([api('/api/orders'),api('/api/notifications')]) : [[],[]]; ownOrders = orders; renderMine(messages);
     if (current.role === 'admin') await renderAdmin();
-    else { adminMembers = []; adminOrders = []; adminLessons = []; for (const id of ['members','admin-orders','audit','admin-lessons','admin-summary']) el(id).replaceChildren(); }
+    else { adminMembers = []; adminOrders = []; adminLessons = []; for (const id of ['members','admin-orders','audit','admin-lessons','admin-summary','director-roster-list']) el(id).replaceChildren(); }
     if (afterLogin) view = current.role === 'admin' ? 'admin' : 'mine';
   } else {
+    el('supporter-request-panel').hidden = true;
     view = ['catalog','guide'].includes(view) ? view : 'catalog'; ownOrders = []; adminMembers = []; adminOrders = []; adminLessons = [];
-    for (const id of ['lessons','orders','notifications','members','admin-orders','audit','admin-lessons','admin-summary','player-region']) el(id).replaceChildren();
+    for (const id of ['lessons','orders','notifications','members','admin-orders','audit','admin-lessons','admin-summary','director-roster-list','player-region']) el(id).replaceChildren();
   }
   if (!current || !catalog.some(l => l.id === playingId && l.accessible)) { el('player-region').replaceChildren(); playingId = ''; }
   renderCatalog(); selectView(view);
 }
+submit('director-roster',async f => { const r=await api('/api/admin/director',{email:f.get('email'),enabled:true,roster_confirmed:f.get('roster_confirmed')==='on'}); el('director-roster').reset(); await refresh(); notice(r.message); });
+el('supporter-request').onclick=async()=>{try{const r=await api('/api/supporter-request',{});await refresh();notice(r.message);}catch(e){notice(e.message);}};
 submit('upload', async f => {
   const file = f.get('video'); if (file.size > 10000000) throw new Error('10MB 이하 시험 MP4만 등록할 수 있습니다.');
   const bytes = new Uint8Array(await file.arrayBuffer()); let binary = '';

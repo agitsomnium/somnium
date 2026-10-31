@@ -153,13 +153,23 @@ def get(handler, db, member, path):
 
 
 def post(handler, db, member, path, p):
-    if path not in ('/api/orders','/api/orders/cancel','/api/admin/orders','/api/admin/supporter','/api/admin/account','/api/admin/director'):
+    if path not in ('/api/orders','/api/orders/cancel','/api/admin/orders','/api/admin/supporter','/api/admin/account','/api/admin/director','/api/supporter-request'):
         return False
     if path in ('/api/orders','/api/orders/cancel','/api/admin/orders') and not handler.trial.purchases_enabled:
         handler.reply(403, {'error':'구매 기능은 보류 중입니다.'})
         return True
     if not active(member):
         handler.reply(403, {'error':'로그인 상태를 확인해 주세요.'})
+        return True
+    if path == '/api/supporter-request':
+        existing=db.execute('select * from supporters where email=?',(member['email'],)).fetchone()
+        if is_supporter(db,member['email']) or (existing and existing['review_state']=='pending'):
+            handler.reply(200, {'message':'이미 후원 자격 확인 또는 확인 요청이 되어 있습니다.','duplicate':True})
+            return True
+        db.execute('''insert into supporters(email,qualified,review_state) values (?,0,'pending')
+          on conflict(email) do update set qualified=0,review_state='pending',checked_at=null,checked_by=null''',(member['email'],))
+        db.execute('insert into audit values (?,?,?,?)',(time.time(),member['email'],'supporter_requested',member['email']))
+        handler.reply(200, {'message':'후원 확인을 요청했습니다. 관리자가 후원 내역을 대조한 후 강의가 열립니다.'})
         return True
     if path == '/api/orders':
         kind,target=p.get('target_type'),p.get('target_id')
@@ -189,18 +199,20 @@ def post(handler, db, member, path, p):
     if not handler.admin(member):
         return True
     if path == '/api/admin/director':
-        row=db.execute("select * from members where email=? and role='member'",(p.get('email'),)).fetchone()
+        email=str(p.get('email','')).strip().lower()
+        import re
+        row=db.execute('select * from members where email=?',(email,)).fetchone()
         enabled=p.get('enabled')
-        if not row or not row['verified'] or type(enabled) is not bool or (enabled and p.get('roster_confirmed') is not True):
-            handler.reply(409, {'error':'이메일 확인과 이사 명단 대조가 필요합니다.'})
+        if not re.fullmatch(r'[a-z0-9._+-]{1,60}@example\.test',email) or (row and row['role']!='member') or type(enabled) is not bool or (enabled and p.get('roster_confirmed') is not True):
+            handler.reply(409, {'error':'이메일과 이사 명단 대조를 확인해 주세요.'})
             return True
         db.execute('''insert into directors values (?,?,?,?) on conflict(email) do update set
             enabled=excluded.enabled,checked_at=excluded.checked_at,checked_by=excluded.checked_by''',
-            (row['email'],int(enabled),time.time(),member['email']))
-        if enabled and row['status'] in ('pending','held'):
+            (email,int(enabled),time.time(),member['email']))
+        if row and row['verified'] and enabled and row['status'] in ('pending','held'):
             db.execute("update members set status='approved' where email=?",(row['email'],))
-        db.execute('insert into audit values (?,?,?,?)',(time.time(),member['email'],'director_granted' if enabled else 'director_revoked',row['email']))
-        handler.reply(200, {'message':'이사 강의 이용 자격을 변경했습니다. 운영관리·회계 열람 권한은 부여하지 않습니다.'})
+        db.execute('insert into audit values (?,?,?,?)',(time.time(),member['email'],'director_granted' if enabled else 'director_revoked',email))
+        handler.reply(200, {'message':'내부 이용 명단을 저장했습니다. 등록된 이메일의 본인 확인을 마치면 강의 권한이 적용됩니다.'})
         return True
     if path == '/api/admin/account':
         row=db.execute("select * from members where email=? and role='member'", (p.get('email'),)).fetchone()

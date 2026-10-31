@@ -498,12 +498,13 @@ class AccessTest(unittest.TestCase):
         self.server.trial.purchases_enabled=True
         self.assertEqual(self.call(f'/media/{lesson}/video',cookie=buyer[0])[0],200)
 
-    def test_director_requires_roster_approval_not_self_selected_intent(self):
+    def test_director_cannot_self_select_and_requires_internal_roster(self):
         self.server.trial.purchases_enabled=False
-        c,_=self.request('/api/apply',{'email':self.email,'name':'가상 이사','birth':'1990-01-01',
-            'phone':'01000000000','consent':True,'intent':'director','director':True,'role':'admin','status':'approved'})
-        self.challenge(c['challenge'])
-        self.request('/api/otp',{'email':self.email},403)
+        self.request('/api/apply',{'email':self.email,'name':'가상 회원','birth':'1990-01-01',
+            'phone':'01000000000','consent':True,'intent':'director','director':True},400)
+        self.verify(self.email,'member')
+        self.login(self.email)
+        self.assertFalse(json.loads(self.call('/api/me')[1])['member']['director'])
         self.admin()
         old=self.lesson('archive')
         current=self.lesson('current')
@@ -518,14 +519,13 @@ class AccessTest(unittest.TestCase):
         for lesson in (old,current,future):
             self.assertEqual(self.call(f'/media/{lesson}/video',headers={'Range':'bytes=0-7'})[0],206)
             self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
-        self.assertEqual(self.call('/api/admin/members')[0],403)
-        self.assertEqual(self.call('/api/admin/accounting-preview')[0],403)
-        self.assertEqual(self.call('/api/accounting')[0],403)
+        for path in ('/api/admin/members','/api/admin/accounting-preview','/api/admin/directors','/api/accounting'):
+            self.assertEqual(self.call(path)[0],403)
         self.request('/api/admin/director',{'email':self.email,'enabled':True,'roster_confirmed':True},403)
 
     def test_director_revocation_and_supporter_independence_and_suspension(self):
         self.server.trial.purchases_enabled=False
-        self.verify(self.email,'director')
+        self.verify(self.email,'member')
         self.admin()
         lesson=self.lesson()
         self.request('/api/admin/director',{'email':self.email,'enabled':True,'roster_confirmed':True})
@@ -563,6 +563,52 @@ class AccessTest(unittest.TestCase):
             'message':'회계 공개 범위는 이사진 전용 또는 전체 공개 중 검토 중입니다. 실제 회계 자료는 등록·게시하지 않았습니다.'})
         self.assertEqual(self.call('/api/accounting')[0],403)
         self.request('/api/admin/accounting-preview',{'visibility':'public'},404)
+
+    def test_general_members_can_login_and_request_but_not_self_grant_supporter(self):
+        self.server.trial.purchases_enabled=False
+        self.admin()
+        lesson=self.lesson()
+        self.verify(self.email,'member')
+        self.login(self.email)
+        member=json.loads(self.call('/api/me')[1])['member']
+        self.assertEqual(member['status'],'approved')
+        self.assertFalse(member['supporter'])
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],403)
+        self.request('/api/supporter-request',{'qualified':True,'minimum_confirmed':True})
+        result,_=self.request('/api/supporter-request',{})
+        self.assertTrue(result['duplicate'])
+        self.assertFalse(json.loads(self.call('/api/me')[1])['member']['supporter'])
+        self.assertEqual(self.call(f'/media/{lesson}/video')[0],403)
+        self.admin()
+        self.request('/api/admin/supporter',{'email':self.email,'qualified':True},409)
+        self.approve(self.email)
+        self.login(self.email)
+        self.assertTrue(json.loads(self.call('/api/me')[1])['member']['supporter'])
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
+        self.request('/api/supporter-request',{})
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
+
+    def test_internal_roster_before_signup_applies_only_after_matching_email_verified(self):
+        self.server.trial.purchases_enabled=False
+        self.admin()
+        lesson=self.lesson()
+        self.request('/api/admin/director',{'email':'BOARD@EXAMPLE.TEST','enabled':True,'roster_confirmed':True})
+        rows=json.loads(self.call('/api/admin/directors')[1])
+        self.assertEqual(rows[0]['email'],'board@example.test')
+        self.assertIsNone(rows[0]['verified'])
+        c,_=self.request('/api/apply',{'email':'board@example.test','name':'가상 회원','birth':'1990-01-01',
+            'phone':'01000000000','consent':True})
+        self.request('/api/otp',{'email':'board@example.test'},403)
+        self.assertEqual(self.call(f'/media/{lesson}/video',cookie='')[0],403)
+        self.challenge(c['challenge'])
+        self.login('board@example.test')
+        self.assertTrue(json.loads(self.call('/api/me')[1])['member']['director'])
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],200)
+        self.verify('other@example.test','member')
+        self.login('other@example.test')
+        self.assertFalse(json.loads(self.call('/api/me')[1])['member']['director'])
+        self.assertEqual(self.call(f'/media/{lesson}/material')[0],403)
+        self.request('/api/admin/director',{'email':'other@example.test','enabled':True,'roster_confirmed':True},403)
 
 
 if __name__=='__main__':

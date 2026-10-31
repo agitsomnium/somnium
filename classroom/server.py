@@ -190,6 +190,11 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 return self.reply(200, {'status':'unpublished','visibility':'undecided','reports':[],
                     'message':'회계 공개 범위는 이사진 전용 또는 전체 공개 중 검토 중입니다. 실제 회계 자료는 등록·게시하지 않았습니다.'})
+            if path == '/api/admin/directors':
+                if not self.admin(member):
+                    return
+                return self.reply(200, [dict(r) for r in db.execute('''select d.email,d.enabled,d.checked_at,d.checked_by,
+                    m.name,m.verified from directors d left join members m on m.email=d.email order by d.email''')])
             if path == '/api/admin/audit':
                 if not self.admin(member):
                     return
@@ -274,11 +279,12 @@ class Handler(BaseHTTPRequestHandler):
                 existing = db.execute('select * from members where email=?', (email,)).fetchone()
                 if existing:
                     return self.reply(409, {'error': '이미 신청한 주소입니다. 로그인 또는 관리자 문의를 이용해 주세요.'})
-                intent=p.get('intent','supporter')
-                if intent not in ('supporter','director','purchase'):
+                intent=p.get('intent','supporter' if self.trial.purchases_enabled else 'member')
+                allowed_intents=('member','supporter','director','purchase') if self.trial.purchases_enabled else ('member','supporter','purchase')
+                if intent not in allowed_intents:
                     raise ValueError('신청 목적 확인')
                 if intent=='purchase' and not self.trial.purchases_enabled:
-                    return self.reply(403, {'error':'현재는 후원회원·이사 이용 신청만 받습니다.'})
+                    return self.reply(403, {'error':'현재는 일반 회원가입만 받습니다. 구매 신청은 보류 중입니다.'})
                 db.execute('insert into members(email,name,birth,phone,consent_version,consent_at,audience) values (?,?,?,?,?,?,?)',
                            (email, name, p['birth'], phone, POLICY, time.time(),intent))
                 challenge = self.trial.issue(db, email, 'verify')
@@ -311,7 +317,9 @@ class Handler(BaseHTTPRequestHandler):
                 db.execute('update members set verified=1 where email=?', (row['email'],))
                 if self.trial.purchases_enabled:
                     db.execute("update members set status='approved' where email=? and audience='purchase' and status='pending'", (row['email'],))
-                return self.reply(200, {'message': '이메일을 확인했습니다. 후원 또는 이사 자격을 관리자가 확인한 뒤 강의를 이용할 수 있습니다.'})
+                else:
+                    db.execute("update members set status='approved' where email=? and status='pending'",(row['email'],))
+                return self.reply(200, {'message': '이메일을 확인했습니다. 로그인 후 이용할 수 있으며, 회원 강의는 후원 확인 후 열립니다.'})
             current = db.execute('select * from members where email=?', (row['email'],)).fetchone()
             if current['status'] != 'approved' or not current['verified']:
                 return self.reply(403, {'error': '이용 권한이 없습니다.'})
