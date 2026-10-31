@@ -610,6 +610,34 @@ class AccessTest(unittest.TestCase):
         self.assertEqual(self.call(f'/media/{lesson}/material')[0],403)
         self.request('/api/admin/director',{'email':'other@example.test','enabled':True,'roster_confirmed':True},403)
 
+    def test_external_sources_only_after_current_access_check_and_not_catalog(self):
+        self.server.trial.purchases_enabled=False
+        self.admin()
+        row,_=self.request('/api/admin/lessons',{'title':'외부 영상 시험','era':'archive','video_provider':'youtube','video_url':'https://www.youtube.com/watch?v=abcdefghijk','material':'PRIVATE_EXTERNAL_NOTES','published':True},201)
+        ident=row['id'];admin_cookie,admin_csrf=self.cookie,self.csrf
+        self.assertEqual(self.call('/api/player/'+ident,cookie='')[0],403)
+        self.assertNotIn('abcdefghijk',self.call('/api/catalog',cookie='')[1].decode())
+        self.verify(self.email,'member');self.login(self.email)
+        self.assertEqual(self.call('/api/player/'+ident)[0],403)
+        self.cookie,self.csrf=admin_cookie,admin_csrf;self.approve(self.email)
+        self.login(self.email)
+        response=json.loads(self.call('/api/player/'+ident)[1]);self.assertEqual(response['provider'],'youtube');self.assertIn('youtube-nocookie.com/embed/abcdefghijk',response['url'])
+        self.assertEqual(self.call('/media/'+ident+'/video')[0],404)
+        member_cookie=self.cookie
+        self.cookie,self.csrf=admin_cookie,admin_csrf
+        self.request('/api/admin/account',{'email':self.email,'status':'suspended'})
+        self.assertEqual(self.call('/api/player/'+ident,cookie=member_cookie)[0],403)
+        self.login('admin.one@example.test')
+        self.request('/api/admin/lesson-publication',{'id':ident,'published':False})
+        self.assertEqual(self.call('/api/player/'+ident)[0],403)
+
+    def test_provider_registration_rejects_injected_hosts_and_schemes(self):
+        self.admin()
+        for url in ['javascript:alert(1)','https://youtube.com.evil.test/watch?v=abcdefghijk','https://www.youtube.com@evil.test/watch?v=abcdefghijk']:
+            self.request('/api/admin/lessons',{'title':'악성 주소 시험','era':'archive','video_provider':'youtube','video_url':url,'material':'test'},400)
+        result,_=self.request('/api/admin/lessons',{'title':'Vimeo 시험','era':'archive','video_provider':'vimeo','video_url':'https://vimeo.com/123456789/abcdef1234','material':'시험','published':True},201)
+        self.assertEqual(json.loads(self.call('/api/player/'+result['id'])[1])['url'],'https://player.vimeo.com/video/123456789?h=abcdef1234')
+
 
 if __name__=='__main__':
     unittest.main(verbosity=2)

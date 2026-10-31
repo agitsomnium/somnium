@@ -22,8 +22,7 @@
 저장소 루트에서 실행한다.
 
 ```sh
-python3 classroom/seed_demo.py --state ../members-private-20261101 --video ../trial-video.mp4
-python3 classroom/server.py --state ../members-private-20261101 --port 8765
+python3 classroom/server.py --state ../integration-private-20261101 --port 8765
 ```
 
 주소: http://127.0.0.1:8765/ — 집 맥북 전용. 에어는 집 맥북 원격접속 화면에서 확인한다. 서버는 127.0.0.1에만 바인딩하고 정확한 Host/Origin을 확인한다. 이 서버와 시험 메일함을 인터넷에 공개하지 않는다.
@@ -31,12 +30,12 @@ python3 classroom/server.py --state ../members-private-20261101 --port 8765
 - ‘후원회원 / 일반회원 / 운영관리자’는 가상 이메일을 채운다. 인증번호 받기 → 시험 메일 확인 → 6자리 번호 입력으로 로그인한다. 실제 메일 본인 확인 서비스가 아니다.
 - 일반회원: 가입·로그인 후 강의는 0개다. 내 정보에서 후원 확인 요청 후에도 관리자 확인 전에는 강의가 열리지 않는다.
 - 이사: 관리자가 내부 이용 명단에 이메일을 사전 등록한다. 공개 이사 신청·안내는 없다.
-- 후원회원과 이사: 시험 강의 8개가 보인다. 이사 계정에는 운영관리·구매 메뉴가 없다.
+- 후원회원과 이사: 현대자본주의 실제 유튜브 강의 6개가 보인다. 이사 계정에는 운영관리·구매 메뉴가 없다.
 - 운영관리자 → 회원·후원: 후원 월 1만 원 확인, 이사 명단 확인, 자격 승인·종료, 계정 중지·재개를 각각 시험한다. 자격 회수·계정 중지·강의 숨김은 대상 확인창을 거친다.
-- 운영관리자 → 강의·자료: 가상 MP4·자료 등록, 제목·소개·순서 수정, 표시/숨김, 이름으로 시리즈 선택을 검토한다. 8개 영상은 모두 6초 시험 영상이며 실제 Drive 강의는 넣지 않았다.
+- 운영관리자 → 강의·자료: 가상 MP4·자료 등록, 제목·소개·순서 수정, 표시/숨김, 이름으로 시리즈 선택을 검토한다. 현재 검토본은 실제 현대자본주의 일부공개 6강을 연결했고 나머지 143개 일부공개 영상은 미게시 초안이다. 실제 Drive 자료는 넣지 않았다. 자료가 없으면 준비 중으로 표시한다. 별도 가상 데이터 시드는 유지한다.
 - 운영관리자 → 회계 보고 준비: ‘미게시·공개 범위 미정’과 이사진 전용/전체 공개 두 안만 확인한다. 실제 원장·보고서·개인정보·회계 숫자를 가져오지 않았다. 보고서 등록·공개 설정 API도 제공하지 않는다.
 
-실제 개인 정보를 넣지 않는다. 입력은 @example.test 가상 주소만 허용한다. 이전 시험 폴더 trial-private, draft-private-20261030, review-private-20261031는 보존했다. 최신 상태는 members-private-20261101이다.
+실제 개인 정보를 넣지 않는다. 입력은 @example.test 가상 주소만 허용한다. 이전 시험 폴더 trial-private, draft-private-20261030, review-private-20261031는 보존했다. 최신 상태는 integration-private-20261101이다.
 
 ## 검증과 복구
 
@@ -44,15 +43,15 @@ python3 classroom/server.py --state ../members-private-20261101 --port 8765
 python3 -m unittest discover -s classroom -p 'test_*.py' -v
 python3 -m unittest discover -s tests -v
 python3 scripts/build.py --sample
-python3 classroom/backup_trial.py ../members-private-20261101 ../새백업폴더
+python3 classroom/backup_trial.py ../integration-private-20261101 ../새백업폴더
 python3 classroom/backup_trial.py ../새백업폴더 ../새복원폴더
 ```
 
 복원은 원래 서버를 중지한 뒤 새 복원폴더를 `--state`에 지정한다. 기존 폴더를 덮어쓰지 않는다. DB/영상/자료와 후원·이사·주문 상태를 보존하며 세션·인증번호는 제거한다. 손상·누락·목록 누락·심볼릭 링크 자료는 복원·서버 시작을 거절한다. 복원 뒤 정상 변경한 상태도 다시 백업할 수 있다. 해시는 손상 검사이며 서명된 외부 백업을 대신하지 않는다.
 
-권한·인증·미게시 회계·구매 차단·복원 시험은 33개다. 여기에는 미래 구매 기능을 명시적으로 켠 격리 회귀 시험도 포함한다. 일반 실행의 구매 기능은 항상 꺼져 있다. 과거 구매 회귀를 확인할 개발자만 `--enable-purchase-trial`을 사용할 수 있으며 현재 검토나 자동 알림은 이 옵션을 사용하지 않는다. 이 옵션만으로 실제 판매 서비스가 준비되는 것은 아니다.
+권한·인증·미게시 회계·구매 차단·복원 시험은 35개다. 여기에는 미래 구매 기능을 명시적으로 켠 격리 회귀 시험도 포함한다. 일반 실행의 구매 기능은 항상 꺼져 있다. 과거 구매 회귀를 확인할 개발자만 `--enable-purchase-trial`을 사용할 수 있으며 현재 검토나 자동 알림은 이 옵션을 사용하지 않는다. 이 옵션만으로 실제 판매 서비스가 준비되는 것은 아니다.
 
-최신 증거는 상위 general-members-20261101/에 보존한다. 10/31 Claude API 리뷰의 재시작 자동 후원 승인 결함, 입력 타입, 시리즈 순서 수정은 유지한다. 기존 코드·검토·코드 bundle은 review-20261031/ 및 completion-20261030/에 보존했다.
+최신 증거는 상위 site-integration-20261101/에 보존한다. 10/31 Claude API 리뷰의 재시작 자동 후원 승인 결함, 입력 타입, 시리즈 순서 수정은 유지한다. 기존 코드·검토·코드 bundle은 review-20261031/ 및 completion-20261030/에 보존했다.
 
 ## 운영 연결에 남은 일
 
@@ -61,3 +60,14 @@ python3 classroom/backup_trial.py ../새백업폴더 ../새복원폴더
 실제 영상은 요청마다 권한을 검사하는 클라우드 전달 구조가 필요하다. 이미 다운로드·버퍼링된 바이트는 회수할 수 없다. 현재 HTTP 쿠키·시험 메일함·간이 MP4 검사는 운영용 인증/미디어 구현으로 교체한다. 기존 공개 Pages·일정·영상 수집기에는 회원 정보·비공개 자료를 섞지 않는다.
 
 11월 1일 21시(한국) 단발 검토 안내 automation-8은 최신 후원회원·이사·회계 미게시 기준으로 갱신했다. 운영 게시·도메인 전환·실제 메일·결제·신규 계정/프로젝트·유료 서비스는 진행하지 않았다.
+
+## 공개 홈페이지 통합 검토 추가 (11/1)
+
+- 공개 홈 검토: http://127.0.0.1:8765/site/ · 회원 강의실: http://127.0.0.1:8765/classroom/ (기존 / 주소도 강의실 유지).
+- 만료된 인스타 주소를 참조하던 11월 북클럽 포스터 두 개는 기존 원본 PNG를 assets/posters에 보관하고 게시물 고유 ID로 연결했다. 운영 홈페이지 배포는 아직 하지 않았다.
+- 공개 홈페이지의 로고·글꼴·쪽빛/종이색·메뉴를 재사용한다. 검토용 계정 도구는 접힌 details 안에 둔다. 현재도 시험 계정만 허용하며 실제 Auth/메일은 미연결이다.
+- 실제 강의 URL/영상 ID는 저장소 밖 integration-private-20261101 SQLite에만 있다. 공개 빌드·수집 목록에 복사하지 않는다. 비회원·일반회원은 실제 외부 강의 목록/재생 API를 받을 수 없다.
+- 후원회원/이사만 홈페이지에서 외부 영상 주소를 받지만, 일부공개 YouTube 링크를 복사해 외부 재생하는 것은 막지 못한다. 사용자 수용 결정이 있으며 Vimeo로 교체 가능한 provider metadata/등록 화면을 마련했다. Vimeo 실제 재생은 계정·영상·허용 도메인 설정 후 검증해야 한다. 영상 숨김·권한 중지는 홈페이지의 새 요청을 막지만 이미 열린 외부 플레이어나 공유된 URL은 회수하지 못한다.
+- supabase/는 전용 프로젝트용 적용 준비 SQL과 실제 Postgres 권한 시험이다. 원격 적용·실제 Auth adapter·Storage·SMTP·클라우드 호스팅은 남았다.
+
+통합 공개 빌드 재생성: python3 scripts/fetch_sheets.py → python3 scripts/fetch_covers.py → data/catalog/instagram.json을 data/live/instagram.json에 복사 → python3 scripts/build.py --data data/live --output dist/integration --base /site --preview --classroom-preview. 실제 공개 build는 --classroom-preview를 쓰지 않아 강의실 메뉴가 섞이지 않는다. 실제 서비스 연결 시 별도 운영 URL과 배포 검토가 필요하다. 현재 API·회원 DB·시험 인증 도구는 정적 빌드에 복사되지 않는다.

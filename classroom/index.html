@@ -1,20 +1,17 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" class="theme-b">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive"><title>강의실 검토본 | 솜니움</title>
-<link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css"><link rel="stylesheet" href="/trial.css"><script src="/app.js" defer></script>
+<link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/assets/pages.css"><link rel="stylesheet" href="/assets/extras.css"><link rel="stylesheet" href="/assets/plaza.css"><link rel="stylesheet" href="/assets/brand.css"><link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css"><link rel="stylesheet" href="/trial.css"><script src="/app.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">본문으로</a>
-<div class="trial-banner">검토용 로컬 강의실 · 가상 회원·시험 영상 · 실제 입금·메일 발송 없음</div>
-<header><a href="/" class="wordmark">솜니움</a><nav aria-label="주요 메뉴">
-<button data-view="catalog">강의 목록</button><button data-view="guide">이용 안내</button>
-<button data-view="mine" id="mine-nav" hidden>나의 강의실</button><button data-view="admin" id="admin-nav" hidden>운영관리</button>
-<a href="https://somniumagit.com" target="_blank" rel="noreferrer">공개 홈페이지 ↗</a>
-<button id="refresh">상태 새로고침</button><button id="theme">어둡게</button><button id="logout" hidden>로그아웃</button>
-</nav></header>
-<main id="main">
+<div class="trial-banner">검토용 로컬 강의실 · 가상 회원 · 실제 입금·메일 발송 없음</div>
+<header class="site-header"><div class="header-inner">
+<a class="logo" href="/site/"><img src="/assets/somnium_wordmark_on_paper.svg" alt="솜니움" width="874" height="560"><span>솜니움<br>기독교정치사회연구소</span></a>
+<div class="header-actions"><nav class="site-nav" aria-label="주요 메뉴"><a href="/site/#cal">이달의 프로그램</a><a href="/site/programs/">프로그램</a><a href="/site/videos/">유튜브</a><a href="/site/about/">연구소 소개</a><a href="/site/participate/">참여·후원</a><a href="/classroom/" aria-current="page">회원 강의실</a></nav><button id="theme">어둡게</button></div></div></header>
+<main class="container" id="main"><nav class="classroom-nav" aria-label="강의실 메뉴"><button data-view="catalog">강의 목록</button><button data-view="guide">이용 안내</button><button data-view="mine" id="mine-nav" hidden>나의 강의실</button><button data-view="admin" id="admin-nav" hidden>운영관리</button><button id="refresh">상태 새로고침</button><button id="logout" hidden>로그아웃</button></nav>
 <div class="intro"><p class="eyebrow">기독교정치사회연구소</p><h1>솜니움 강의실</h1>
 <p>강의를 다시 보고, 자료를 읽고,<br>함께 공부한 질문을 이어 갑니다.</p>
 <div class="policy-line"><span>월 1만 원 이상 후원회원 · 모든 회원 강의</span><span>회원가입 → 후원 확인 → 강의 이용</span></div></div>
@@ -31,14 +28,14 @@
 <label>이메일<input name="email" type="email" autocomplete="email" required placeholder="member@example.test"></label>
 <details><summary>개인정보 수집·이용 안내 (시험 문안)</summary><p>이름·생년월일·전화·이메일을 본인 확인·후원 자격 대조·수강 권한 관리에 사용합니다. 동의를 거부하면 신청할 수 없습니다. 현재는 가상 정보만 사용합니다. 실제 운영 전 보유·삭제 기간과 문의 담당을 확정합니다.</p></details>
 <label class="check"><input name="consent" type="checkbox" required> 개인정보 수집·이용에 동의합니다.</label><button type="submit">신청하고 이메일 확인</button></form></section>
-<aside><h3>검토용 계정으로 살펴보기</h3><p>역할을 선택하고 인증번호를 받으세요. 다음 화면의 ‘시험 메일 확인’에서 가상 인증번호를 확인할 수 있습니다.</p>
+<aside class="trial-tools"><details><summary>검토 도구 열기 · 가상 계정</summary><h3>검토용 계정으로 살펴보기</h3><p>역할을 선택하고 인증번호를 받으세요. 다음 화면의 ‘시험 메일 확인’에서 가상 인증번호를 확인할 수 있습니다.</p>
 <div class="fixture-buttons"><button data-email="supporter@example.test">후원회원</button><button data-email="general@example.test">일반회원</button><button data-email="admin.one@example.test">운영관리자</button></div>
-<p>누구나 가입하고 로그인할 수 있습니다. 후원 확인을 마치면 후원회원 강의가 열립니다.</p></aside>
+<p>누구나 가입하고 로그인할 수 있습니다. 후원 확인을 마치면 후원회원 강의가 열립니다.</p></details></aside>
 </div></div>
 <section id="verification" hidden><h2>이메일 인증번호</h2><p>실제 이메일은 보내지 않습니다. 이번 요청의 가상 인증번호를 확인하세요.</p>
 <button id="resend">인증번호 다시 받기</button> <button id="mail">시험 메일 확인</button><p id="mail-code"></p>
 <form id="verify"><label>6자리 인증번호<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></label><button type="submit">확인</button></form><button id="back-login">신청·로그인으로 돌아가기</button></section>
-<section id="catalog-view"><div class="section-title"><h2>강의 목록</h2><p>후원회원을 위한 비공개 강의입니다. 현재는 시험 영상으로 구성한 검토본입니다.</p></div>
+<section id="catalog-view"><div class="section-title"><h2>강의 목록</h2><p>후원 확인을 마친 회원이 강의와 자료를 이용할 수 있습니다.</p></div>
 <label class="search-label">강의 검색<input id="catalog-search" type="search" placeholder="강의·시리즈 이름으로 찾기"></label><p id="catalog-count" class="muted"></p><div id="catalog"></div></section>
 <section id="guide-view" hidden><h2>강의실 이용 안내</h2><div class="guide-grid">
 <article><p class="eyebrow">일반회원</p><h3>가입하고 이메일을 확인합니다</h3><ol><li>회원가입 신청과 개인정보 동의를 마칩니다.</li><li>신청한 이메일의 인증번호로 본인 확인을 마칩니다.</li><li>이메일 인증번호로 로그인합니다.</li></ol><p>누구나 일반회원으로 가입할 수 있습니다. 비공개 강의는 후원 확인을 마친 후 이용합니다.</p></article>
@@ -60,11 +57,11 @@
 <label>자료 구분<select name="era"><option value="archive">현대자본주의 이전 · 회원 전용</option><option value="current">현대자본주의 강의</option><option value="future">2027 신규 강의</option></select></label>
 <label>시리즈 선택<select name="series_id"><option value="">독립 강좌</option><option value="__new">새 시리즈</option></select></label><label id="new-series-label" hidden>새 시리즈 이름<input name="series_title" maxlength="100" disabled></label>
 <label>표시 순서<input name="position" type="number" min="1" max="999" value="1" required></label><p class="muted">모든 회원 강의는 월 1만 원 이상 후원회원과 승인된 이사에게 포함됩니다. 자료 구분이 다른 강의는 같은 시리즈에 등록할 수 없습니다.</p>
-<label>시험 MP4 영상 (10MB 이하)<input name="video" type="file" accept="video/mp4" required></label><label>시험 자료<textarea name="material" required maxlength="50000"></textarea></label>
+<label>영상 연결 방식<select name="video_provider"><option value="mp4">시험 MP4</option><option value="youtube">유튜브 일부공개</option><option value="vimeo">Vimeo</option></select></label><label id="video-file-field">시험 MP4 영상 (10MB 이하)<input name="video" type="file" accept="video/mp4" required></label><label id="video-url-field" hidden>영상 주소<input name="video_url" type="url" placeholder="https://www.youtube.com/watch?v=…" disabled></label><p class="muted">유튜브 일부공개는 링크를 아는 사람이 볼 수 있습니다. Vimeo는 별도의 숨김·허용 도메인 설정이 필요합니다. 주소를 등록해도 원본 영상의 공개 설정은 바뀌지 않습니다.</p><label>시험 자료<textarea name="material" required maxlength="50000"></textarea></label>
 <label class="check"><input name="published" type="checkbox"> 등록 후 회원 강의 목록에 표시 (미선택 시 숨김)</label><button type="submit">강의와 자료 등록</button></form>
 <h3>등록 강의 관리</h3><p>숨기면 기존 수강권이 있어도 이 강의를 이용할 수 없습니다. 다시 표시하면 기존 수강권으로 이용합니다.</p><label>등록 강의 검색<input id="lesson-search" type="search" placeholder="강의·시리즈 이름"></label><div id="admin-lessons"></div></div>
 <div id="accounting-panel" hidden><h3>회계 보고 준비</h3><p><strong>미게시 · 공개 범위 미정</strong></p><p id="accounting-status"></p><div class="guide-grid"><article><h4>이사진 전용</h4><p>이사 확인을 마친 계정과 운영관리자만 보고서를 열람하는 안입니다.</p></article><article><h4>전체 공개</h4><p>로그인 없이 누구나 공개용 보고서를 열람하는 안입니다.</p></article></div><p>공개 범위를 확정한 뒤 실제 보고서 등록·게시 기능을 연결합니다. 현재는 실제 회계 수치·원장·개인정보를 가져오지 않았습니다.</p></div><details><summary>최근 관리 이력</summary><div id="audit"></div></details></section>
 </main>
-<footer>후원·기부금 처리는 한빛누리의 기존 절차를 따릅니다. 회계 보고는 준비 중입니다.<br>집 맥북에서 실행하는 가상 시험본입니다. 실제 회원 서비스·메일·결제는 연결하지 않았습니다.</footer>
+<footer class="site-footer"><div class="container"><img class="footer-mark" src="/assets/somnium_wordmark_on_navy.svg" alt="솜니움" width="874" height="560"><p>후원·기부금 처리는 한빛누리의 기존 절차를 따릅니다. 회계 보고는 준비 중입니다.<br>집 맥북에서 실행하는 가상 시험본입니다. 실제 회원 서비스·메일·결제는 연결하지 않았습니다.</p><div class="footer-links"><a href="/site/">홈으로</a><a href="/site/participate/">참여·후원</a><a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a></div></div></footer>
 <dialog id="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-body"><h2 id="confirm-title"></h2><p id="confirm-body"></p><div class="actions"><button id="confirm-no" type="button">돌아가기</button><button id="confirm-yes" type="button">확인하고 진행</button></div></dialog>
 </body></html>

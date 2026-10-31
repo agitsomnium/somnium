@@ -90,8 +90,8 @@ def _write(path, text):
     path.write_text(text, encoding="utf-8")
 
 
-def _page(outdir, rel, title, body, base, theme, preview, description='', jsonld=None):
-    text = shell(title=title, body=body, base=base, theme=theme, preview=preview)
+def _page(outdir, rel, title, body, base, theme, preview, description='', jsonld=None, classroom_url=''):
+    text = shell(title=title, body=body, base=base, theme=theme, preview=preview, classroom_url=classroom_url)
     full = title if title == '홈' else title + ' | 솜니움 기독교정치사회연구소'
     if title == '홈':
         full = '솜니움 기독교정치사회연구소 — 연구자와 시민이 만나는 광장'
@@ -129,7 +129,12 @@ def _home_videos(data_dir):
     return rows[:6]
 
 
-def build(data_dir, outdir, base='', theme='b', preview=False):
+def build(data_dir, outdir, base='', theme='b', preview=False, classroom_preview=False):
+    if classroom_preview and not preview:
+        raise ValueError('classroom link is local preview only')
+    classroom_url = '/classroom/' if classroom_preview else ''
+    def page(*args, **kwargs):
+        return _page(*args, **kwargs, classroom_url=classroom_url)
     target = Path(outdir)
     if target.is_symlink():
         raise ValueError('target is a symlink: %s' % target)
@@ -165,14 +170,14 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         bookclubs = public_rows(tables, '북클럽')
         videos = public_rows(tables, '영상')
         events = seo.events_jsonld(tables, base)
-        _page(stage, 'index.html', '홈', home(tables, base, _home_videos(data_dir), load_instagram(data_dir)), base, theme, preview,
+        page(stage, 'index.html', '홈', home(tables, base, _home_videos(data_dir), load_instagram(data_dir)), base, theme, preview,
               jsonld=[seo.org_jsonld()] + events)
         for s in seminars:
             sid = str(s.get('id', ''))
             body = seminar_detail(s, tables, base)
             sdesc = ' '.join(x for x in (s.get('제목', ''), s.get('부제', ''), (s.get('소개') or '').split('\n')[0]) if x)
             sev = [ev for ev in events if ('seminars/%s/' % sid) in ev.get('url', '')]
-            _page(stage, 'seminars/%s/index.html' % sid, s.get('제목', '세미나'), body, base, theme, preview, sdesc, sev)
+            page(stage, 'seminars/%s/index.html' % sid, s.get('제목', '세미나'), body, base, theme, preview, sdesc, sev)
         content = {name: page_over.get(name[:-3]) or _read(name) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md','people.md')}
         for slug, title, body in (
             ('about', '연구소 소개', about_page(content, markdown, base)),
@@ -181,14 +186,14 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
             ('archive', '지난 프로그램', archive_page(content, markdown, base)),
             ('participate', '참여·후원', participate_page(tables, content, markdown, base)),
         ):
-            _page(stage, slug + '/index.html', title, body, base, theme, preview, PAGE_DESC.get(slug, ''))
+            page(stage, slug + '/index.html', title, body, base, theme, preview, PAGE_DESC.get(slug, ''))
         vpages = series_pages(load_videos(data_dir), page_intro, base)
         for path, title, body, desc in vpages:
-            _page(stage, path, title, body, base, theme, preview, desc)
+            page(stage, path, title, body, base, theme, preview, desc)
         assets_src = Path(ROOT) / 'assets'
         if assets_src.is_dir():
             shutil.copytree(str(assets_src), str(stage / 'assets'))
-        _page(stage, '404.html', '찾을 수 없음', '<div class="prose"><h1>페이지를 찾을 수 없습니다</h1><p>메뉴에서 원하시는 자료를 찾아 주세요.</p></div>', base, theme, preview)
+        page(stage, '404.html', '찾을 수 없음', '<div class="prose"><h1>페이지를 찾을 수 없습니다</h1><p>메뉴에서 원하시는 자료를 찾아 주세요.</p></div>', base, theme, preview)
         _write(stage / '.nojekyll', '')
         _write(stage / 'robots.txt', seo.robots_txt())
         _write(stage / 'llms.txt', seo.llms_txt(tables, base))
@@ -221,6 +226,7 @@ def main(argv=None):
     parser.add_argument('--base', default=os.environ.get('SITE_BASE_PATH', ''))
     parser.add_argument('--theme', default='b', choices=['a', 'b'])
     parser.add_argument('--preview', action='store_true')
+    parser.add_argument('--classroom-preview', action='store_true', help='로컬 통합검토 전용 강의실 링크')
     args = parser.parse_args(argv)
     if args.sample:
         data_dir = Path(ROOT) / 'data' / 'sample'
@@ -228,7 +234,7 @@ def main(argv=None):
     else:
         data_dir = Path(args.data)
         preview = args.preview
-    target = build(data_dir, args.output, args.base, args.theme, preview)
+    target = build(data_dir, args.output, args.base, args.theme, preview, args.classroom_preview)
     print('built: %s' % target)
     print('sample: %s' % bool(args.sample))
     return 0

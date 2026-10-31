@@ -1,6 +1,7 @@
 """Loopback-only, synthetic-data classroom trial. Never deploy this test adapter.
 
-No SMTP, external model, Hub member data, or public YouTube integration.
+No SMTP, external model, real Hub member data, or public-catalog writes.
+Optional external lecture metadata remains outside the repository in local state.
 Production must replace SQLite/mailbox with an organization-owned service.
 """
 import base64
@@ -16,8 +17,9 @@ from contextlib import contextmanager
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, quote
 import commerce
+import video_sources
 from backup_trial import verified_manifest
 
 ROOT = Path(__file__).resolve().parent
@@ -122,7 +124,7 @@ class Handler(BaseHTTPRequestHandler):
             'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
             'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; "
             "font-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; "
-            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+            "frame-src https://www.youtube-nocookie.com https://player.vimeo.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
             **(headers or {})
         }.items():
             self.send_header(k, v)
@@ -151,8 +153,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self.boundary():
             return
         path = urlsplit(self.path).path
-        if path == '/':
-            return self.reply(200, (ROOT / 'index.html').read_bytes(), 'text/html; charset=utf-8')
+        if path in ('/', '/classroom/'):
+            return self.reply(200, (ROOT / 'index.html').read_bytes(), 'text/html; charset=utf-8',headers={'Referrer-Policy':'strict-origin-when-cross-origin'})
         static = {'/app.js': ROOT / 'app.js', '/trial.css': ROOT / 'trial.css',
                   '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
                   '/fonts-display.css': REPO / 'assets/fonts-display.css'}
@@ -160,6 +162,16 @@ class Handler(BaseHTTPRequestHandler):
             static[path] = REPO / 'assets' / path.lstrip('/')
         if path in static and static[path].is_file():
             return self.reply(200, static[path].read_bytes(), mimetypes.guess_type(str(static[path]))[0] or 'application/octet-stream')
+        if path.startswith('/assets/'):
+            file = (REPO / path.lstrip('/')).resolve()
+            if (REPO / 'assets').resolve() in file.parents and file.is_file() and file.suffix in ('.css','.js','.svg','.png','.jpg','.webp','.woff2'):
+                return self.reply(200,file.read_bytes(),mimetypes.guess_type(str(file))[0] or 'application/octet-stream')
+        if path.startswith('/site/'):
+            site_root = (REPO / 'dist/integration').resolve()
+            file = (site_root / path[len('/site/'):]).resolve()
+            if file.is_dir(): file = file / 'index.html'
+            if site_root in file.parents and file.is_file():
+                return self.reply(200,file.read_bytes(),mimetypes.guess_type(str(file))[0] or 'application/octet-stream',headers={'Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https: data:; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'none'"})
         if path == '/robots.txt':
             return self.reply(200, 'User-agent: *\nDisallow: /\n', 'text/plain')
         if path == '/api/features':
@@ -204,11 +216,25 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 return self.reply(200, [dict(r) for r in db.execute(
                     'select id,title,era,series_id,published,description,position,series_title from lessons order by era,series_id,position,id')])
+            player = re.fullmatch(r'/api/player/([a-zA-Z0-9_-]+)',path)
+            if player:
+                lesson=db.execute('select * from lessons where id=?',(player[1],)).fetchone()
+                if not self.trial.allowed(db,member,lesson):
+                    return self.reply(403, {'error':'이 강의를 이용할 권한이 없습니다.'})
+                provider=lesson['video_provider']
+                url=f'/media/{lesson["id"]}/video' if provider=='mp4' else video_sources.embed(provider,lesson['video_id'],lesson['video_privacy'])
+                if provider=='youtube':
+                    url += '&origin='+quote(f'http://127.0.0.1:{self.server.server_port}',safe='')
+                return self.reply(200, {'provider':provider,'url':url})
             match = re.fullmatch(r'/media/([a-zA-Z0-9_-]+)/(video|material)', path)
             if match:
                 lesson = db.execute('select * from lessons where id=?', (match[1],)).fetchone()
                 if not self.trial.allowed(db, member, lesson):
                     return self.reply(403, {'error': '이 자료를 이용할 권한이 없습니다.'})
+                if match[2]=='material' and not lesson['material_ready']:
+                    return self.reply(404,{'error':'강의 자료는 아직 등록하지 않았습니다.'})
+                if match[2]=='video' and lesson['video_provider']!='mp4':
+                    return self.reply(404,{'error':'외부 영상은 강의 재생 화면에서 이용해 주세요.'})
                 file = self.trial.folder / lesson[match[2]]
                 if not file.is_file():
                     return self.reply(404, {'error': '파일이 없습니다.'})
@@ -396,9 +422,17 @@ class Handler(BaseHTTPRequestHandler):
                     series_title=existing['series_title'] or series_title
             if 'audience' in p or type(published) is not bool or not title or len(title) > 100 or era not in ('archive','current','future') or not re.fullmatch(r'[a-z0-9-]{0,60}',series):
                 raise ValueError('강의 정보 확인')
-            video = base64.b64decode(p['video'], validate=True)
+            provider=p.get('video_provider','mp4')
+            ident,privacy='',''
+            if provider=='mp4':
+                video = base64.b64decode(p['video'], validate=True)
+                if len(video)>10_000_000 or len(video)<16 or b'ftyp' not in video[:32]:
+                    raise ValueError('시험 MP4 확인')
+            else:
+                ident,privacy=video_sources.source(provider,p.get('video_url',''))
+                video=b''  # backup-compatible marker; never served as a video
             material = str(p['material']).encode()
-            if len(video) > 10_000_000 or len(video) < 16 or b'ftyp' not in video[:32] or len(material) > 100_000:
+            if len(material) > 100_000:
                 raise ValueError('시험 MP4/자료 확인')
             lesson_id = secrets.token_urlsafe(18)
             video_name, material_name = lesson_id + '.mp4', lesson_id + '.txt'
@@ -407,6 +441,7 @@ class Handler(BaseHTTPRequestHandler):
             db.execute('''insert into lessons(id,title,audience,published,video,material,series_id,era,supporter_access,purchasable,description,position,series_title)
               values (?,?,'supporter',?,?,?,?,?,?,?,?,?,?)''',
               (lesson_id,title,int(published),video_name,material_name,series,era,'included',int(era!='archive'),description,position,series_title))
+            db.execute('update lessons set video_provider=?,video_id=?,video_privacy=? where id=?',(provider,ident,privacy,lesson_id))
             db.execute('insert into audit values (?,?,?,?)', (time.time(), member['email'], 'lesson_created', lesson_id))
             return self.reply(201, {'id': lesson_id})
         self.reply(404, {'error': '찾을 수 없습니다.'})

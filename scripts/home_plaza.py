@@ -131,7 +131,7 @@ def home(tables, base='', videos=None, insta=None):
         '기독교의 ‘사회적 꿈’을 모색하는 단체입니다.</p>'
         '<p class="hero-meta">📚 북클럽 · 세미나 · 기획강좌　📍 합정–상수 사무실 + Zoom</p></div>',
         '</section>',
-        news_strip(insta or []),
+        news_strip(insta or [], base=base),
         program_cards(tables, base, now),
         pay_bar(),
         '<section id="cal" class="pz-cal-wrap" aria-label="달력">', _calendar(tables, base, now), '</section>',

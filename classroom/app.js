@@ -59,7 +59,7 @@ function selectView(name) {
   el('entry').hidden = !!current || !!challenge || name === 'guide';
   for (const v of ['catalog','guide','mine','admin']) el(v+'-view').hidden = v !== name;
   document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-current', b.dataset.view === name ? 'page' : 'false'));
-  if (name !== 'mine') document.querySelector('video')?.pause();
+  if (name !== 'mine') { document.querySelector('video')?.pause(); if (el('player-region').querySelector('iframe')) { el('player-region').replaceChildren(); playingId=''; } }
 }
 function entryMode(mode) {
   el('apply-section').hidden = mode !== 'apply'; el('login-section').hidden = mode !== 'login';
@@ -115,6 +115,7 @@ async function order(kind, id) {
 }
 function lessonRow(l, parent) {
   const row = node('article','',parent); row.className = 'catalog-row';
+  const cover = node('div','',row); cover.className='lesson-cover'; cover.setAttribute('aria-hidden','true'); node('span',l.series_title || 'SOMNIUM · 회원 강의',cover); node('strong',l.title.split('·').slice(-1)[0].trim(),cover); node('span','솜니움 기독교정치사회연구소',cover);
   const text = node('div','',row); node('h3',l.title,text);
   if (l.description) node('p',l.description,text).className = 'lesson-description';
   node('p',features.purchases ? (l.era === 'archive' ? '후원회원·이사 전용' : '후원회원·이사는 추가 구매 없이 이용') : '후원 확인을 마친 회원이 이용할 수 있습니다.',text).className = 'muted';
@@ -144,18 +145,26 @@ function renderCatalog() {
       else button('시리즈 전체 시험 신청',bar,() => order('series',id));
     }
   }
-  if (!filtered.length) node('p',q ? '검색한 강의가 없습니다. 다른 검색어를 입력해 주세요.' : '등록된 시험 강의가 없습니다.',el('catalog'));
+  if (!filtered.length) node('p',q ? '검색한 강의가 없습니다. 다른 검색어를 입력해 주세요.' : (current ? '현재 이용 가능한 강의가 없습니다. 후원하셨다면 나의 강의실에서 확인을 요청해 주세요.' : '로그인 후 이용 가능한 강의를 확인해 주세요.'),el('catalog'));
 }
 el('catalog-search').oninput = renderCatalog;
-function showPlayer(id) {
-  const l = catalog.find(l => l.id === id); if (!l?.accessible) { notice('이용 권한이 없습니다.'); return; }
+async function showPlayer(id) {
+  const viewer=current?.email;
+  let playback;
+  try { playback=await api(`/api/player/${id}`); } catch(e) { el('player-region').replaceChildren(); playingId=''; notice(e.message); return; }
+  const l = catalog.find(l => l.id === id); if (view!=='mine' || !viewer || current?.email!==viewer || !l?.accessible) { notice('이용 권한이 없습니다.'); return; }
   if (playingId !== id || !el('player-region').firstChild) {
     playingId = id; el('player-region').replaceChildren();
     const box = node('article','',el('player-region')); box.id = 'player'; node('h3',l.title,box);
     if (l.description) node('p',l.description,box);
-    const v = node('video','',box); v.controls = true; v.playsInline = true; v.preload = 'metadata'; v.src = `/media/${id}/video`;
-    v.onerror = () => notice('영상을 불러오지 못했습니다. 이용 상태를 새로고침하거나 관리자에게 확인해 주세요.');
-    const a = node('a','자료 내려받기',box); a.href = `/media/${id}/material`; a.download = 'somnium-trial-notes.txt';
+    if (playback.provider==='mp4') {
+      const v = node('video','',box); v.controls=true; v.playsInline=true; v.preload='metadata'; v.src=playback.url;
+      v.onerror=()=>notice('영상을 불러오지 못했습니다. 이용 상태를 새로고침하거나 관리자에게 확인해 주세요.');
+    } else {
+      const v=node('iframe','',box); v.className='member-player'; v.title=l.title; v.src=playback.url; v.allow='encrypted-media; fullscreen; picture-in-picture'; v.allowFullscreen=true; v.referrerPolicy='strict-origin-when-cross-origin';
+      node('p',playback.provider==='youtube' ? '일부공개 유튜브 영상입니다. 회원을 위한 강의 링크를 외부에 공유하지 말아 주세요.' : '영상이 열리지 않으면 관리자에게 재생 허용 도메인 설정을 확인해 주세요.',box).className='member-player-note';
+    }
+    if (l.material_ready) { const a = node('a','자료 내려받기',box); a.href = `/media/${id}/material`; a.download = 'somnium-notes.txt'; } else node('p','강의 자료는 준비 중입니다.',box).className='muted';
     const next = catalog.filter(r => r.accessible && r.series_id && r.series_id === l.series_id);
     const at = next.findIndex(r => r.id === id);
     if (at+1 < next.length && at >= 0) button('다음 강의',box,() => showPlayer(next[at+1].id));
@@ -304,11 +313,14 @@ async function refresh(afterLogin = false) {
 submit('director-roster',async f => { const r=await api('/api/admin/director',{email:f.get('email'),enabled:true,roster_confirmed:f.get('roster_confirmed')==='on'}); el('director-roster').reset(); await refresh(); notice(r.message); });
 el('supporter-request').onclick=async()=>{try{const r=await api('/api/supporter-request',{});await refresh();notice(r.message);}catch(e){notice(e.message);}};
 submit('upload', async f => {
-  const file = f.get('video'); if (file.size > 10000000) throw new Error('10MB 이하 시험 MP4만 등록할 수 있습니다.');
+  const file = f.get('video') || new File([], ''); if (file.size > 10000000) throw new Error('10MB 이하 시험 MP4만 등록할 수 있습니다.');
   const bytes = new Uint8Array(await file.arrayBuffer()); let binary = '';
   for (let i = 0; i < bytes.length; i += 8192) binary += String.fromCharCode(...bytes.subarray(i,i+8192));
-  await api('/api/admin/lessons',{title:f.get('title'),era:f.get('era'),series_id:f.get('series_id') === '__new' ? '' : f.get('series_id'),series_title:f.get('series_title') || '',description:f.get('description'),position:Number(f.get('position')),video:btoa(binary),material:f.get('material'),published:f.get('published') === 'on'});
+  await api('/api/admin/lessons',{title:f.get('title'),era:f.get('era'),series_id:f.get('series_id') === '__new' ? '' : f.get('series_id'),series_title:f.get('series_title') || '',description:f.get('description'),position:Number(f.get('position')),video_provider:f.get('video_provider'),video_url:f.get('video_url') || '',video:btoa(binary),material:f.get('material'),published:f.get('published') === 'on'});
   el('upload').reset(); await refresh(); notice('시험 강의·자료를 등록했습니다. 표시 여부는 등록 강의 관리에서 바꿀 수 있습니다.');
 });
 document.addEventListener('visibilitychange',() => { if (!document.hidden) refresh().catch(e => notice(e.message)); });
 refresh().catch(e => notice(e.message));
+
+// The provider choice changes only metadata; it never changes a provider's privacy settings.
+el('upload').elements.video_provider.onchange=()=>{const local=el('upload').elements.video_provider.value==='mp4';el('video-file-field').hidden=!local;el('video-url-field').hidden=local;el('upload').elements.video.required=local;el('upload').elements.video.disabled=!local;el('upload').elements.video_url.required=!local;el('upload').elements.video_url.disabled=local;};

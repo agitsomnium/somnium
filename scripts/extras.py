@@ -316,7 +316,10 @@ def news_strip(insta, limit=6, base=''):
         seen.add(key)
         d = p.get('date', '')
         image = p['image']
-        if title == '손절사회':
+        local = (ig.get('poster_assets') or {}).get(p.get('link','').rstrip('/').split('/')[-1])
+        if local:
+            image = base + '/assets/' + local
+        elif title == '손절사회':
             image = base + '/assets/sonjeol.webp'
         cards.append('<a class="news-card" href="%s" target="_blank" rel="noopener">'
                      '<img src="%s" alt="%s 포스터" loading="lazy" width="432" height="540">'

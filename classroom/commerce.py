@@ -9,6 +9,10 @@ import time
 def setup(db):
     columns = {r['name'] for r in db.execute('pragma table_info(lessons)')}
     for name, declaration in {
+        'material_ready': 'integer not null default 1',
+        'video_provider': "text not null default 'mp4'",
+        'video_id': "text not null default ''",
+        'video_privacy': "text not null default ''",
         'series_id': "text not null default ''",
         'era': "text not null default 'archive'",
         'supporter_access': "text not null default 'included'",
@@ -127,9 +131,9 @@ def target_rows(db, kind, target):
 def get(handler, db, member, path):
     if path == '/api/catalog':
         rows = db.execute('select * from lessons where published=1 order by era,series_id,position,id').fetchall()
-        handler.reply(200, [{k:r[k] for k in ('id','title','series_id','era','supporter_access','purchasable','description','position','series_title')}
+        handler.reply(200, [{k:r[k] for k in ('id','title','series_id','era','supporter_access','purchasable','description','position','series_title','material_ready')}
             | {'accessible':handler.trial.allowed(db,member,r),
-               'purchasable':int(handler.trial.purchases_enabled and r['purchasable'])} for r in rows])
+               'purchasable':int(handler.trial.purchases_enabled and r['purchasable'])} for r in rows if r['video_provider']=='mp4' or handler.trial.allowed(db,member,r)])
         return True
     if path in ('/api/orders', '/api/notifications', '/api/admin/orders'):
         if not handler.trial.purchases_enabled:
