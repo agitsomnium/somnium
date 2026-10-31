@@ -1,0 +1,14 @@
+{
+  "name": "somnium-classroom-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild app.js --bundle --format=esm --target=es2022 --charset=utf8 --minify --legal-comments=linked --outfile=dist/app.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
