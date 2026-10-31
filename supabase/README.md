@@ -40,3 +40,23 @@ CLI `supabase migration new somnium_classroom`으로 만든 migration과 실제 
 공식 확인: https://supabase.com/docs/guides/auth/auth-email-passwordless · https://supabase.com/changelog · https://supabase.com/docs/guides/api/securing-your-api
 
 현재 남은 핵심은 SMTP 발신 방식 확정, 실제 Auth/프로필/관리자 화면 adapter, 보호된 테스트 호스팅, private 자료 Storage와 기관 백업이다. 로컬 화면의 SQLite 변경과 원격 DB 변경은 아직 연동되지 않는다. 원격 데이터가 들어갔다는 이유로 현재 시험 서버를 인터넷에 공개하지 않는다.
+
+## Gmail SMTP 선택 (11/1 후속)
+
+사용자가 기존 솜니움 Gmail과 직접 설정하는 앱 비밀번호를 선택했다. 대시보드 SMTP 양식에 발신자 솜니움·기존 Gmail 주소·smtp.gmail.com·465·동일 사용자명을 입력했다. **아직 비밀번호 입력/저장/발송 검증은 안 됐다.** Google 2단계 인증·본인확인·앱 비밀번호 생성과 Supabase Password 입력/Save changes는 사람이 직접 한다. 비밀번호를 채팅/코드/로컬 기록에 넣지 않는다.
+
+Google 계정 선택이 개인 계정으로 열려 솜니움 계정 전환도 사용자에게 안내했다. SMTP 설정을 마친 뒤에는 실제 수신자와 시험 발송 범위를 정하고 OTP 수신/만료/재사용 방지·로그인·권한을 검사한다. Supabase는 Gmail 등 개인용 메일 SMTP의 인증메일 도착률 경고를 표시하므로, 설정 저장만으로 운영 발송 보장을 주장하지 않는다. 아직 새 서비스 가입·비용·실제 메일 발송은 없다.
+
+공식: https://support.google.com/accounts/answer/185833 · https://supabase.com/docs/guides/auth/auth-smtp
+
+## SMTP 저장·첫 실제 발송 (11/1 후속 최신)
+
+사용자가 솜니움 Gmail의 2단계 인증을 켜고 앱 비밀번호를 직접 만들어 SMTP Password 입력/Save changes를 완료했다. 새로고침 후 custom SMTP 활성화·smtp.gmail.com·465·발신자 솜니움과 “Stored password is hidden”을 확인했다. 비밀번호·OTP·세션은 읽거나 기록하지 않았다.
+
+가입 확인/로그인 템플릿을 `templates/confirm-sign-up.html`, `templates/magic-link-or-otp.html`과 제목 `[솜니움] 가입 이메일 인증번호`, `[솜니움] 로그인 인증번호`로 저장했다. `{{ .Token }}`만 사용하며 인증 링크를 넣지 않는다. 관리자/후원 권한은 이메일 확인만으로 부여되지 않는다.
+
+사용자 “솜니움 Gmail로 1통 발송” 승인 후 pinned supabase-js 2.118.0의 signInWithOtp로 1회 요청, provider_accepted(오류 없음). **수신함 도착·OTP 검증·실제 Auth 로그인은 아직 확인하지 않았다.** 메일 지연 시 중복 발송하지 말고 수신/스팸/로그를 먼저 확인한다. Auth 첫 신청 사용자 1명이 생성됐을 수 있어 이전 auth.users=0 검증은 발송 전 결과다. 실제 회원 프로필·후원·관리자 자격을 새로 만들지는 않았다.
+
+`smoke/send-approved-otp.mjs`는 보호된 외부 client config와 새 receipt 파일, 명시적 1통 승인 플래그를 요구한다. 같은 receipt는 재사용 불가, 자동 반복 실행/예약 금지. 저장소에는 publishable/secret/SMTP 키나 실제 수신함 데이터를 넣지 않는다. SDK/lockfile만 추적한다. 클라이언트 설정과 실제 발송 결과는 저장소 밖 보호 폴더에 있다.
+
+아직 원래 홈페이지의 시험 로그인은 Supabase Auth와 연결하지 않았다. 운영 게시·공개 도메인 전환·새 서비스·유료 요금제는 그대로 미실행이다.

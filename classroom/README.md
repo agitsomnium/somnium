@@ -78,3 +78,5 @@ python3 classroom/backup_trial.py ../새백업폴더 ../새복원폴더
 - 원격 RPC 권한 시험 PASS, 회원/실제 Auth 사용자 0명, 강의 145개. Security Advisor 오류 0·경고 0, private 테이블의 정책 없음 안내 6개는 직접 접근을 막고 권한검사 RPC만 허용하는 설계에 따른다.
 - MCP 연결에는 새 조직 권한이 없어 사용자가 로그인한 SQL Editor에서 적용했다. Supabase migration history에는 미등록이므로 기준 migration을 재실행하지 않는다. 상세 적용·복구 경계는 supabase/README.md를 따른다.
 - 로컬 관리자 변경과 원격 DB는 자동 동기화되지 않는다. 실제 Auth·관리자 API·메일 연결 전까지 정식 회원에게 개방하지 않는다. 실제 메일 발송·새 Vimeo 서비스·운영 배포는 하지 않았다.
+
+> **11/1 SMTP 후속 최신**: 사용자가 기존 솜니움 Gmail의 2단계 인증·앱 비밀번호 생성·SMTP 저장 완료. 새로고침으로 저장 유지 확인. 가입/로그인 메일을 OTP 템플릿으로 저장했고, 솜니움 Gmail 1통 발송 승인 후 Supabase가 요청을 오류 없이 수락했다. 받은편지함 도착/OTP 확인은 사용자 응답 대기. 이 화면의 시험 로그인은 여전히 실제 Supabase Auth와 연결되지 않았다. 이전 “SMTP 미설정·실메일0”은 이 실행 전 기록이다.
