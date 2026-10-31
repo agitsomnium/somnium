@@ -169,6 +169,8 @@ def videos_page(live, page_intro, base=''):
     out.append('<p class="yt-links"><a class="button yt-button" href="%s" target="_blank" rel="noopener">솜니움 유튜브 채널 ↗</a> '
                '<a class="button yt-button ghost" href="%s" target="_blank" rel="noopener">1기 「한국기독학생운동사를 돌아보며」 채널 ↗</a></p>'
                % (e(yt.get('url', '')), e(series_cfg.get('url', ''))))
+    bottom = [b for b in bundles if b.get('name') == '솜니움 북클럽 · 2025~']
+    bundles = [b for b in bundles if b not in bottom]
     years = []
     for b in bundles:
         y = (b['latest'][0] or '')[:4] or '그 전'
@@ -179,6 +181,8 @@ def videos_page(live, page_intro, base=''):
     for y, bs in years:
         cards = ''.join(_card(b['single']) if 'single' in b else _series_card(b, base) for b in bs)
         out.append('<section class="vid-group" id="y%s"><h2>%s</h2><div class="yt-grid">%s</div></section>' % (e(y), e(y), cards))
+    if bottom:
+        out.append('<section class="vid-group" id="bookclub-archive"><h2>솜니움 북클럽 · 2025~</h2><div class="yt-grid">%s</div></section>' % ''.join(_series_card(b, base) for b in bottom))
     return '\n'.join(out)
 
 

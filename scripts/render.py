@@ -42,8 +42,8 @@ def shell(title, body, base='', theme='b', preview=False, classroom_url=''):
     t = e(title)
     nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('오시는 길', '/about/#visit'), ('참여·후원', '/participate/')]
     if classroom_url:
-        nav.append(('회원 강의실', classroom_url))
-    navhtml = ''.join(f'<a href="{h if h == classroom_url else base + h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
+        nav.insert(0, ('후원회원 강의실', classroom_url))
+    navhtml = ''.join(f'<a href="{h if h == classroom_url else base + h}"' + (' class="classroom-link"' if h == classroom_url else '') + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
     banner = '<div class="preview-banner">검토용 / 프로그램 일정과 신청 안내를 확인하고 있습니다</div>' if preview else ''
     return f'''<!DOCTYPE html>
 <html lang="ko" class="theme-{e(theme)}">

@@ -171,3 +171,9 @@ main.container>.yt-section.band-navy{padding:72px 0 80px;margin-top:80px}
 .yt-grid.yt-grid-4{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:18px}
 .yt-grid-4 .yt-card strong{font-size:15px}
 @media (max-width:760px){.yt-grid.yt-grid-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}
+
+/* Main reason to register: supporter classroom is first on desktop and mobile. */
+.site-nav a.classroom-link{order:-2;background:var(--navy);color:var(--feat);padding:8px 16px;border-bottom:4px solid var(--lime);font-weight:800;white-space:nowrap;text-decoration:none}
+.site-nav a.classroom-link:hover,.site-nav a.classroom-link:focus-visible{background:var(--ink);color:var(--paper);outline:2px solid var(--navy);outline-offset:3px}
+.site-nav:has(.classroom-link) a[href$="/participate/"]{order:0;background:transparent;color:var(--ink);padding:0}
+@media(max-width:700px){.site-header .site-nav a.classroom-link{order:-2;padding:5px 12px;min-height:40px}}
