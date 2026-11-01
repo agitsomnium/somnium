@@ -48,4 +48,11 @@ select pg_temp.check_true(exists(select 1 from classroom_private.admins) and exi
 begin; set local role authenticated; select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 select pg_temp.expect_error($$select public.somnium_erase_member('20000000-0000-0000-0000-000000000001')$$,'22023','admin target refused');
 rollback;
+-- member who is also on the director roster is refused (roster keeps the e-mail)
+insert into auth.users(id,email,email_confirmed_at) values('20000000-0000-0000-0000-000000000005','director@example.test',now());
+insert into classroom_private.directors(email,enabled,checked_by) values('director@example.test',true,'20000000-0000-0000-0000-000000000001');
+begin; set local role authenticated; select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
+select pg_temp.expect_error($$select public.somnium_erase_member('20000000-0000-0000-0000-000000000005')$$,'22023','director roster member refused');
+rollback;
+select pg_temp.check_true(exists(select 1 from auth.users where id='20000000-0000-0000-0000-000000000005'),'director member still present');
 select 'MEMBER ERASURE PASS';

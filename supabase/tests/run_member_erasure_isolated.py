@@ -65,6 +65,22 @@ def main():
         result = subprocess.run(psql[:-1] + ['-f', str(SUPABASE / 'tests/member-erasure.sql')], capture_output=True, text=True, cwd=SUPABASE / 'tests', env={**os.environ, 'LC_ALL': 'en_US.UTF-8'})
         out += [result.stdout, result.stderr]
         ok = result.returncode == 0 and 'MEMBER ERASURE PASS' in result.stdout
+        if ok:  # rollback draft: refused while erased actors exist, clean and re-appliable otherwise
+            env = {**os.environ, 'LC_ALL': 'en_US.UTF-8'}
+            rb = SUPABASE / 'proposed/20261102_member_erasure_ROLLBACK_DRAFT.sql'
+            refused = subprocess.run(psql + ['-f', str(rb)], capture_output=True, text=True, env=env)
+            ok = refused.returncode != 0 and 'rollback refused' in refused.stderr
+            out.append('rollback refused while erased actors exist: ' + ('PASS' if ok else 'FAIL ' + refused.stderr))
+        if ok:
+            before = run(psql + ['-At', '-c', "select (select count(*) from classroom_private.profiles)||'/'||(select count(*) from classroom_private.supporters)||'/'||(select count(*) from classroom_private.series_entitlements)||'/'||(select count(*) from auth.users)"]).stdout.strip()
+            run(psql + ['-c', 'delete from classroom_private.audit where actor is null'])  # simulate: no member was erased
+            run(psql + ['-f', str(rb)])
+            state = run(psql + ['-At', '-c', "select (select count(*) from pg_proc where proname='erase_member')||','||(select is_nullable from information_schema.columns where table_schema='classroom_private' and table_name='audit' and column_name='actor')||','||(select confdeltype::text from pg_constraint where conname='audit_actor_fkey')||','||(select (select count(*) from classroom_private.profiles)||'/'||(select count(*) from classroom_private.supporters)||'/'||(select count(*) from classroom_private.series_entitlements)||'/'||(select count(*) from auth.users))"]).stdout.strip()
+            ok = state == f'0,NO,a,{before}'
+            out.append(f'rollback clean: state={state} expected=0,NO,a,{before}: ' + ('PASS' if ok else 'FAIL'))
+        if ok:
+            run(psql + ['-f', str(SUPABASE / 'proposed/20261102_member_erasure_DRAFT.sql')])
+            out.append('re-apply after rollback: PASS')
         out.append('RESULT: ' + ('PASS' if ok else 'FAIL'))
     finally:
         subprocess.run([PG / 'pg_ctl', '-D', str(data), '-m', 'immediate', 'stop'], capture_output=True)

@@ -23,6 +23,9 @@ begin
  end if;
  select email into mail from auth.users where id=p_user;
  if not found then raise exception 'member unavailable' using errcode='22023'; end if;
+ if mail is not null and exists(select 1 from classroom_private.directors where email=lower(mail)) then
+  raise exception 'director roster entry requires organization owner' using errcode='22023'; -- the roster keeps the e-mail; erasing around it would leave personal data behind
+ end if;
  delete from classroom_private.series_entitlements where user_id=p_user;
  delete from classroom_private.code_attempts where user_id=p_user;
  update classroom_private.audit set target='erased' where target=p_user::text or (mail is not null and lower(target)=lower(mail));
