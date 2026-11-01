@@ -1,47 +1,127 @@
+import copy
 import json
 import re
+import subprocess
+import sys
+import tempfile
+import threading
 import unittest
+from http.client import HTTPConnection
+from http.server import ThreadingHTTPServer
+from pathlib import Path
+
 from build_guide import DATA, render
+from serve import handler
 
+WEB = Path(__file__).resolve().parent
 DATA_JSON = json.loads(DATA.read_text(encoding='utf-8'))
-VIDEO_ID = re.compile(r'(youtu\.be/|youtube\.com/|vimeo\.com/|i\.ytimg\.com|\.pdf)', re.I)
+MEDIA = re.compile(r'(youtu\.be/|youtube\.com/|vimeo\.com/|i\.ytimg\.com|\.pdf)', re.I)
+PENDING_NAMES = [n.split(' 외')[0] for s in DATA_JSON['series'] if s['permission'] != 'public' for n in s['lecturers'].split(' · ') if n]
+ORDER_MARK = '처음이라면 이 순서로'
 
 
-class GuideBuild(unittest.TestCase):
-    def test_public_drops_pending_lecturers_and_badges(self):
+def text_of(html):
+    return re.sub(r'<[^>]+>', ' ', html)
+
+
+class GuideRender(unittest.TestCase):
+    def test_public_drops_pending_lecturers_and_keeps_public_one(self):
         html = render(DATA_JSON, 'public')
-        for s in DATA_JSON['series']:
-            if s['permission'] == 'pending':
-                for name in s['lecturers'].split(' · '):
-                    self.assertNotIn(name.split(' 외')[0], html)
-        self.assertNotIn('badge', html)
+        self.assertTrue(PENDING_NAMES)
+        for name in PENDING_NAMES:
+            self.assertNotIn(name, html)
         self.assertIn('정용택', html)
 
     def test_review_marks_every_pending_series(self):
         html = render(DATA_JSON, 'review')
         pending = [s for s in DATA_JSON['series'] if s['permission'] != 'public' and s['lecturers']]
         self.assertEqual(html.count('강사 공개 허락 확인 전'), len(pending))
-        self.assertIn('운영진 확인 전 초안', html)
+        for name in PENDING_NAMES:
+            self.assertIn(name, html)
 
-    def test_no_private_media_references(self):
+    def test_unapproved_order_is_omitted_from_public_but_marked_in_review(self):
+        self.assertFalse(DATA_JSON['order']['approved'])
+        public = render(DATA_JSON, 'public')
+        self.assertNotIn(ORDER_MARK, public)
+        self.assertNotIn('추천 순서', public)
+        review = render(DATA_JSON, 'review')
+        self.assertIn(ORDER_MARK, review)
+        self.assertIn('운영진 확인 전 초안', review)
+
+    def test_approved_order_appears_in_public_without_draft_label(self):
+        data = copy.deepcopy(DATA_JSON)
+        data['order']['approved'] = True
+        public = render(data, 'public')
+        self.assertIn(ORDER_MARK, public)
+        self.assertNotIn('운영진 확인 전 초안', public)
+        self.assertIn('추천 순서', public)
+
+    def test_lecture_count_is_stated_only_when_verified(self):
+        self.assertFalse(DATA_JSON['memberLectures']['verified'])
+        self.assertNotRegex(text_of(render(DATA_JSON, 'public')), r'\d+\s*편')
+        self.assertIn('원격 실조회 전', text_of(render(DATA_JSON, 'review')))
+        data = copy.deepcopy(DATA_JSON)
+        data['memberLectures']['verified'] = True
+        self.assertIn(f'회원 강의 {data["memberLectures"]["count"]}편', text_of(render(data, 'public')))
+
+    def test_no_private_media_or_invented_numbers(self):
         for mode in ('review', 'public'):
-            self.assertIsNone(VIDEO_ID.search(render(DATA_JSON, mode)))
+            html = render(DATA_JSON, mode)
+            self.assertIsNone(MEDIA.search(html))
+            self.assertNotRegex(text_of(html), r'회원\s*\d+\s*명|목표\s*\d')
 
-    def test_flow_has_four_steps_and_only_known_links(self):
+    def test_flow_links_and_escaping(self):
         html = render(DATA_JSON, 'public')
         self.assertEqual([s['n'] for s in DATA_JSON['flow']], [1, 2, 3, 4])
-        hrefs = set(re.findall(r'href="(https?://[^"]+)"', html))
-        self.assertEqual(hrefs, {'https://somniumagit.com', 'https://somniumagit.com/participate/', 'https://online.mrm.or.kr/PCjx2kb'})
-
-    def test_no_invented_numbers(self):
-        text = re.sub(r'<[^>]+>', ' ', render(DATA_JSON, 'public'))
-        self.assertIn('회원 강의 93편', text)
-        self.assertNotRegex(text, r'회원\s*\d+\s*명|목표\s*\d')
-
-    def test_escapes_markup(self):
-        data = json.loads(json.dumps(DATA_JSON))
+        self.assertEqual(set(re.findall(r'href="(https?://[^"]+)"', html)),
+                         {'https://somniumagit.com', 'https://somniumagit.com/participate/', 'https://online.mrm.or.kr/PCjx2kb'})
+        data = copy.deepcopy(DATA_JSON)
         data['hero']['lead'] = '<script>alert(1)</script>'
         self.assertNotIn('<script>alert', render(data, 'public'))
+
+
+class GuideServedFromCleanBuild(unittest.TestCase):
+    """Build into an empty directory, then read /guide/ over real HTTP."""
+
+    def serve(self, dist, mode):
+        httpd = ThreadingHTTPServer(('127.0.0.1', 0), handler({}, 0))
+        port = httpd.server_port
+        httpd.RequestHandlerClass = handler({'url': 'https://example.invalid', 'publishableKey': 'sb_publishable_test'}, port, mode, Path(dist))
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        self.addCleanup(lambda: (httpd.shutdown(), httpd.server_close()))
+        return port
+
+    def get(self, port, path):
+        conn = HTTPConnection('127.0.0.1', port)
+        conn.request('GET', path, headers={'Host': f'127.0.0.1:{port}'})
+        res = conn.getresponse()
+        body = res.read()
+        conn.close()
+        return res.status, body.decode('utf-8', 'replace')
+
+    def build(self, dist, mode):
+        subprocess.run([sys.executable, str(WEB / 'build_guide.py'), '--mode', mode, '--out-dir', str(dist)], check=True, capture_output=True)
+
+    def test_public_only_build_serves_public_content(self):
+        with tempfile.TemporaryDirectory() as dist:
+            self.build(dist, 'public')
+            status, body = self.get(self.serve(dist, 'public'), '/guide/')
+            self.assertEqual(status, 200)
+            for name in PENDING_NAMES:
+                self.assertNotIn(name, body)
+            self.assertNotIn(ORDER_MARK, body)
+            self.assertNotIn('badge', body)
+            self.assertEqual(self.get(self.serve(dist, 'review'), '/guide/')[0], 404)
+
+    def test_public_server_never_falls_back_to_leftover_review_file(self):
+        with tempfile.TemporaryDirectory() as dist:
+            self.build(dist, 'all')
+            self.assertNotIn(PENDING_NAMES[0], self.get(self.serve(dist, 'public'), '/guide/')[1])
+            self.assertIn(PENDING_NAMES[0], self.get(self.serve(dist, 'review'), '/guide/')[1])
+
+    def test_empty_build_is_404_not_stale(self):
+        with tempfile.TemporaryDirectory() as dist:
+            self.assertEqual(self.get(self.serve(dist, 'public'), '/guide/')[0], 404)
 
 
 if __name__ == '__main__':

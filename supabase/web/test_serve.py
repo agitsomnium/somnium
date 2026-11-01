@@ -1,4 +1,7 @@
 import json
+import subprocess
+import sys
+from pathlib import Path
 import threading
 import unittest
 from http.client import HTTPConnection
@@ -39,6 +42,7 @@ class ReviewBoundary(unittest.TestCase):
                 self.assertEqual(self.request(path)[0], 404)
 
     def test_guide_routes_public_and_isolated(self):
+        subprocess.run([sys.executable, str(Path(__file__).resolve().parent / 'build_guide.py'), '--mode', 'all'], check=True, capture_output=True)
         for path in ['/guide/', '/guide', '/guide.css']:
             with self.subTest(path=path):
                 status, body, headers = self.request(path)

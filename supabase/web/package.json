@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild app.js --bundle --format=esm --target=es2022 --charset=utf8 --minify --legal-comments=linked --outfile=dist/app.js"
+    "build": "esbuild app.js --bundle --format=esm --target=es2022 --charset=utf8 --minify --legal-comments=linked --outfile=dist/app.js",
+    "build:guide": "python3 build_guide.py --mode all",
+    "build:all": "npm run build && npm run build:guide"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0"

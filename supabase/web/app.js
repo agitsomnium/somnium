@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
 import { seriesGroups } from "./series.js";
+import { profileCall } from "./profile.js";
 const openSeries = new Set();
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
@@ -65,6 +66,14 @@ function mode(value) {
   $("signup-tab").setAttribute("aria-pressed", String(value));
   $("login-form").querySelector("button").textContent = value ? "가입 인증번호 받기" : "인증번호 받기";
   notice(value ? "이메일 확인 후 가입 정보를 입력합니다." : "가입한 이메일로 로그인합니다.");
+}
+{
+  const minimal = config.profileMode === "minimal";
+  for (const e of document.querySelectorAll("[data-profile]")) {
+    const on = e.dataset.profile === (minimal ? "minimal" : "current");
+    e.hidden = !on;
+    for (const input of e.querySelectorAll("input")) input.disabled = !on;
+  }
 }
 $("login-tab").onclick = () => mode(false);
 $("path-member").onclick = () => {
@@ -131,7 +140,8 @@ $("cancel").onclick = () => {
   $("otp-form").reset();
 };
 form("profile-form", async (f) => {
-  await rpc("complete_profile", { p_name: String(f.get("name")).trim(), p_birth: f.get("birth"), p_phone: String(f.get("phone")).replace(/[-\s]/g, ""), p_consent: f.get("consent") === "on" });
+  const call = profileCall(config.profileMode === "minimal" ? "minimal" : "current", (key) => f.get(key));
+  await rpc(call.rpc, call.args);
   $("profile-form").reset();
   await refresh();
   notice("일반회원 가입을 마쳤습니다. 후원 확인 전에는 회원 강의를 이용할 수 없습니다.");

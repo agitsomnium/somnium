@@ -1,7 +1,7 @@
 {
   "version": "welcome-flow-20261101",
   "note": "permission 이 pending 인 항목은 검토본에만 표시한다. 공개용 빌드(--mode public)는 pending 을 뺀다. 영상 주소·영상 ID·자료 파일명은 이 파일에 넣지 않는다.",
-  "memberLectureTotal": 93,
+  "memberLectures": {"count": 93, "verified": false, "basis": "공급 파일 145개 중 게시 금지 패턴(질의응답 정확형 51 + 띄어 쓴 1) 52개를 뺀 93. 앞선 94는 띄어 쓴 1개를 놓친 집계였다(count_member_lectures.py). 원격 실제 노출 목록 조회는 관리자 로그인이 필요해 미실행. verified가 true일 때만 공개 안내에 숫자를 쓴다."},
   "hero": {
     "eyebrow": "후원회원 안내",
     "title": "함께 배우고, 토론하며,\n꿈을 꿉니다.",
@@ -71,6 +71,7 @@
     }
   ],
   "order": {
+    "approved": false,
     "status": "운영진 확인 전 초안",
     "steps": [
       {"series": "현대 자본주의 이해하기", "why": "가장 최근에 마친 세미나이고 6회로 끝나 한 흐름을 처음부터 따라가기 좋습니다. 회차 자료도 함께 받을 수 있습니다."},

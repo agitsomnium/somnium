@@ -65,8 +65,15 @@ def render(data, mode):
         add(f'<article class="card"><h3>{esc(item["title"])}</h3><p>{esc(item["body"])}</p></article>')
     add('</div></section>')
 
-    add(f'<section id="series" aria-labelledby="ser-h"><h2 id="ser-h">어떤 강의가 있나요</h2>'
-        f'<p class="muted">후원회원 강의실에는 지금 회원 강의 {esc(data["memberLectureTotal"])}편이 있습니다. 대표 시리즈입니다.</p><div class="series-list">')
+    count = data['memberLectures']
+    if count['verified']:
+        intro = f'후원회원 강의실에는 지금 회원 강의 {esc(count["count"])}편이 있습니다. 대표 시리즈입니다.'
+    else:
+        intro = '지난 세미나와 특강을 모아 둔 대표 시리즈입니다.'
+        if review:
+            intro += f' <span class="badge">편수 {esc(count["count"])}편은 원격 실조회 전 · 공개 안내에는 숫자를 쓰지 않음</span>'
+    add('<section id="series" aria-labelledby="ser-h"><h2 id="ser-h">어떤 강의가 있나요</h2>'
+        f'<p class="muted">{intro}</p><div class="series-list">')
     for s in data['series']:
         pending = s['permission'] != 'public'
         add('<article class="series-card"><h3>' + esc(s['name']) + '</h3>'
@@ -81,17 +88,18 @@ def render(data, mode):
     add('</div></section>')
 
     order = data['order']
-    add('<section id="order" aria-labelledby="ord-h"><h2 id="ord-h">처음이라면 이 순서로</h2>')
-    if review:
-        add(f'<p><span class="badge">{esc(order["status"])}</span></p>')
-    add('<ol class="order-list">')
-    for step in order['steps']:
-        add(f'<li><strong>{esc(step["series"])}</strong><span>{esc(step["why"])}</span></li>')
-    add('</ol></section>')
+    if order['approved'] or review:
+        add('<section id="order" aria-labelledby="ord-h"><h2 id="ord-h">처음이라면 이 순서로</h2>')
+        if review and not order['approved']:
+            add(f'<p><span class="badge">{esc(order["status"])} · 공개 안내에서는 이 절이 빠짐</span></p>')
+        add('<ol class="order-list">')
+        for step in order['steps']:
+            add(f'<li><strong>{esc(step["series"])}</strong><span>{esc(step["why"])}</span></li>')
+        add('</ol></section>')
 
     vis = data['visibility']
     add('<section id="visibility" aria-labelledby="vis-h"><h2 id="vis-h">누구에게 열려 있나요</h2><div class="two-col">'
-        '<div><h3>누구나 볼 수 있는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['open']) + '</ul></div>'
+        '<div><h3>누구나 볼 수 있는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['open'] if order['approved'] or review or '추천' not in x) + '</ul></div>'
         '<div><h3>후원회원·수강 코드 이용자에게만 열리는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['members']) + '</ul></div></div>'
         f'<p class="muted">{esc(vis["tasterNote"])}</p></section>')
 
@@ -118,14 +126,15 @@ def render(data, mode):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', choices=['review', 'public'], default='review')
-    parser.add_argument('--out', type=Path)
+    parser.add_argument('--mode', choices=['review', 'public', 'all'], default='review')
+    parser.add_argument('--out-dir', type=Path, default=WEB / 'dist')
     args = parser.parse_args()
     data = json.loads(DATA.read_text(encoding='utf-8'))
-    target = args.out or WEB / ('dist/guide.html' if args.mode == 'review' else 'dist/guide-public.html')
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(render(data, args.mode), encoding='utf-8')
-    print(target)
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+    for mode in (['review', 'public'] if args.mode == 'all' else [args.mode]):
+        target = args.out_dir / f'guide-{mode}.html'
+        target.write_text(render(data, mode), encoding='utf-8')
+        print(target)
 
 
 if __name__ == '__main__':

@@ -10,7 +10,8 @@ WEB = Path(__file__).resolve().parent
 REPO = WEB.parents[1]
 
 
-def handler(config, port):
+def handler(config, port, guide_mode='review', dist=None):
+    guide_file = (dist or WEB / 'dist') / f'guide-{guide_mode}.html'
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_):
             pass
@@ -27,7 +28,7 @@ def handler(config, port):
                 routes = {'/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
                           '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
                           '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css', '/member.css': WEB / 'member.css',
-                          '/guide/': WEB / 'dist/guide.html', '/guide': WEB / 'dist/guide.html', '/guide.css': WEB / 'guide.css'}
+                          '/guide/': guide_file, '/guide': guide_file, '/guide.css': WEB / 'guide.css'}
                 file = routes.get(path)
                 if file is None and path.startswith(('/fonts/', '/assets/fonts/')) and path.endswith('.woff2'):
                     relative = path.removeprefix('/assets/').lstrip('/')
@@ -58,6 +59,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--port', type=int, default=8766)
+    parser.add_argument('--guide', choices=['review', 'public'], default='review', help='which built guide /guide/ serves')
+    parser.add_argument('--profile', choices=['current', 'minimal'], default='current', help='signup form shown; minimal needs the unapplied draft migration')
     args = parser.parse_args()
     private = json.loads(args.config.read_text())
     if private.get('url') != 'https://jdfrottxrdhglxtqvtyx.supabase.co' or not private.get('publishableKey', '').startswith('sb_publishable_'):
@@ -65,5 +68,6 @@ if __name__ == '__main__':
     config = {key: private[key] for key in ('url', 'publishableKey')}
     # UI review restriction; not an Auth server allowlist or a production access control.
     config['testEmails'] = ['agit.somnium@gmail.com']
+    config['profileMode'] = args.profile
     print(f'Real Auth review: http://127.0.0.1:{args.port}/', flush=True)
-    ThreadingHTTPServer(('127.0.0.1', args.port), handler(config, args.port)).serve_forever()
+    ThreadingHTTPServer(('127.0.0.1', args.port), handler(config, args.port, args.guide)).serve_forever()
