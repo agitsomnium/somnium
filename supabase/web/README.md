@@ -48,7 +48,7 @@ python3 supabase/web/serve.py --config ../night-setup-20261101/client-config.pri
 
 ## 원격 SQL 이력과 복구 경계
 
-MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baseline, restrict_auto_rls_helper, cloud_admin_lists, lectures_only, member_youtube_thumbnails, series_passes_and_materials, restrict_material_download_operation 모두 실제 적용됐으나 native migration history에 등록되지 않았다. 이미 적용한 것을 다시 실행하지 않는다. baseline의 보안·권한을 임의로 풀지 않는다.
+MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baseline, restrict_auto_rls_helper, cloud_admin_lists, lectures_only, member_youtube_thumbnails, series_passes_and_materials, restrict_material_download_operation, support_legacy_material_download_operation 모두 실제 적용됐으나 native migration history에 등록되지 않았다. 이미 적용한 것을 다시 실행하지 않는다. baseline의 보안·권한을 임의로 풀지 않는다.
 
 새 격리 프로젝트 재구성은 schema migrations를 순서대로 적용하고, 저장소 밖 cloud-lecture-import-lectures-only.sql을 사용한다. 예전 cloud-lecture-import.sql은 QA를 표시하므로 새 constraint와 충돌한다. 승인된 기관 이전·운영 복구에는 Auth 사용자·회원 권한·Storage 객체·설정·키 이관과 독립 복원 검증이 추가로 필요하다. 현재 가상 SQLite 백업은 실제 원격 Auth/DB 백업이 아니다.
 
@@ -76,4 +76,6 @@ future-series-purchase.json은 현대자본주의 세미나 전체 묶음의 향
 
 기존 Drive의 회차 PDF 7개(1강 OT, 2강2개, 3~6강각1개)와 공통 추가자료4개, 합계11개/7,367,016바이트를 실제 비공개 bucket에 연결했다. 원본 Drive 폴더와 공유 설정은 보존했다. 회차별 ‘강의자료·추가자료’ 버튼 또는 재생 화면에서 내려받는다. 자료 다운로드 서버는 맥북이 아닌 Supabase Storage다. 현재 화면 호스팅은 여전히 집맥 loopback이다.
 
-원격에는 series_passes_and_materials, restrict_material_download_operation까지 **7개 migration이 적용됐고 native history에는 아직 미등록**이다. 기존5개를 다시 실행하지 않는다. 실제 공통 코드 원문은 마스킹된 관리자 발급 화면에서 사람이 확인/복사한다. 잃어버리면 새 코드 발급 후 이전 코드 신규등록을 닫는다. 원격 시리즈 권한 시험은 가상 사용자/Storage 메타데이터를 transaction rollback하고 실제 PDF 전송 검증과 구분한다. 실제 일반 수강생 OTP를 새로 발송한 것은 아니며, 물리 아이폰/기관 백업/외부 접근 제한 호스팅은 여전히 남았다.
+원격에는 series_passes_and_materials, support_legacy_material_download_operation까지 **8개 migration이 적용됐고 native history에는 아직 미등록**이다. 기존5개를 다시 실행하지 않는다. 실제 공통 코드 원문은 마스킹된 관리자 발급 화면에서 사람이 확인/복사한다. 잃어버리면 새 코드 발급 후 이전 코드 신규등록을 닫는다. 원격 시리즈 권한 시험은 가상 사용자/Storage 메타데이터를 transaction rollback하고 실제 PDF 전송 검증과 구분한다. 실제 일반 수강생 OTP를 새로 발송한 것은 아니며, 물리 아이폰/기관 백업/외부 접근 제한 호스팅은 여전히 남았다.
+
+Storage 실제 서비스가 legacy object.get_authenticated_info 작업명을 사용하여 최초 새 작업명만 허용했을 때 신규 다운로드가 거부됐다. 8번째 migration에서 현재/legacy 두 authenticated 다운로드 작업만 허용해 수정했고, 실제 추가자료 다운로드와 createSignedUrl 거부를 함께 확인했다. 최초 같은 파일 재요청은 브라우저 캐시가 오류를 가려, 최종 구현은 SDK download의 cache:no-store를 사용한다. 일시 진단 함수·브라우저 진단 코드는 제거했다. 새 코드는 마스킹 화면을 보존하려고 최종 갱신 뒤 발급하며, 갱신 전 검토 코드는 신규 등록을 닫았다.

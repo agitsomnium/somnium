@@ -40,6 +40,8 @@ select pg_temp.check_true(public.somnium_resource(current_setting('somnium.test_
 do $$begin perform public.somnium_resource(current_setting('somnium.test_other')::uuid);raise exception 'other lecture leaked';exception when insufficient_privilege then null;end$$;
 select pg_temp.check_true((select count(*)=2 from jsonb_array_elements(public.somnium_materials(current_setting('somnium.test_lesson')::uuid)) m where m->>'storage_path' like '92000000%'),'lesson and extra materials');
 select pg_temp.check_true((select count(*)=2 from storage.objects where name like '92000000%'),'only own storage materials');
+select set_config('storage.operation','object.get_authenticated_info',true);
+select pg_temp.check_true((select count(*)=2 from storage.objects where name like '92000000%'),'legacy authenticated download supported');
 select set_config('storage.operation','storage.object.sign',true);
 select pg_temp.check_true((select count(*)=0 from storage.objects where name like '92000000%'),'signed URL creation denied');
 select set_config('storage.operation','storage.object.list',true);
