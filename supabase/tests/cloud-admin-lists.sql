@@ -29,6 +29,7 @@ select public.somnium_review_supporter('90000000-0000-0000-0000-000000000001','q
 do $$begin perform set_config('request.jwt.claim.sub','90000000-0000-0000-0000-000000000001',true);end$$;
 select pg_temp.check_true((public.somnium_me()->>'can_learn')::boolean,'confirmed supporter granted');
 select pg_temp.check_true(jsonb_array_length(public.somnium_catalog())=93,'confirmed supporter sees all');
+select pg_temp.check_true(not exists(select 1 from jsonb_array_elements(public.somnium_catalog()) l where coalesce(l->>'thumbnail_url','') !~ '^https://i[.]ytimg[.]com/vi/[A-Za-z0-9_-]{11}/mqdefault[.]jpg$'),'all member thumbnails use YouTube medium covers');
 select pg_temp.check_true(public.somnium_resource(current_setting('somnium.test_lesson')::uuid) is not null,'confirmed supporter resource');
 do $$begin perform set_config('request.jwt.claim.sub',current_setting('somnium.test_admin'),true);end$$;
 select public.somnium_suspend_member('90000000-0000-0000-0000-000000000001',true);

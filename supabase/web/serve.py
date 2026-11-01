@@ -26,7 +26,7 @@ def handler(config, port):
             else:
                 routes = {'/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
                           '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
-                          '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css'}
+                          '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css', '/member.css': WEB / 'member.css'}
                 file = routes.get(path)
                 if file is None and path.startswith(('/fonts/', '/assets/fonts/')) and path.endswith('.woff2'):
                     relative = path.removeprefix('/assets/').lstrip('/')
@@ -45,7 +45,7 @@ def handler(config, port):
                 'Content-Type': mime, 'Content-Length': str(len(data)), 'Cache-Control': 'no-store',
                 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'X-Content-Type-Options': 'nosniff',
                 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Cross-Origin-Resource-Policy': 'same-origin',
-                'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self' https://jdfrottxrdhglxtqvtyx.supabase.co; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+                'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://i.ytimg.com; font-src 'self'; connect-src 'self' https://jdfrottxrdhglxtqvtyx.supabase.co; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
             }.items():
                 self.send_header(key, value)
             self.end_headers()

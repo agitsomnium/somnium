@@ -31,7 +31,7 @@ python3 supabase/web/serve.py --config ../night-setup-20261101/client-config.pri
 - 사용자 지정으로 솜니움 Gmail 한 계정을 첫 관리자에 등록했다. 이메일 이외 프로필은 ‘연결시험회원’ 가상 값이며 실사용 프로필로 간주하지 않는다.
 - 질의응답 52개는 숨김, 강의 93개 표시. DB에는 원래 145개 기록을 남겼다. normalize(NFC) 제목 규칙으로 질의응답 게시를 거부하는 constraint를 추가했다. 실제 YouTube 설정은 변경하지 않았다.
 - YouTube/Vimeo 외부 재생 URL은 승인된 RPC resource 응답으로만 구성한다. 강의 목록/출처는 공개 번들에 없으며, 145개 실제 영상 ID의 소스/번들 혼입 0건 확인. 일부공개 YouTube의 원본 링크 공유와 이미 열린 외부 플레이어 회수는 불가능하다는 사용자 수용 범위를 유지한다.
-- 자료/썸네일은 아직 private Storage와 연결하지 않아 업로드·다운로드를 제공하지 않는다. 결제/회계 기능도 없다.
+- 자료는 아직 private Storage와 연결하지 않아 업로드·다운로드를 제공하지 않는다. 기존 YouTube 썸네일은 회원 목록에서 직접 불러온다. 결제/회계 기능도 없다.
 - testEmails는 검토 화면의 수신자 제한이며 Auth 서버 자체의 보안 허용목록은 아니다. 현재 UI에서는 솜니움 Gmail만 요청할 수 있다. 운영 전 발송 제한·봇 방지·정책과 접근 제한된 호스팅을 따로 검토한다.
 - 30초마다 현재 자격을 새로 확인한다. 새 resource 요청은 매번 DB 권한을 확인하며 강의 숨김/권한 상실 시 이 화면의 플레이어와 목록을 비운다.
 
@@ -48,7 +48,7 @@ python3 supabase/web/serve.py --config ../night-setup-20261101/client-config.pri
 
 ## 원격 SQL 이력과 복구 경계
 
-MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baseline, restrict_auto_rls_helper, cloud_admin_lists, lectures_only 모두 실제 적용됐으나 native migration history에 등록되지 않았다. 이미 적용한 것을 다시 실행하지 않는다. baseline의 보안·권한을 임의로 풀지 않는다.
+MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baseline, restrict_auto_rls_helper, cloud_admin_lists, lectures_only, member_youtube_thumbnails 모두 실제 적용됐으나 native migration history에 등록되지 않았다. 이미 적용한 것을 다시 실행하지 않는다. baseline의 보안·권한을 임의로 풀지 않는다.
 
 새 격리 프로젝트 재구성은 schema migrations를 순서대로 적용하고, 저장소 밖 cloud-lecture-import-lectures-only.sql을 사용한다. 예전 cloud-lecture-import.sql은 QA를 표시하므로 새 constraint와 충돌한다. 승인된 기관 이전·운영 복구에는 Auth 사용자·회원 권한·Storage 객체·설정·키 이관과 독립 복원 검증이 추가로 필요하다. 현재 가상 SQLite 백업은 실제 원격 Auth/DB 백업이 아니다.
 
@@ -57,3 +57,11 @@ MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baselin
 ## 최신순 정렬
 
 회원 강의·관리자 강의 목록과 시리즈 선택 순서를 최신순으로 표시한다. 제목의 강의 날짜(YYYY.M.D / YY.M.D / YYMMDD)를 사용한다. 현대자본주의 6회는 운영 기록의 실제 강의일 2026-09-17,10-01,10-08,10-15,10-22,10-29를 사용해 6→1 순서로 표시하며 책 출판연도를 강의일로 쓰지 않는다. 날짜가 연도만 확인되는 옛 강의는 연도와 기존 시리즈 내 등록 순서로 정렬한다. 같은 날짜의 분할 영상은 1→2 순서를 유지한다. 원본 배열과 권한·게시 상태는 변경하지 않는다.
+
+## 시리즈 묶음·기존 썸네일 (11/1)
+
+실제 시리즈는 대표 썸네일·이름·강의 수로 묶고 누르면 펼친다. 묶음과 내부 강의는 최신순이며 검색·시리즈 선택 때 해당 묶음을 펼쳐 결과를 보여준다. 30초 자격 갱신 뒤에도 펼친 상태를 유지한다. ‘이전 솜니움 강좌’ 같은 포괄적 보관 분류는 단일 시리즈로 만들지 않는다. 현대자본주의 세미나는 6개 강의 묶음이다.
+
+기존 YouTube mqdefault 썸네일을 사용하며 새 업로드·YouTube API 키는 필요 없다. 썸네일 URL은 현재 이용 권한이 있는 catalog RPC에만 포함된다. 공개 소스·빌드에는 실제 영상 ID를 넣지 않는다. 지연 로딩·no-referrer를 적용하고 이미지 실패/기본 작은 표지는 제목 표지로 되돌린다.
+
+future-series-purchase.json은 현대자본주의 세미나 전체 묶음의 향후 판매 준비 기록이다. enabled=false, 단강좌 구매=false이며 웹 서버가 제공하지 않는다. 가격·이용기간·결제사와 주문/환불/구매 자격 DB는 미구현이다. 지금 구매 버튼·실제 결제는 없다. 후원회원과 확인된 이사는 추가 구매 없이 계속 모든 회원 강의를 이용한다. 이전 회원 전용 자료는 판매 대상으로 전환하지 않는다.

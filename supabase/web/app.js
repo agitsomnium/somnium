@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
+import { seriesGroups } from "./series.js";
+const openSeries = new Set();
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
   if (!r.ok) throw new Error("설정을 읽지 못했습니다.");
@@ -138,23 +140,59 @@ $("logout").onclick = () => run($("logout"), async () => {
   await refresh();
   notice("로그아웃했습니다.");
 });
+function makeCover(l, parent) {
+  const cover = text("div", "", parent);
+  cover.className = "lesson-cover";
+  cover.setAttribute("aria-hidden", "true");
+  text("span", l.series_title || "솜니움 회원 강의", cover);
+  text("strong", l.title, cover);
+  if (typeof l.thumbnail_url === "string" && /^https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/mqdefault\.jpg$/.test(l.thumbnail_url)) {
+    const image = document.createElement("img");
+    image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.referrerPolicy = "no-referrer";
+    image.width = 320;
+    image.height = 180;
+    const fallback = () => { image.remove(); cover.classList.remove("has-thumbnail"); };
+    image.onerror = fallback;
+    image.onload = () => { if (image.naturalWidth <= 120) fallback(); };
+    cover.classList.add("has-thumbnail");
+    cover.append(image);
+    image.src = l.thumbnail_url;
+  }
+  return cover;
+}
+function lessonRow(l, parent) {
+  const row = text("article", "", parent);
+  row.className = "catalog-row";
+  makeCover(l, row);
+  const info = text("div", "", row);
+  text("h3", l.title, info);
+  text("p", l.description, info).className = "lesson-description";
+  action("강의 보기", row, () => play(l));
+}
 function render() {
   const q = $("search").value.trim().toLowerCase(), series = $("series").value;
-  const list = lessons.filter((l) => (!series || l.series_title === series) && `${l.title} ${l.series_title} ${l.description}`.toLowerCase().includes(q));
+  const list = lessons.filter(l => (!series || l.series_title === series) && `${l.title} ${l.series_title} ${l.description}`.toLowerCase().includes(q));
   $("catalog").replaceChildren();
   $("count").textContent = `등록 영상 ${lessons.length}개 · 검색 결과 ${list.length}개`;
-  for (const l of list) {
-    const row = text("article", "", $("catalog"));
-    row.className = "catalog-row";
-    const cover = text("div", "", row);
-    cover.className = "lesson-cover";
-    cover.setAttribute("aria-hidden", "true");
-    text("span", l.series_title || "솜니움 회원 강의", cover);
-    text("strong", l.title, cover);
-    const info = text("div", "", row);
-    text("h3", l.title, info);
-    text("p", l.description, info).className = "lesson-description";
-    action("강의 보기", row, () => play(l));
+  for (const group of seriesGroups(list)) {
+    if (!group.bundled) { lessonRow(group.lessons[0], $("catalog")); continue; }
+    const details = document.createElement("details");
+    details.className = "series-group";
+    details.dataset.seriesKey = group.key;
+    details.open = !!q || !!series || openSeries.has(group.key);
+    const summary = document.createElement("summary");
+    makeCover(group.lessons[0], summary);
+    const label = text("div", "", summary);
+    text("h3", group.name, label);
+    text("p", `${group.lessons.length}개 강의 · 눌러서 펼쳐보기`, label).className = "muted";
+    details.append(summary);
+    const body = text("div", "", details); body.className = "series-lessons";
+    for (const l of group.lessons) lessonRow(l, body);
+    details.addEventListener("toggle", () => { if (details.open) openSeries.add(group.key); else openSeries.delete(group.key); });
+    $("catalog").append(details);
   }
 }
 $("search").oninput = render;

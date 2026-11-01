@@ -1,0 +1,19 @@
+{
+  "enabled": false,
+  "single_lecture_purchase": false,
+  "planned_series_products": [
+    {
+      "product_key": "modern-capitalism-2026",
+      "series_title": "현대 자본주의 이해하기",
+      "display_name": "현대자본주의 세미나",
+      "lecture_positions": [1, 2, 3, 4, 5, 6],
+      "price": null,
+      "access_duration": null,
+      "payment_provider": null,
+      "qualified_supporters_included": true,
+      "verified_directors_included": true,
+      "status": "planning_only"
+    }
+  ],
+  "historical_member_only_materials_for_sale": false
+}
