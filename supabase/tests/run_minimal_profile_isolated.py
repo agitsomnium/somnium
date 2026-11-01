@@ -49,7 +49,11 @@ def main():
     out = []
     try:
         run([PG / 'initdb', '-D', str(data), '-U', 'postgres', '--locale=en_US.UTF-8', '-E', 'UTF8'])
-        run([PG / 'pg_ctl', '-D', str(data), '-o', f"-c listen_addresses=127.0.0.1 -p {port} -c unix_socket_directories=''", '-w', 'start', '-l', str(root / 'log')])
+        start = [PG / 'pg_ctl', '-D', str(data), '-o', f"-c listen_addresses=127.0.0.1 -p {port} -c unix_socket_directories=''", '-w', 'start', '-l', str(root / 'log')]
+        started = subprocess.run(start, capture_output=True, text=True, env={**os.environ, 'LC_ALL': 'en_US.UTF-8'})
+        if started.returncode:
+            server_log = (root / 'log').read_text(errors='replace') if (root / 'log').exists() else '(server log file was not created)'
+            sys.exit(f'FAILED pg_ctl start\n{started.stderr}\n--- server log ---\n{server_log}')
         psql = [PG / 'psql', '-h', '127.0.0.1', '-p', port, '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q']
         run(psql, input=BOOTSTRAP)
         for migration in sorted((SUPABASE / 'migrations').glob('*.sql')):

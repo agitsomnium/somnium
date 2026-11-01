@@ -9,3 +9,10 @@ export function profileCall(mode, read) {
   }
   return { rpc: "complete_profile", args: { p_name: name, p_birth: read("birth"), p_phone: phone, p_consent: consent } };
 }
+
+// Admin list line: only when the supporter name differs from the sign-up name. Empty string keeps the screen as it was.
+export function supporterNameLine(member) {
+  const supporter = String(member?.supporter_name ?? "").trim();
+  const name = String(member?.name ?? "").trim();
+  return supporter && supporter !== name ? `후원자명 ${supporter}` : "";
+}

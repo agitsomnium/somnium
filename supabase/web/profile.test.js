@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { profileCall } from "./profile.js";
+import { profileCall, supporterNameLine } from "./profile.js";
 
 const form = (values) => (key) => values[key];
 
@@ -25,4 +25,11 @@ test("current form keeps the deployed contract", () => {
   const call = profileCall("current", form({ name: "김솜", birth: "2000-01-01", phone: "01012345678", consent: "on" }));
   assert.equal(call.rpc, "complete_profile");
   assert.deepEqual(call.args, { p_name: "김솜", p_birth: "2000-01-01", p_phone: "01012345678", p_consent: true });
+});
+
+test("admin list: supporter name shown only when it differs from the sign-up name", () => {
+  assert.equal(supporterNameLine({ name: "김솜", supporter_name: " 한빛 후원자 " }), "후원자명 한빛 후원자");
+  assert.equal(supporterNameLine({ name: "김솜", supporter_name: "김솜" }), "");
+  assert.equal(supporterNameLine({ name: "김솜", supporter_name: null }), "");
+  assert.equal(supporterNameLine({ name: "김솜" }), "");
 });

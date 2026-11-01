@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
 import { seriesGroups } from "./series.js";
-import { profileCall } from "./profile.js";
+import { profileCall, supporterNameLine } from "./profile.js";
 const openSeries = new Set();
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
@@ -281,6 +281,8 @@ async function admin(generation) {
     row.className = "member";
     text("h3", m.name, row);
     text("p", m.email, row);
+    const supporterLine = supporterNameLine(m);
+    if (supporterLine) text("p", supporterLine, row);
     text("p", `${m.suspended ? "계정 중지" : stateNames[m.supporter_state] || "일반회원"}`, row);
     const label = text("label", "", row);
     label.className = "check";
