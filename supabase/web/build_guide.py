@@ -35,7 +35,7 @@ def render(data, mode):
         '<link rel="stylesheet" href="/guide.css"></head><body>')
     add('<a class="skip-link" href="#main">본문으로</a>')
     if review:
-        add('<div class="trial-banner">로컬 검토본 · 공개 전 운영진 확인이 필요한 항목에는 표시가 붙어 있습니다.</div>')
+        add('<div class="trial-banner">운영진 검토본 · 공개 전 운영진 확인이 필요한 항목에는 표시가 붙어 있습니다.</div>')
     add('<header class="site-header"><div class="header-inner"><a class="logo" href="https://somniumagit.com">'
         '<img src="/assets/somnium_wordmark_on_paper.svg" width="75" height="48" alt="솜니움">'
         '<span>솜니움<br>기독교정치사회연구소</span></a><nav class="site-nav" aria-label="주요 메뉴">'

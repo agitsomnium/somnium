@@ -1,7 +1,7 @@
 {
   "version": "welcome-flow-20261101",
   "note": "permission 이 pending 인 항목은 검토본에만 표시한다. 공개용 빌드(--mode public)는 pending 을 뺀다. 영상 주소·영상 ID·자료 파일명은 이 파일에 넣지 않는다.",
-  "memberLectures": {"count": 93, "verified": false, "basis": "공급 파일 145개 중 게시 금지 패턴(질의응답 정확형 51 + 띄어 쓴 1) 52개를 뺀 93. 앞선 94는 띄어 쓴 1개를 놓친 집계였다(count_member_lectures.py). 원격 실제 노출 목록 조회는 관리자 로그인이 필요해 미실행. verified가 true일 때만 공개 안내에 숫자를 쓴다."},
+  "memberLectures": {"count": 93, "verified": true, "basis": "2026-11-02 외부 보호 검토본에서 기존 관리자 이메일 실제 인증 후 catalog 표시 등록 영상 93개·검색 결과 93개 대조. 관리자 관리 목록145개, 자료11개 별도 확인. 기존 공급 파일145-질의응답52=93 집계와 일치. 회원 수나 신규 시청 실적을 뜻하지 않는다."},
   "hero": {
     "eyebrow": "후원회원 안내",
     "title": "함께 배우고, 토론하며,\n꿈을 꿉니다.",

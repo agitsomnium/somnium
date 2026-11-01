@@ -57,9 +57,10 @@ class GuideRender(unittest.TestCase):
         self.assertIn('추천 순서', public)
 
     def test_lecture_count_is_stated_only_when_verified(self):
-        self.assertFalse(DATA_JSON['memberLectures']['verified'])
-        self.assertNotRegex(text_of(render(DATA_JSON, 'public')), r'\d+\s*편')
-        self.assertIn('원격 실조회 전', text_of(render(DATA_JSON, 'review')))
+        unverified = copy.deepcopy(DATA_JSON)
+        unverified['memberLectures']['verified'] = False
+        self.assertNotRegex(text_of(render(unverified, 'public')), r'\d+\s*편')
+        self.assertIn('원격 실조회 전', text_of(render(unverified, 'review')))
         data = copy.deepcopy(DATA_JSON)
         data['memberLectures']['verified'] = True
         self.assertIn(f'회원 강의 {data["memberLectures"]["count"]}편', text_of(render(data, 'public')))

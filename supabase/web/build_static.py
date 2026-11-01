@@ -14,6 +14,7 @@ FILES = {
     'trial.css': REPO / 'classroom/trial.css', 'member.css': WEB / 'member.css', 'guide.css': WEB / 'guide.css',
     'assets/brand.css': REPO / 'assets/brand.css', 'assets/somnium_wordmark_on_paper.svg': REPO / 'assets/somnium_wordmark_on_paper.svg',
     'assets/SomniumDisplay.woff2': REPO / 'assets/SomniumDisplay.woff2',
+    'SomniumDisplay.woff2': REPO / 'assets/SomniumDisplay.woff2',  # brand.css / site.css resolve ./SomniumDisplay.woff2 from the site root
 }
 CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://i.ytimg.com; font-src 'self'; "
        "connect-src 'self' https://jdfrottxrdhglxtqvtyx.supabase.co; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; "
@@ -48,6 +49,9 @@ def build(config_path, out, guide='review', profile='minimal', reviewers=()):
         for base in ('fonts', 'assets/fonts'):
             (out / base).mkdir(parents=True, exist_ok=True)
             shutil.copyfile(font, out / base / font.name)
+    for font in (REPO / 'assets/fonts/display').glob('*.woff2'):  # fonts-display.css loads ./fonts/display/*
+        (out / 'fonts/display').mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(font, out / 'fonts/display' / font.name)
     config = {k: private[k] for k in ('url', 'publishableKey')}
     # UI review restriction only; real access control is the host's Access policy plus Auth/RLS.
     config['testEmails'] = sorted({'agit.somnium@gmail.com', *reviewers})

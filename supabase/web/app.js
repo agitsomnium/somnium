@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
 import { seriesGroups } from "./series.js";
 import { profileCall, supporterNameLine } from "./profile.js";
+import { downloadMaterial } from "./materialDownload.js";
 const openSeries = new Set();
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
@@ -9,7 +10,7 @@ const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((
   return r.json();
 });
 const db = createClient(config.url, config.publishableKey, { auth: { storage: sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
-let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, managedLessons = [];
+let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, privateEpoch = 0, managedLessons = [];
 const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 확인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
 function notice(t) {
   $("notice").textContent = t;
@@ -53,6 +54,7 @@ async function rpc(name, args = {}) {
   return data;
 }
 function clearPrivate() {
+  privateEpoch++;
   lessons = [];
   managedLessons = [];
   activeLesson = "";
@@ -385,6 +387,7 @@ async function refresh() {
     notice("이메일 인증번호로 로그인해 주세요.");
     return;
   }
+  if (user?.id !== data.user.id) privateEpoch++;
   user = data.user;
   try {
     const profile = await rpc("me");
@@ -458,14 +461,21 @@ async function renderMaterials(lesson, parent) {
     text("h4", label, parent);
     if (!files.length) text("p", "등록된 자료가 없습니다.", parent).className = "muted";
     for (const file of files) action(file.title + " · PDF 내려받기", parent, async () => {
-      const current = await rpc("materials", {p_lesson: lesson.id});
-      if (!current.some(m => m.id === file.id)) throw new Error("현재 내려받을 수 없는 자료입니다.");
-      const {data, error} = await db.storage.from("somnium-materials").download(file.storage_path, {}, {cache: "no-store"});
-      if (error) throw new Error("자료 이용 권한과 연결 상태를 확인해 주세요.");
-      if (generation !== refreshGeneration || who !== user?.id || !me?.can_learn) return;
-      const url = URL.createObjectURL(data), link = document.createElement("a");
-      link.href = url; link.download = file.filename; document.body.append(link); link.click(); link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      const offered = await downloadMaterial({id:file.id,lessonId:lesson.id,path:file.storage_path,filename:file.filename}, {
+        access: () => ({userId:user?.id,epoch:privateEpoch,canLearn:!!me?.can_learn,lessonAvailable:lessons.some(l => l.id === lesson.id)}),
+        listMaterials: (id) => rpc("materials", {p_lesson:id}),
+        download: async (path) => {
+          const {data,error} = await db.storage.from("somnium-materials").download(path, {}, {cache:"no-store"});
+          if (error) throw new Error("자료 이용 권한과 연결 상태를 확인해 주세요.");
+          return data;
+        },
+        offer: (blob,filename) => {
+          const url = URL.createObjectURL(blob), link = document.createElement("a");
+          link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        },
+      });
+      if (!offered) notice("이용 상태가 바뀌어 내려받기를 중단했습니다. 상태를 확인해 주세요.");
     });
   }
 }

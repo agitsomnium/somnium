@@ -26,6 +26,14 @@ class StaticPackage(unittest.TestCase):
         blob = b''.join((out / n).read_bytes() for n in names if not n.endswith('.woff2'))
         self.assertNotIn(b'MUST-NOT-COPY', blob)
 
+    def test_every_font_url_in_display_css_is_packaged(self):
+        import re
+        out, files = self.build()
+        css = (out / 'fonts-display.css').read_text()
+        missing = [u for u in re.findall(r'url\(\./([^)]+)\)', css) if not (out / u).is_file()]
+        self.assertEqual(missing, [])
+        self.assertTrue((out / 'SomniumDisplay.woff2').is_file())
+
     def test_runtime_config_keys_and_reviewers(self):
         out, _ = self.build(reviewers=['reviewer@example.test'])
         cfg = json.loads((out / 'runtime-config.json').read_text())
