@@ -31,7 +31,7 @@ python3 supabase/web/serve.py --config ../night-setup-20261101/client-config.pri
 - 사용자 지정으로 솜니움 Gmail 한 계정을 첫 관리자에 등록했다. 이메일 이외 프로필은 ‘연결시험회원’ 가상 값이며 실사용 프로필로 간주하지 않는다.
 - 질의응답 52개는 숨김, 강의 93개 표시. DB에는 원래 145개 기록을 남겼다. normalize(NFC) 제목 규칙으로 질의응답 게시를 거부하는 constraint를 추가했다. 실제 YouTube 설정은 변경하지 않았다.
 - YouTube/Vimeo 외부 재생 URL은 승인된 RPC resource 응답으로만 구성한다. 강의 목록/출처는 공개 번들에 없으며, 145개 실제 영상 ID의 소스/번들 혼입 0건 확인. 일부공개 YouTube의 원본 링크 공유와 이미 열린 외부 플레이어 회수는 불가능하다는 사용자 수용 범위를 유지한다.
-- 자료는 아직 private Storage와 연결하지 않아 업로드·다운로드를 제공하지 않는다. 기존 YouTube 썸네일은 회원 목록에서 직접 불러온다. 결제/회계 기능도 없다.
+- 자료는 비공개 Storage에 연결했으며 아래 최신 절에 범위와 검증을 기록했다. 기존 YouTube 썸네일은 회원 목록에서 직접 불러온다. 결제/회계 기능은 없다.
 - testEmails는 검토 화면의 수신자 제한이며 Auth 서버 자체의 보안 허용목록은 아니다. 현재 UI에서는 솜니움 Gmail만 요청할 수 있다. 운영 전 발송 제한·봇 방지·정책과 접근 제한된 호스팅을 따로 검토한다.
 - 30초마다 현재 자격을 새로 확인한다. 새 resource 요청은 매번 DB 권한을 확인하며 강의 숨김/권한 상실 시 이 화면의 플레이어와 목록을 비운다.
 
@@ -48,7 +48,7 @@ python3 supabase/web/serve.py --config ../night-setup-20261101/client-config.pri
 
 ## 원격 SQL 이력과 복구 경계
 
-MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baseline, restrict_auto_rls_helper, cloud_admin_lists, lectures_only, member_youtube_thumbnails 모두 실제 적용됐으나 native migration history에 등록되지 않았다. 이미 적용한 것을 다시 실행하지 않는다. baseline의 보안·권한을 임의로 풀지 않는다.
+MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baseline, restrict_auto_rls_helper, cloud_admin_lists, lectures_only, member_youtube_thumbnails, series_passes_and_materials, restrict_material_download_operation 모두 실제 적용됐으나 native migration history에 등록되지 않았다. 이미 적용한 것을 다시 실행하지 않는다. baseline의 보안·권한을 임의로 풀지 않는다.
 
 새 격리 프로젝트 재구성은 schema migrations를 순서대로 적용하고, 저장소 밖 cloud-lecture-import-lectures-only.sql을 사용한다. 예전 cloud-lecture-import.sql은 QA를 표시하므로 새 constraint와 충돌한다. 승인된 기관 이전·운영 복구에는 Auth 사용자·회원 권한·Storage 객체·설정·키 이관과 독립 복원 검증이 추가로 필요하다. 현재 가상 SQLite 백업은 실제 원격 Auth/DB 백업이 아니다.
 
@@ -64,4 +64,16 @@ MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baselin
 
 기존 YouTube mqdefault 썸네일을 사용하며 새 업로드·YouTube API 키는 필요 없다. 썸네일 URL은 현재 이용 권한이 있는 catalog RPC에만 포함된다. 공개 소스·빌드에는 실제 영상 ID를 넣지 않는다. 지연 로딩·no-referrer를 적용하고 이미지 실패/기본 작은 표지는 제목 표지로 되돌린다.
 
-future-series-purchase.json은 현대자본주의 세미나 전체 묶음의 향후 판매 준비 기록이다. enabled=false, 단강좌 구매=false이며 웹 서버가 제공하지 않는다. 가격·이용기간·결제사와 주문/환불/구매 자격 DB는 미구현이다. 지금 구매 버튼·실제 결제는 없다. 후원회원과 확인된 이사는 추가 구매 없이 계속 모든 회원 강의를 이용한다. 이전 회원 전용 자료는 판매 대상으로 전환하지 않는다.
+future-series-purchase.json은 현대자본주의 세미나 전체 묶음의 향후 판매 준비 기록이다. enabled=false, 단강좌 구매=false이며 웹 서버가 제공하지 않는다. 가격·결제사와 주문/환불은 미구현이다. 이후 절의 코드 기반 기간 제한 없는 시리즈 이용권 DB는 구현했다. 지금 구매 버튼·실제 결제는 없다. 후원회원과 확인된 이사는 추가 구매 없이 계속 모든 회원 강의를 이용한다. 이전 회원 전용 자료는 판매 대상으로 전환하지 않는다.
+
+## 세미나 공통 수강 코드·비공개 PDF (11/1 최신)
+
+현대자본주의 세미나 1의 현재 6강을 고정된 lesson ID 매핑으로 묶었다. 로그인·이메일 확인·가입 완료한 일반회원이 공통 코드를 알면 계정에 기간 제한 없는 이용권을 등록한다. 이메일 사전 명단·참여자별 코드가 필요한 방식은 사용자의 후속 결정으로 대체됐다. 이 이용권으로는 해당 6강과 회차 자료/공통 추가자료만 이용한다. 후원회원·이사·운영관리자는 기존 전체 강의 권한을 유지한다. 회원 계정 중지가 모든 자격보다 우선한다.
+
+운영관리의 ‘수강 코드 관리’에서 공통 코드를 발급하고 표시/복사한다. 코드 원문은 발급 응답에서 한 번만 표시하고 DB에는 SHA-256만 저장한다. 코드 원문을 소스·로그·Hub에 남기지 않는다. 코드를 아는 사람이 등록할 수 있으므로 참여자에게만 전달한다. 같은 계정이 다시 등록해도 이용권은 중복되지 않는다. 코드 등록 종료는 신규 등록만 막고 기존 수강생은 계속 이용한다. 특정 수강생 이용권 중지는 별도 처리하며 중지된 이용권을 같은 코드로 되살릴 수 없다. 계정별 분당 10회 입력 제한은 서버에서 적용한다. 나중에 실제 결제/구매도 이 시리즈 이용권을 연결하되 현재 결제·단강좌 구매는 없다.
+
+관리자는 회차 선택 또는 세미나 공통 추가자료를 선택해 PDF(최대25MB)를 비공개 somnium-materials bucket에 등록하고 숨김/표시할 수 있다. private 메타데이터와 Storage RLS 모두 현재 수강 자격을 확인한다. Storage SELECT는 실제 authenticated download 작업만 허용하여 원시 파일 목록/서명 URL 생성으로 중지 검사를 우회하지 못하게 한다. 브라우저 SDK download가 매번 현재 JWT로 다운로드하고, 임시 Blob URL은 60초 후 해제한다. 이미 내려받은 파일은 회수할 수 없다. 공개 빌드·공개 폴더·YouTube 자동 수집에는 자료를 복사하지 않는다.
+
+기존 Drive의 회차 PDF 7개(1강 OT, 2강2개, 3~6강각1개)와 공통 추가자료4개, 합계11개/7,367,016바이트를 실제 비공개 bucket에 연결했다. 원본 Drive 폴더와 공유 설정은 보존했다. 회차별 ‘강의자료·추가자료’ 버튼 또는 재생 화면에서 내려받는다. 자료 다운로드 서버는 맥북이 아닌 Supabase Storage다. 현재 화면 호스팅은 여전히 집맥 loopback이다.
+
+원격에는 series_passes_and_materials, restrict_material_download_operation까지 **7개 migration이 적용됐고 native history에는 아직 미등록**이다. 기존5개를 다시 실행하지 않는다. 실제 공통 코드 원문은 마스킹된 관리자 발급 화면에서 사람이 확인/복사한다. 잃어버리면 새 코드 발급 후 이전 코드 신규등록을 닫는다. 원격 시리즈 권한 시험은 가상 사용자/Storage 메타데이터를 transaction rollback하고 실제 PDF 전송 검증과 구분한다. 실제 일반 수강생 OTP를 새로 발송한 것은 아니며, 물리 아이폰/기관 백업/외부 접근 제한 호스팅은 여전히 남았다.

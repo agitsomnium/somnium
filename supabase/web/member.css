@@ -12,3 +12,5 @@
 .series-lessons{margin:0 0 24px 12px;padding-left:20px;border-left:2px solid var(--line)}
 .series-group>summary .lesson-cover{width:200px;max-width:100%}
 @media(max-width:800px){.series-group>summary{grid-template-columns:120px minmax(0,1fr) 20px;gap:12px}.series-group>summary .lesson-cover{width:120px;padding:8px}.series-group>summary .lesson-cover.has-thumbnail{padding:0}.series-group>summary .lesson-cover strong{font-size:15px}.series-group>summary .lesson-cover span{font-size:9px}.series-group>summary h3{font-size:18px}.series-group>summary p{font-size:12px}.series-lessons{margin-left:0;padding-left:12px}}
+
+.lesson-materials{grid-column:2/-1}.lesson-materials button{margin:6px 8px 6px 0}.lesson-materials h4{margin:14px 0 6px}#series-admin,#material-admin{margin:24px 0;padding:18px;border:1px solid var(--line)}#issued-code{padding:16px;border:2px solid var(--accent)}@media(max-width:800px){.lesson-materials{grid-column:1/-1}}

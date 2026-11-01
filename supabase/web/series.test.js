@@ -5,7 +5,7 @@ const r=(id,series_title,era='archive')=>({id,series_title,era});
 test('all actual series are bundled while first encounter keeps newest-first group order',()=>{
  const rows=[r('modern6','현대 자본주의 이해하기','current'),r('modern5','현대 자본주의 이해하기','current'),r('old2','2024 정치신학'),r('old1','2024 정치신학')];
  const groups=seriesGroups(rows);
- assert.equal(groups[0].name,'현대자본주의 세미나');
+ assert.equal(groups[0].name,'현대자본주의 세미나 1');
  assert.equal(groups[0].key,'modern-capitalism-2026');
  assert.deepEqual(groups.map(g=>g.lessons.map(x=>x.id)),[['modern6','modern5'],['old2','old1']]);
  assert.ok(groups.every(g=>g.bundled));

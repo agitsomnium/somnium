@@ -9,7 +9,7 @@ export function seriesGroups(rows) {
     const key = bundled ? modern ? 'modern-capitalism-2026' : JSON.stringify([row.era, name]) : `lesson:${row.id}`;
     let group = found.get(key);
     if (!group) {
-      group = {key, bundled, name: modern ? '현대자본주의 세미나' : name, lessons: []};
+      group = {key, bundled, name: modern ? '현대자본주의 세미나 1' : name, lessons: []};
       found.set(key, group); groups.push(group);
     }
     group.lessons.push(row);

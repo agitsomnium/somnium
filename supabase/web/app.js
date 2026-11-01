@@ -54,7 +54,9 @@ function clearPrivate() {
   lessons = [];
   managedLessons = [];
   activeLesson = "";
-  for (const id of ["catalog", "player-region", "members", "admin-lessons", "directors", "audit"]) $(id).replaceChildren();
+  $("issued-code-value").value = "";
+  show("issued-code", false);
+  for (const id of ["catalog", "player-region", "members", "admin-lessons", "directors", "audit", "series-codes", "series-entitlements", "admin-materials"]) $(id).replaceChildren();
 }
 function mode(value) {
   signup = value;
@@ -171,6 +173,8 @@ function lessonRow(l, parent) {
   text("h3", l.title, info);
   text("p", l.description, info).className = "lesson-description";
   action("강의 보기", row, () => play(l));
+  const materials = text("div", "", row); materials.className = "lesson-materials";
+  action("강의자료·추가자료", materials, () => renderMaterials(l, materials));
 }
 function render() {
   const q = $("search").value.trim().toLowerCase(), series = $("series").value;
@@ -223,7 +227,9 @@ async function play(l) {
   frame.allowFullscreen = true;
   frame.referrerPolicy = "strict-origin-when-cross-origin";
   $("player-region").append(frame);
-  text("p", "회원 강의 링크를 외부에 공유하지 말아 주세요. 강의 자료는 준비 중입니다.", $("player-region")).className = "muted";
+  text("p", "회원 강의 링크와 자료를 외부에 공유하지 말아 주세요.", $("player-region")).className = "muted";
+  const materialRegion = text("div", "", $("player-region"));
+  await renderMaterials(l, materialRegion);
   $("player-region").scrollIntoView({ block: "nearest" });
 }
 form("director-form", async (f) => {
@@ -232,10 +238,12 @@ form("director-form", async (f) => {
   notice("내부 이사 명단에 등록했습니다. 같은 이메일 본인 확인 후 강의 권한이 적용됩니다.");
 });
 async function admin(generation) {
-  const [members, registered, directors, audit] = await Promise.all([rpc("admin_members"), rpc("admin_lessons"), rpc("admin_directors"), rpc("admin_audit")]);
+  const [members, registered, directors, audit, series, materials] = await Promise.all([rpc("admin_members"), rpc("admin_lessons"), rpc("admin_directors"), rpc("admin_audit"), rpc("admin_series"), rpc("admin_materials")]);
   if (generation !== refreshGeneration || !me?.admin) return;
   managedLessons = newestFirst(registered);
   renderManaged();
+  renderSeriesAdmin(series);
+  renderMaterialAdmin(materials);
   $("directors").replaceChildren();
   for (const d of directors) {
     const row = text("p", d.email + " · " + (d.enabled ? "유효" : "종료"), $("directors"));
@@ -350,7 +358,7 @@ async function refresh() {
     user = null;
     me = null;
     clearPrivate();
-    for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "logout"]) show(id, false);
+    for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel", "logout"]) show(id, false);
     show("entry", $("otp-panel").hidden);
     notice("이메일 인증번호로 로그인해 주세요.");
     return;
@@ -364,6 +372,7 @@ async function refresh() {
     show("entry", false);
     show("profile-panel", !me);
     show("membership", !!me);
+    show("code-panel", !!me && !me.suspended);
     show("admin-panel", !!me?.admin);
     show("catalog-panel", !!me?.can_learn);
     if (!me || !me.can_learn) clearPrivate();
@@ -372,9 +381,9 @@ async function refresh() {
       return;
     }
     $("identity").textContent = me.name + " · " + user.email;
-    $("membership-state").textContent = me.suspended ? "계정 이용이 중지됐습니다." : me.can_learn ? "회원 강의 이용 가능" : stateNames[me.supporter_state] || "일반회원";
-    show("supporter-request", !me.suspended && !me.can_learn && me.supporter_state !== "pending");
-    show("supporter-guide", !me.suspended && !me.can_learn);
+    $("membership-state").textContent = me.suspended ? "계정 이용이 중지됐습니다." : me.full_access ? "모든 회원 강의 이용 가능" : me.can_learn ? "등록한 세미나 강의 이용 가능" : stateNames[me.supporter_state] || "일반회원";
+    show("supporter-request", !me.suspended && !me.full_access && me.supporter_state !== "pending");
+    show("supporter-guide", !me.suspended && !me.full_access);
     if (me.can_learn) {
       const rows = await rpc("catalog");
       if (generation !== refreshGeneration) return;
@@ -400,8 +409,9 @@ async function refresh() {
     if (generation !== refreshGeneration) return;
     if (me.admin) await admin(generation);
     else {
+      $("issued-code-value").value = ""; show("issued-code", false);
       managedLessons = [];
-      for (const id of ["members", "admin-lessons", "directors", "audit"]) $(id).replaceChildren();
+      for (const id of ["members", "admin-lessons", "directors", "audit", "series-codes", "series-entitlements", "admin-materials"]) $(id).replaceChildren();
       $("lesson-form").reset();
       $("lesson-form").elements.id.value = "";
     }
@@ -415,13 +425,96 @@ async function refresh() {
     throw e;
   }
 }
+
+async function renderMaterials(lesson, parent) {
+  const generation = refreshGeneration, who = user?.id;
+  const rows = await rpc("materials", {p_lesson: lesson.id});
+  if (generation !== refreshGeneration || !who || who !== user?.id || !parent.isConnected || !lessons.some(l => l.id === lesson.id)) return;
+  parent.replaceChildren();
+  for (const [kind, label] of [["lesson", "이 강의 자료"], ["extra", "시리즈 공통 추가자료"]]) {
+    const files = rows.filter(m => m.kind === kind);
+    text("h4", label, parent);
+    if (!files.length) text("p", "등록된 자료가 없습니다.", parent).className = "muted";
+    for (const file of files) action(file.title + " · PDF 내려받기", parent, async () => {
+      const current = await rpc("materials", {p_lesson: lesson.id});
+      if (!current.some(m => m.id === file.id)) throw new Error("현재 내려받을 수 없는 자료입니다.");
+      const {data, error} = await db.storage.from("somnium-materials").download(file.storage_path, {}, {cache: "no-store"});
+      if (error) throw new Error("자료 이용 권한과 연결 상태를 확인해 주세요.");
+      if (generation !== refreshGeneration || who !== user?.id || !me?.can_learn) return;
+      const url = URL.createObjectURL(data), link = document.createElement("a");
+      link.href = url; link.download = file.filename; document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
+  }
+}
+form("redeem-code-form", async f => {
+  const result = await rpc("redeem_code", {p_code: String(f.get("code"))});
+  $("redeem-code-form").reset();
+  if (!result.ok) throw new Error(result.reason === "wait" ? "입력 횟수가 많습니다. 1분 뒤 다시 시도해 주세요." : "등록할 수 없는 코드입니다. 코드나 현재 이용 상태를 관리자에게 확인해 주세요.");
+  await refresh(); notice(result.title + " 이용권을 등록했습니다. 아래에서 강의와 자료를 이용하세요.");
+});
+form("issue-code-form", async f => {
+  const generation = refreshGeneration, who = user?.id;
+  const result = await rpc("issue_code", {p_label: String(f.get("label"))});
+  if (generation !== refreshGeneration || !who || who !== user?.id || !me?.admin) return;
+  $("issued-code-value").value = result.code;
+  $("issued-code-value").type = "password"; $("show-issued-code").textContent = "코드 표시";
+  show("issued-code", true); await refresh(); notice("수강 코드를 발급했습니다. 참여자에게 직접 전달해 주세요.");
+});
+$("show-issued-code").onclick = () => {
+  const field = $("issued-code-value"); field.type = field.type === "password" ? "text" : "password";
+  $("show-issued-code").textContent = field.type === "password" ? "코드 표시" : "코드 가리기";
+};
+$("copy-issued-code").onclick = () => run($("copy-issued-code"), async () => {
+  await navigator.clipboard.writeText($("issued-code-value").value); notice("수강 코드를 복사했습니다.");
+});
+function renderSeriesAdmin(data) {
+  $("series-codes").replaceChildren(); $("series-entitlements").replaceChildren();
+  for (const code of data.codes) {
+    const row = text("p", `${code.label} · ${code.enabled ? "등록 열림" : "등록 종료"} · ${code.registrations}명`, $("series-codes"));
+    action(code.enabled ? "새 등록 종료" : "새 등록 재개", row, async () => {
+      await rpc("set_code", {p_id: code.id, p_enabled: !code.enabled}); await refresh();
+    });
+  }
+  for (const e of data.entitlements) {
+    const row = text("p", e.email + " · " + (e.enabled ? "이용 가능" : "이용권 중지"), $("series-entitlements"));
+    action(e.enabled ? "이용권 중지" : "이용권 재개", row, async () => {
+      if (!confirm(e.email + "의 세미나 이용권을 변경할까요?")) return;
+      await rpc("set_entitlement", {p_user: e.user_id, p_enabled: !e.enabled}); await refresh();
+    });
+  }
+}
+form("material-form", async f => {
+  const file = f.get("file");
+  if (!(file instanceof File) || !file.size || file.size > 25 * 1024 * 1024 || !file.name.toLowerCase().endsWith(".pdf")) throw new Error("25MB 이하 PDF를 선택해 주세요.");
+  const header = await file.slice(0,5).text();
+  if (header !== "%PDF-") throw new Error("PDF 파일 형식을 확인해 주세요.");
+  const path = crypto.randomUUID() + ".pdf";
+  const {error} = await db.storage.from("somnium-materials").upload(path, file, {contentType: "application/pdf", upsert: false, cacheControl: "0"});
+  if (error) throw new Error("자료를 올리지 못했습니다. 관리자 권한과 연결 상태를 확인해 주세요.");
+  await rpc("save_material", {p_lesson: f.get("lesson") || null, p_title: String(f.get("title")), p_filename: file.name, p_path: path});
+  $("material-form").reset(); await refresh(); notice("비공개 자료를 등록했습니다.");
+});
+function renderMaterialAdmin(rows) {
+  const selected = $("material-lesson").value;
+  $("material-lesson").replaceChildren();
+  text("option", "현대자본주의 세미나 1 · 공통 추가자료", $("material-lesson")).value = "";
+  for (const l of managedLessons.filter(l => l.published)) text("option", l.title, $("material-lesson")).value = l.id;
+  $("material-lesson").value = selected;
+  $("admin-materials").replaceChildren();
+  for (const m of rows) {
+    const row = text("p", m.title + " · " + (m.enabled ? "표시" : "숨김"), $("admin-materials"));
+    action(m.enabled ? "자료 숨김" : "자료 표시", row, async () => {await rpc("set_material", {p_id:m.id,p_enabled:!m.enabled});await refresh();});
+  }
+}
+
 db.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT") {
     refreshGeneration++;
     user = null;
     me = null;
     clearPrivate();
-    for (const id of ["membership", "admin-panel", "catalog-panel", "profile-panel"]) show(id, false);
+    for (const id of ["membership", "admin-panel", "catalog-panel", "profile-panel", "code-panel"]) show(id, false);
     show("entry", true);
     show("logout", false);
   }
