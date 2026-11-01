@@ -19,3 +19,6 @@
 .path-pick{display:block;text-align:left;padding:14px 16px;min-height:72px;border:1px solid var(--line);border-radius:3px;color:var(--ink);background:var(--bg);text-decoration:none;font:inherit;font-weight:700;cursor:pointer}
 .path-pick span{display:block;margin-top:4px;font-weight:400;font-size:14px;color:var(--muted)}
 .path-pick:hover,.path-pick:focus-visible{border-color:var(--accent)}
+
+/* 390px: brand.css makes the header menu a one-line scroller; with four items the last one (참여·후원) was clipped with no cue. Wrap instead. */
+@media (max-width:480px){.site-header .site-nav{flex-wrap:wrap;overflow:visible;white-space:normal;row-gap:0}}

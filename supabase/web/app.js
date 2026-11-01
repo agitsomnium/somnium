@@ -3,7 +3,10 @@ import { newestFirst } from "./order.js";
 import { seriesGroups } from "./series.js";
 import { profileCall, supporterNameLine } from "./profile.js";
 import { downloadMaterial } from "./materialDownload.js";
+import { catalogPlan } from "./catalogView.js";
 const openSeries = new Set();
+const openMaterials = new Set();
+let catalogSig = "";
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
   if (!r.ok) throw new Error("설정을 읽지 못했습니다.");
@@ -55,6 +58,8 @@ async function rpc(name, args = {}) {
 }
 function clearPrivate() {
   privateEpoch++;
+  openMaterials.clear();
+  catalogSig = "";
   lessons = [];
   managedLessons = [];
   activeLesson = "";
@@ -195,7 +200,7 @@ function lessonRow(l, parent) {
   text("h3", l.title, info);
   text("p", l.description, info).className = "lesson-description";
   action("강의 보기", row, () => play(l));
-  const materials = text("div", "", row); materials.className = "lesson-materials";
+  const materials = text("div", "", row); materials.className = "lesson-materials"; materials.dataset.lessonId = l.id;
   action("강의자료·추가자료", materials, () => renderMaterials(l, materials));
 }
 function render() {
@@ -219,6 +224,10 @@ function render() {
     for (const l of group.lessons) lessonRow(l, body);
     details.addEventListener("toggle", () => { if (details.open) openSeries.add(group.key); else openSeries.delete(group.key); });
     $("catalog").append(details);
+  }
+  for (const box of $("catalog").querySelectorAll(".lesson-materials")) {
+    const lesson = lessons.find((l) => l.id === box.dataset.lessonId);
+    if (lesson && openMaterials.has(lesson.id)) renderMaterials(lesson, box).catch(() => {});
   }
 }
 $("search").oninput = render;
@@ -413,12 +422,17 @@ async function refresh() {
       const rows = await rpc("catalog");
       if (generation !== refreshGeneration) return;
       lessons = newestFirst(rows);
-      const selected = $("series").value;
-      $("series").replaceChildren();
-      text("option", "전체 시리즈", $("series")).value = "";
-      for (const series of [...new Set(lessons.map((x) => x.series_title))].filter(Boolean)) text("option", series, $("series")).value = series;
-      $("series").value = selected;
-      render();
+      const plan = catalogPlan({ prev: catalogSig, userId: user.id, rows, canLearn: true, rendered: $("catalog").childElementCount > 0 });
+      if (plan.action === "render") {
+        const scroll = window.scrollY, selected = $("series").value;
+        $("series").replaceChildren();
+        text("option", "전체 시리즈", $("series")).value = "";
+        for (const series of [...new Set(lessons.map((x) => x.series_title))].filter(Boolean)) text("option", series, $("series")).value = series;
+        $("series").value = selected;
+        render();
+        catalogSig = plan.signature;
+        window.scrollTo(0, scroll);
+      }
       if (activeLesson) {
         const checkingLesson = activeLesson;
         try {
@@ -456,6 +470,7 @@ async function renderMaterials(lesson, parent) {
   const rows = await rpc("materials", {p_lesson: lesson.id});
   if (generation !== refreshGeneration || !who || who !== user?.id || !parent.isConnected || !lessons.some(l => l.id === lesson.id)) return;
   parent.replaceChildren();
+  openMaterials.add(lesson.id);
   for (const [kind, label] of [["lesson", "이 강의 자료"], ["extra", "시리즈 공통 추가자료"]]) {
     const files = rows.filter(m => m.kind === kind);
     text("h4", label, parent);
@@ -476,6 +491,7 @@ async function renderMaterials(lesson, parent) {
         },
       });
       if (!offered) notice("이용 상태가 바뀌어 내려받기를 중단했습니다. 상태를 확인해 주세요.");
+      else notice(file.filename + " 내려받기를 시작했습니다. 파일이 저장되지 않으면 브라우저 주소창의 다운로드 허용 안내를 확인해 주세요.");
     });
   }
 }

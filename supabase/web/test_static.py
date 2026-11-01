@@ -34,6 +34,11 @@ class StaticPackage(unittest.TestCase):
         self.assertEqual(missing, [])
         self.assertTrue((out / 'SomniumDisplay.woff2').is_file())
 
+    def test_member_css_wraps_header_menu_on_phones(self):
+        out, files = self.build()
+        css = (out / 'member.css').read_text()
+        self.assertIn('@media (max-width:480px){.site-header .site-nav{flex-wrap:wrap', css)
+
     def test_runtime_config_keys_and_reviewers(self):
         out, _ = self.build(reviewers=['reviewer@example.test'])
         cfg = json.loads((out / 'runtime-config.json').read_text())
