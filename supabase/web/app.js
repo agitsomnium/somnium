@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { newestFirst } from "./order.js";
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
   if (!r.ok) throw new Error("설정을 읽지 못했습니다.");
@@ -195,7 +196,7 @@ form("director-form", async (f) => {
 async function admin(generation) {
   const [members, registered, directors, audit] = await Promise.all([rpc("admin_members"), rpc("admin_lessons"), rpc("admin_directors"), rpc("admin_audit")]);
   if (generation !== refreshGeneration || !me?.admin) return;
-  managedLessons = registered;
+  managedLessons = newestFirst(registered);
   renderManaged();
   $("directors").replaceChildren();
   for (const d of directors) {
@@ -339,11 +340,11 @@ async function refresh() {
     if (me.can_learn) {
       const rows = await rpc("catalog");
       if (generation !== refreshGeneration) return;
-      lessons = rows;
+      lessons = newestFirst(rows);
       const selected = $("series").value;
       $("series").replaceChildren();
       text("option", "전체 시리즈", $("series")).value = "";
-      for (const series of [...new Set(rows.map((x) => x.series_title))].filter(Boolean).sort((a, b) => a.localeCompare(b, "ko"))) text("option", series, $("series")).value = series;
+      for (const series of [...new Set(lessons.map((x) => x.series_title))].filter(Boolean)) text("option", series, $("series")).value = series;
       $("series").value = selected;
       render();
       if (activeLesson) {

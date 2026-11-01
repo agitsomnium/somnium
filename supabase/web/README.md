@@ -53,3 +53,7 @@ MCP는 새 조직 권한이 없어 로그인 SQL Editor로 적용했다. baselin
 새 격리 프로젝트 재구성은 schema migrations를 순서대로 적용하고, 저장소 밖 cloud-lecture-import-lectures-only.sql을 사용한다. 예전 cloud-lecture-import.sql은 QA를 표시하므로 새 constraint와 충돌한다. 승인된 기관 이전·운영 복구에는 Auth 사용자·회원 권한·Storage 객체·설정·키 이관과 독립 복원 검증이 추가로 필요하다. 현재 가상 SQLite 백업은 실제 원격 Auth/DB 백업이 아니다.
 
 공식 기준: https://supabase.com/docs/guides/auth/auth-email-passwordless · https://supabase.com/docs/guides/auth/password-security
+
+## 최신순 정렬
+
+회원 강의·관리자 강의 목록과 시리즈 선택 순서를 최신순으로 표시한다. 제목의 강의 날짜(YYYY.M.D / YY.M.D / YYMMDD)를 사용한다. 현대자본주의 6회는 운영 기록의 실제 강의일 2026-09-17,10-01,10-08,10-15,10-22,10-29를 사용해 6→1 순서로 표시하며 책 출판연도를 강의일로 쓰지 않는다. 날짜가 연도만 확인되는 옛 강의는 연도와 기존 시리즈 내 등록 순서로 정렬한다. 같은 날짜의 분할 영상은 1→2 순서를 유지한다. 원본 배열과 권한·게시 상태는 변경하지 않는다.
