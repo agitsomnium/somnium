@@ -1,7 +1,7 @@
 # Codex 검수 인계 (2차) — 솜니움 강의실 기술 마무리 (2026-11-02, owner claude)
 
 ## 커밋·배포
-- 기준 `68d6fc4` → `a6e45a4` → `c8da569` → **최종 (이 문서와 함께 커밋, `git log -1`)**. 브랜치 welcome-flow-20261101, push 안 함.
+- 기준 `68d6fc4` → `a6e45a4` → `c8da569` → `873b5e2`(코드) → `8d079bf`(이 문서). 브랜치 welcome-flow-20261101, push 안 함.
 - 이번 차수 변경: `supabase/web/catalogView.js`·`catalogView.test.js`(신규 7 시험), `app.js`(갱신 계획 연결·열린 자료 패널 복원·스크롤 유지·다운로드 시작 안내), `member.css`(≤480px 헤더 메뉴 줄바꿈), `test_static.py`(+1), 문서 2건.
 - 배포: Cloudflare Pages `somnium-classroom-review`, 배포 `edda5ff3`(직전 `8ac96944`·`8e989f96`). 배포본 `app.js` sha256 앞16자 `333b36bd63a2f5cb` = 로컬 빌드. Access 보호 유지(비로그인 302). 업로드 zip `final-20261102/classroom-review.zip`.
 - 시험: Node 33 통과, Python 22 통과, `npm run build:all` 성공 (`node-tests.log`, `python-tests.log`). DB 변경 없음.
