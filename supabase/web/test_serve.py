@@ -38,6 +38,16 @@ class ReviewBoundary(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(self.request(path)[0], 404)
 
+    def test_guide_routes_public_and_isolated(self):
+        for path in ['/guide/', '/guide', '/guide.css']:
+            with self.subTest(path=path):
+                status, body, headers = self.request(path)
+                self.assertEqual(status, 200)
+                self.assertIn('noindex', headers['X-Robots-Tag'])
+        self.assertNotIn(b'sb_publishable', self.request('/guide/')[1])
+        self.assertEqual(self.request('/guide-data.json')[0], 404)
+        self.assertEqual(self.request('/guide/guide-data.json')[0], 404)
+
     def test_no_local_mutation_endpoint(self):
         self.assertEqual(self.request('/', method='POST')[0], 501)
 

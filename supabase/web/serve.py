@@ -26,7 +26,8 @@ def handler(config, port):
             else:
                 routes = {'/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
                           '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
-                          '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css', '/member.css': WEB / 'member.css'}
+                          '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css', '/member.css': WEB / 'member.css',
+                          '/guide/': WEB / 'dist/guide.html', '/guide': WEB / 'dist/guide.html', '/guide.css': WEB / 'guide.css'}
                 file = routes.get(path)
                 if file is None and path.startswith(('/fonts/', '/assets/fonts/')) and path.endswith('.woff2'):
                     relative = path.removeprefix('/assets/').lstrip('/')

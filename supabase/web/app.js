@@ -15,6 +15,7 @@ function notice(t) {
 }
 function show(id, on) {
   $(id).hidden = !on;
+  if (id === "entry") $("paths").hidden = !on;
 }
 function text(tag, t, parent) {
   const e = document.createElement(tag);
@@ -66,6 +67,15 @@ function mode(value) {
   notice(value ? "이메일 확인 후 가입 정보를 입력합니다." : "가입한 이메일로 로그인합니다.");
 }
 $("login-tab").onclick = () => mode(false);
+$("path-member").onclick = () => {
+  mode(false);
+  $("login-form").elements.email.focus();
+};
+$("path-code").onclick = () => {
+  mode(false);
+  notice("수강 코드는 로그인한 뒤 등록합니다. 처음이면 ‘처음 회원가입’으로 가입해 주세요.");
+  $("login-form").elements.email.focus();
+};
 $("signup-tab").onclick = () => mode(true);
 function form(id, fn) {
   $(id).onsubmit = (e) => {

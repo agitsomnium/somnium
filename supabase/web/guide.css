@@ -1,0 +1,30 @@
+.guide section{padding:36px 0}
+.guide h2{font-size:clamp(24px,3.4vw,32px);margin:0 0 12px}
+.guide h3{font-size:19px;margin:0 0 8px}
+.guide .muted{color:var(--muted)}
+.guide .intro h1{line-height:1.2}
+.guide-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.cta{display:inline-flex;align-items:center;min-height:48px;padding:10px 22px;border:1px solid var(--ink);border-radius:3px;color:var(--ink);text-decoration:none;font-weight:600}
+.cta.primary{background:var(--feature);color:var(--feature-ink);border-color:var(--feature)}
+.cta:hover,.cta:focus-visible{border-color:var(--accent);outline:2px solid var(--accent);outline-offset:2px}
+.path-grid,.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:20px}
+.path-card,.card,.series-card{display:block;padding:20px;border:1px solid var(--line);border-radius:3px;color:var(--ink);text-decoration:none;background:var(--bg)}
+.path-card strong{display:block;font-size:19px;margin-bottom:8px;color:var(--accent)}
+.path-card span,.card p,.series-card p{color:var(--muted);font-size:15px;line-height:1.7;margin:0}
+.path-card:hover,.path-card:focus-visible{border-color:var(--accent)}
+.series-list{display:grid;gap:16px;margin-top:20px}
+.series-card .when{color:var(--accent);font-size:14px;margin-bottom:8px}
+.series-card .who{margin-top:10px;font-size:14px}
+.badge{display:inline-block;padding:2px 8px;border:1px dashed var(--cancelled);color:var(--cancelled);font-size:12px;border-radius:2px}
+.order-list{padding-left:0;list-style:none;counter-reset:o;margin:16px 0 0}
+.order-list li{counter-increment:o;display:grid;grid-template-columns:36px minmax(0,1fr);gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.order-list li::before{content:counter(o);font-family:var(--font-num);color:var(--accent);font-size:22px;grid-row:span 2}
+.order-list span{color:var(--muted);font-size:15px;line-height:1.7}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+.two-col ul{padding-left:20px;line-height:1.8}
+.flow{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:0}
+.flow li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;padding:20px 0;border-bottom:1px solid var(--line)}
+.flow .num{font-family:var(--font-num);font-size:28px;color:var(--accent)}
+.flow p{margin:0 0 12px;color:var(--muted);line-height:1.7}
+#faq details{border-bottom:1px solid var(--line)}
+@media(max-width:700px){.two-col{grid-template-columns:1fr;gap:12px}.flow li{grid-template-columns:32px minmax(0,1fr);gap:10px}.guide-cta .cta{flex:1;justify-content:center}}
