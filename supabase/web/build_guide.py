@@ -24,7 +24,9 @@ def render(data, mode):
     review = mode == 'review'
     out = []
     add = out.append
-    hero = data['hero']
+    hero = dict(data['hero'])
+    count_label = f'지난 강의 {data["memberLectures"]["count"]}편' if data['memberLectures']['verified'] else '지난 강의'
+    hero['lead'] = hero['lead'].replace('{lecture_count}', count_label)
     add('<!doctype html><html lang="ko" class="theme-b"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<meta name="robots" content="noindex,nofollow,noarchive">'
@@ -44,20 +46,14 @@ def render(data, mode):
     add('<main class="container guide" id="main">')
     add(f'<div class="intro"><p class="eyebrow">{esc(hero["eyebrow"])}</p><h1>{paragraphs(hero["title"])}</h1>'
         f'<p>{esc(hero["lead"])}</p><div class="guide-cta">'
-        '<a class="cta primary" href="#start">후원하고 시작하기</a>'
-        '<a class="cta" href="/">이미 회원이에요 · 로그인</a></div></div>')
+        '<a class="cta primary" href="/?entry=signup#entry">회원가입 시작하기</a>'
+        '<a class="cta" href="/?entry=login#entry">이미 가입했어요 · 로그인</a></div></div>')
 
     add('<section id="paths" aria-labelledby="paths-h"><h2 id="paths-h">어디로 가면 될까요?</h2><div class="path-grid">')
-    targets = {'new': '#start', 'member': '/', 'code': '/'}
+    targets = {'new': '/?entry=signup#entry', 'member': '/?entry=login#entry', 'code': '/?entry=login#entry'}
     for item in data['paths']:
         add(f'<a class="path-card" href="{targets[item["id"]]}"><strong>{esc(item["title"])}</strong>'
             f'<span>{esc(item["body"])}</span></a>')
-    add('</div></section>')
-
-    add('<section id="activities" aria-labelledby="act-h"><h2 id="act-h">후원금이 이어 가는 일</h2>'
-        '<p class="muted">솜니움이 지금 하고 있는 활동입니다. 후원은 이 공부의 자리를 계속 열어 두는 데 쓰입니다.</p><div class="card-grid">')
-    for item in data['activities']:
-        add(f'<article class="card"><h3>{esc(item["title"])}</h3><p>{esc(item["body"])}</p></article>')
     add('</div></section>')
 
     add('<section id="benefits" aria-labelledby="ben-h"><h2 id="ben-h">월 1만 원 이상 후원회원의 이용 혜택</h2><div class="card-grid">')
@@ -87,6 +83,24 @@ def render(data, mode):
         add('</article>')
     add('</div></section>')
 
+    add('<section id="start" aria-labelledby="start-h"><h2 id="start-h">가입부터 강의 이용까지</h2><ol class="flow">')
+    for step in data['flow']:
+        add(f'<li><span class="num" aria-hidden="true">{step["n"]}</span><div><h3>{esc(step["title"])}</h3><p>{esc(step["body"])}</p>')
+        if step.get('link'):
+            link = step['link']
+            external = link['href'].startswith('http')
+            rel = ' rel="noopener noreferrer" target="_blank"' if external else ''
+            add(f'<a class="cta{" primary" if step["n"] == 1 else ""}" href="{esc(link["href"])}"{rel}>{esc(link["label"])}</a>')
+        add('</div></li>')
+    add('</ol></section>')
+
+
+    add('<section id="activities" aria-labelledby="act-h"><h2 id="act-h">후원금이 이어 가는 일</h2>'
+        '<p class="muted">솜니움이 지금 하고 있는 활동입니다. 후원은 이 공부의 자리를 계속 열어 두는 데 쓰입니다.</p><div class="card-grid">')
+    for item in data['activities']:
+        add(f'<article class="card"><h3>{esc(item["title"])}</h3><p>{esc(item["body"])}</p></article>')
+    add('</div></section>')
+
     order = data['order']
     if order['approved'] or review:
         add('<section id="order" aria-labelledby="ord-h"><h2 id="ord-h">처음이라면 이 순서로</h2>')
@@ -102,17 +116,6 @@ def render(data, mode):
         '<div><h3>누구나 볼 수 있는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['open'] if order['approved'] or review or '추천' not in x) + '</ul></div>'
         '<div><h3>후원회원·수강 코드 이용자에게만 열리는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['members']) + '</ul></div></div>'
         f'<p class="muted">{esc(vis["tasterNote"])}</p></section>')
-
-    add('<section id="start" aria-labelledby="start-h"><h2 id="start-h">후원부터 강의 이용까지</h2><ol class="flow">')
-    for step in data['flow']:
-        add(f'<li><span class="num" aria-hidden="true">{step["n"]}</span><div><h3>{esc(step["title"])}</h3><p>{esc(step["body"])}</p>')
-        if step.get('link'):
-            link = step['link']
-            external = link['href'].startswith('http')
-            rel = ' rel="noopener noreferrer" target="_blank"' if external else ''
-            add(f'<a class="cta{" primary" if step["n"] == 1 else ""}" href="{esc(link["href"])}"{rel}>{esc(link["label"])}</a>')
-        add('</div></li>')
-    add('</ol></section>')
 
     add('<section id="faq" aria-labelledby="faq-h"><h2 id="faq-h">자주 묻는 질문</h2>')
     for item in data['faq']:

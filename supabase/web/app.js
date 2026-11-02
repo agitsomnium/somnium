@@ -1,3 +1,4 @@
+import { entryMode } from "./entryMode.js";
 import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
 import { seriesGroups } from "./series.js";
@@ -72,7 +73,10 @@ function mode(value) {
   $("login-tab").setAttribute("aria-pressed", String(!value));
   $("signup-tab").setAttribute("aria-pressed", String(value));
   $("login-form").querySelector("button").textContent = value ? "가입 인증번호 받기" : "인증번호 받기";
-  notice(value ? "이메일 확인 후 가입 정보를 입력합니다." : "가입한 이메일로 로그인합니다.");
+  $("entry-heading").textContent = value ? "이메일로 회원가입" : "이메일로 로그인";
+  $("entry-help").textContent = value ? "이메일 인증 → 이름 입력 → 후원 확인 요청 순서로 진행합니다. 가입만으로 후원금이 결제되지는 않습니다." : "가입한 이메일로 인증번호를 받습니다. 처음 이용하시면 ‘처음 회원가입’을 선택해 주세요.";
+  $("otp-form").querySelector("button").textContent = value ? "확인하고 가입 계속하기" : "확인하고 로그인";
+  notice(value ? "이메일 확인 후 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다.");
 }
 {
   const minimal = config.profileMode === "minimal";
@@ -83,6 +87,11 @@ function mode(value) {
   }
 }
 $("login-tab").onclick = () => mode(false);
+$("path-new").onclick = () => {
+  mode(true);
+  $("entry").scrollIntoView({ behavior: "auto", block: "start" });
+  $("login-form").elements.email.focus();
+};
 $("path-member").onclick = () => {
   mode(false);
   $("login-form").elements.email.focus();
@@ -106,7 +115,10 @@ async function send() {
   if (!emailAllowed(email)) throw new Error("현재는 지정된 검토 이메일만 이용할 수 있습니다.");
   if (Date.now() - lastSend < 6e4) throw new Error("인증번호 요청 후 1분을 기다려 주세요.");
   const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: signup } });
-  if (error) throw new Error(safeError(error));
+  if (error) {
+    if (!signup && error.code === "otp_disabled") throw new Error("처음 이용하시는 경우 ‘처음 회원가입’을 선택해 주세요. 가입한 이메일도 확인해 주세요.");
+    throw new Error(safeError(error));
+  }
   lastSend = Date.now();
   show("entry", false);
   show("otp-panel", true);
@@ -395,7 +407,7 @@ async function refresh() {
     clearPrivate();
     for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel", "logout"]) show(id, false);
     show("entry", $("otp-panel").hidden);
-    notice("이메일 인증번호로 로그인해 주세요.");
+    notice(signup ? "이메일 확인 후 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다. 처음 이용하시면 회원가입을 선택해 주세요.");
     return;
   }
   if (user?.id !== data.user.id) privateEpoch++;
@@ -575,4 +587,5 @@ document.addEventListener("visibilitychange", () => {
 setInterval(() => {
   if (user && document.visibilityState === "visible") refresh().catch((e) => notice(e.message));
 }, 3e4);
+mode(entryMode(window.location.search) === "signup");
 await refresh().catch((e) => notice(e.message));
