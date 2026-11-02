@@ -34,7 +34,7 @@ def render(data, mode):
         '<link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/assets/brand.css">'
         '<link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css">'
         '<link rel="stylesheet" href="/trial.css"><link rel="stylesheet" href="/member.css">'
-        '<link rel="stylesheet" href="/guide.css"></head><body>')
+        '<link rel="stylesheet" href="/guide.css"><script src="/navigation.js" defer></script></head><body>')
     add('<a class="skip-link" href="#main">본문으로</a>')
     if review:
         add('<div class="trial-banner">운영진 검토본 · 공개 전 운영진 확인이 필요한 항목에는 표시가 붙어 있습니다.</div>')
@@ -43,6 +43,7 @@ def render(data, mode):
         '<span>솜니움<br>기독교정치사회연구소</span></a><nav class="site-nav" aria-label="주요 메뉴">'
         '<a class="classroom-link" href="/guide/" aria-current="page">후원회원 안내</a><a href="/?entry=login#entry">강의실 로그인</a>'
         '<a href="https://somniumagit.com/participate/">참여·후원</a></nav></div></header>')
+    add('<nav class="page-navigation" aria-label="페이지 이동"><button type="button" data-page-back data-back-home="https://somniumagit.com/">← 뒤로가기</button><a href="https://somniumagit.com">홈으로</a><a href="/">강의실 첫 화면</a></nav>')
     add('<main class="container guide" id="main">')
     add(f'<div class="intro"><p class="eyebrow">{esc(hero["eyebrow"])}</p><h1>{paragraphs(hero["title"])}</h1>'
         f'<p>{esc(hero["lead"])}</p><div class="guide-cta">'

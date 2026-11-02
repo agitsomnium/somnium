@@ -9,6 +9,7 @@ from pathlib import Path
 WEB = Path(__file__).resolve().parent
 REPO = WEB.parents[1]
 FILES = {
+    'navigation.js': REPO / 'assets/navigation.js',
     'index.html': WEB / 'index.html', 'app.js': WEB / 'dist/app.js', 'app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
     'brand.css': REPO / 'assets/site.css', 'tokens.css': REPO / 'assets/tokens.css', 'fonts-display.css': REPO / 'assets/fonts-display.css',
     'trial.css': REPO / 'classroom/trial.css', 'member.css': WEB / 'member.css', 'guide.css': WEB / 'guide.css',

@@ -31,3 +31,5 @@
 .code-path{background:transparent;color:var(--muted);border:0;padding:12px 0;text-decoration:underline;font:inherit;cursor:pointer}
 #entry{scroll-margin-top:24px}#entry h2{margin-top:0}#entry-help{font-size:14px;color:var(--muted)}
 @media(max-width:600px){.path-row{grid-template-columns:1fr}.welcome-intro h1{font-size:32px}.path-pick{min-height:74px}.welcome-guide{line-height:1.7}.site-header .site-nav{flex-wrap:wrap;white-space:normal}}
+
+.page-navigation{max-width:1240px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.page-navigation a,.page-navigation button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:14px;line-height:1.4;text-decoration:none;cursor:pointer}.page-navigation a:hover,.page-navigation button:hover{border-color:var(--accent)}.page-navigation a:focus-visible,.page-navigation button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:600px){.page-navigation{padding:10px 20px;gap:8px}}

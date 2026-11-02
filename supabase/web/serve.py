@@ -25,7 +25,7 @@ def handler(config, port, guide_mode='review', dist=None):
                 data = json.dumps(config).encode()
                 mime = 'application/json'
             else:
-                routes = {'/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
+                routes = {'/navigation.js': REPO / 'assets/navigation.js', '/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
                           '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
                           '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css', '/member.css': WEB / 'member.css',
                           '/guide/': guide_file, '/guide': guide_file, '/guide.css': WEB / 'guide.css'}
