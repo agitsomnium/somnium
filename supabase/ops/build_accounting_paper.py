@@ -57,17 +57,20 @@ def mask_name(value, anonymous=frozenset()):
 class People:
     """Stable anonymous index per distinct raw name (for «1~2명뿐인 항목은 합계만»); raw names never leave this object
     except for the leak check in build()."""
-    def __init__(self, anonymous=()):
-        self.ids = {}; self.anonymous = frozenset(anonymous)
+    def __init__(self, anonymous=(), aliases=None):
+        # aliases: raw name -> neutral label shown instead of a masked name (e.g. a sole designer -> «디자이너»)
+        self.ids = {}; self.anonymous = frozenset(anonymous); self.aliases = dict(aliases or {})
     def pid(self, value):
         s = str(value or '').strip()
-        if s in self.anonymous or kind_of(s) != 'none':
+        s = self.aliases.get(s, s)
+        if s in self.aliases.values() or s in self.anonymous or kind_of(s) != 'none':
             return self.ids.setdefault(s, len(self.ids) + 1)
         return None
     def mask(self, value):
-        return mask_name(value, self.anonymous)
+        s = str(value or '').strip()
+        return self.aliases.get(s) or mask_name(s, self.anonymous)
     def raw_person_names(self):
-        return {n for n in self.ids if kind_of(n) == 'person' or n in self.anonymous}
+        return ({n for n in self.ids if (kind_of(n) == 'person' or n in self.anonymous) and n not in self.aliases.values()}) | set(self.aliases)
 
 
 def number(value):
@@ -160,7 +163,22 @@ def extract_donors(w, sheets, through, previous, people):
     return donors, change
 
 
-def extract_proxy(w, sheets, through, ledger, people):
+def confirmed_notes(path):
+    """수기확인.csv 사유 by (거래일시, 금액): the human-written memo attached to a ledger row (read only)."""
+    if not path:
+        return {}
+    import csv
+    out = {}
+    with open(path, encoding='utf-8') as f:
+        for r in csv.DictReader(l for l in f if not l.lstrip().startswith('#')):
+            try:
+                out[(r['거래일시'], int(r['금액']))] = r['사유']
+            except (KeyError, ValueError, TypeError):
+                continue
+    return out
+
+
+def extract_proxy(w, sheets, through, ledger, people, fixed=(), notes=None):
     """대표대납_정산 rows matched one-to-one against the bank ledger. Anything unmatched, a changed account, or a
     returned amount (possible reimbursement) means a possible double count: refuse instead of publishing."""
     ledger_out = collections.defaultdict(list)
@@ -190,15 +208,24 @@ def extract_proxy(w, sheets, through, ledger, people):
             raise ValueError('proxy account differs from ledger account')
         if month > through:
             continue
-        delivery = bool(DELIVERY.search(' '.join(str(x or '') for x in (r[4], lr[6], lr[7], lr[8]))))
+        memo = (notes or {}).get((str(lr[1]), round(r[3])), '')
+        delivery = bool(DELIVERY.search(' '.join(str(x or '') for x in (r[4], lr[6], lr[7], lr[8], memo))))
         status = '상계 제외' if final == '상계(제외)' else ('정정 반영' if r[6] else '자동분류')
-        rows.append(dict(month=month, date=str(r[1])[:10].replace('.', '-'), name=people.mask(r[2]), pid=people.pid(r[2]),
-                         amount=round(r[3]), account=final, status=status,
-                         rule=None if month < CARD_ONLY_FROM else ('배달 예외' if delivery else '배달 표시 없음')))
-    return dict(rows=rows, rule=CARD_RULE, matched=len(rows), ledger_checked=len(sheet_rows))
+        regular = next((f for f in fixed if str(r[2]).strip() in f['names']), None)
+        row = dict(month=month, date=str(r[1])[:10].replace('.', '-'), name=people.mask(r[2]), pid=people.pid(r[2]),
+                   amount=round(r[3]), account=final, status=status)
+        if regular:
+            # person-to-person standing payment (not a card/proxy case): shown apart, never flagged by the card rule
+            row.update(regular=regular['label'], via=str(lr[8] or ''))
+        elif month >= CARD_ONLY_FROM:
+            row['rule'] = '배달 예외(확인됨)' if delivery and '영수증' in memo else ('배달 예외' if delivery else '배달 표시 없음')
+        rows.append(row)
+    regular_info = [dict(label=f['label'], note=f.get('note', '')) for f in fixed]
+    return dict(rows=[x for x in rows if 'regular' not in x], regular_rows=[x for x in rows if 'regular' in x], regular=regular_info,
+                rule=CARD_RULE, matched=len(rows), ledger_checked=len(sheet_rows))
 
 
-def extract(book, previous, through='auto', notes=None, questions=None, anonymous=()):
+def extract(book, previous, through='auto', notes=None, questions=None, anonymous=(), fixed=None, confirm_csv=None):
     import openpyxl
     w = openpyxl.load_workbook(book, data_only=True, read_only=True)
     sheets = set(w.sheetnames)
@@ -241,7 +268,8 @@ def extract(book, previous, through='auto', notes=None, questions=None, anonymou
     for row in ledger:
         if any('익명' in str(x) for x in row[6:9] if x) and kind_of(row[2]) != 'none':
             anon.add(str(row[2]).strip())
-    people = People(anon)
+    fixed = fixed or []
+    people = People(anon, {n: f['label_name'] for f in fixed for n in f['names']})
     transactions=[]
     for row in ledger:
         date=str(row[1] or '')
@@ -267,7 +295,7 @@ def extract(book, previous, through='auto', notes=None, questions=None, anonymou
         av = next((a['values'] for a in accounts if a['name'] == acct), None)
         if av is not None:
             donor_check[cat] = [m+1 for m in range(through) if sum(d['values'][m] for d in donors if d['category'] == cat) != av[m]]
-    proxy = extract_proxy(w, sheets, through, ledger, people) if '대표대납_정산' in sheets else None
+    proxy = extract_proxy(w, sheets, through, ledger, people, fixed, confirmed_notes(confirm_csv)) if '대표대납_정산' in sheets else None
     confirmed = [m for m in range(1, through+1) if states[m] == '확정']
     provisional = [m for m in range(1, through+1) if states[m] == '잠정']
     confirmed_through = 0
@@ -315,7 +343,7 @@ def build(data):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--workbook',required=True);p.add_argument('--previous');p.add_argument('--through',default='auto',help='auto = every month the workbook has closed (default), or an explicit month 1-12');p.add_argument('--out',required=True);p.add_argument('--notes');p.add_argument('--questions');p.add_argument('--anonymous',help='JSON list of names who asked to be anonymous');p.add_argument('--manifest')
+    p.add_argument('--workbook',required=True);p.add_argument('--previous');p.add_argument('--through',default='auto',help='auto = every month the workbook has closed (default), or an explicit month 1-12');p.add_argument('--out',required=True);p.add_argument('--notes');p.add_argument('--questions');p.add_argument('--anonymous',help='JSON list of names who asked to be anonymous');p.add_argument('--fixed-payments',help='JSON list of standing payees: names, label_name, label, note');p.add_argument('--confirm-csv',help='수기확인.csv (read only): 사유 memos');p.add_argument('--manifest')
     a=p.parse_args()
     if a.through!='auto':
         a.through=int(a.through)
@@ -323,7 +351,7 @@ def main():
     out=Path(a.out)
     if out.exists():raise ValueError('choose a new output; preserve reviewed versions')
     load=lambda f:json.loads(Path(f).read_text()) if f else None
-    data=extract(a.workbook,a.previous,a.through,load(a.notes),load(a.questions),load(a.anonymous) or ());body=build(data);out.write_text(body)
+    data=extract(a.workbook,a.previous,a.through,load(a.notes),load(a.questions),load(a.anonymous) or (),load(a.fixed_payments),a.confirm_csv);body=build(data);out.write_text(body)
     if a.manifest:
         mp=Path(a.manifest)
         if mp.exists():raise ValueError('choose a new manifest path')

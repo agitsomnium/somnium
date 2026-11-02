@@ -67,7 +67,20 @@ class PaperTests(unittest.TestCase):
     def test_proxy_matched_once_and_delivery_rule_flag(self):
         p,w=self.fixture();s=w.create_sheet('대표대납_정산');s.append(['t']);s.append(['t']);s.append(['월','일시','받는분','금액','메모','분류','정정'])
         s.append([1,'2026.01.02 10:00','가상교회',10,'식비','강사비',None]);w.save(p)
-        d=extract(p,None,1);self.assertEqual(d['proxy']['matched'],1);self.assertEqual(d['proxy']['rows'][0]['status'],'자동분류');self.assertIsNone(d['proxy']['rows'][0]['rule'])
+        d=extract(p,None,1);self.assertEqual(d['proxy']['matched'],1);self.assertEqual(d['proxy']['rows'][0]['status'],'자동분류');self.assertNotIn('rule',d['proxy']['rows'][0])
+    def proxy_fixture(self,month_day='2026.01.02 10:00'):
+        p,w=self.fixture();s=w.create_sheet('대표대납_정산');s.append(['t']);s.append(['t']);s.append(['월','일시','받는분','금액','메모','분류','정정'])
+        s.append([1,'2026.01.02 10:00','가상교회',10,'식비','강사비',None]);w.save(p);return p
+    def test_confirmed_delivery_memo_marks_rule_only_from_october(self):
+        # month < 10 never carries the card rule; the delivery memo is read from 수기확인.csv, never written
+        p=self.proxy_fixture();d=extract(p,None,1)
+        self.assertNotIn('rule',d['proxy']['rows'][0])
+    def test_standing_payee_is_separate_and_named_by_label(self):
+        p=self.proxy_fixture();fixed=[dict(names=['가상교회'],label_name='디자이너',label='정기 지급(디자이너 홍보비, 2026년 말 종료)',note='고정 지급 종료 예정')]
+        d=extract(p,None,1,fixed=fixed)
+        self.assertEqual(d['proxy']['rows'],[]);r=d['proxy']['regular_rows'][0]
+        self.assertEqual(r['name'],'디자이너');self.assertEqual(r['regular'],fixed[0]['label']);self.assertEqual(d['transactions'][1]['name'],'디자이너')
+        self.assertIn('가상교회',d['_raw'])
     def test_person_and_free_text_masks(self):
         self.assertEqual(mask_name('홍길동'),'홍*동');self.assertEqual(mask_name('홍길동 010-1234-5678'),'내역 비공개')
         self.assertEqual(mask_name('가상연구소'),'가상연구소')
