@@ -1,3 +1,4 @@
+from reportCsp import paper_csp
 """Loopback-only real-Auth review. Never serves source directories or SMTP credentials."""
 import argparse
 import json
@@ -51,7 +52,7 @@ def handler(config, port, guide_mode='review', dist=None):
                 'Content-Type': mime, 'Content-Length': str(len(data)), 'Cache-Control': 'no-store',
                 'X-Robots-Tag': 'noindex, nofollow, noarchive', 'X-Content-Type-Options': 'nosniff',
                 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Cross-Origin-Resource-Policy': 'same-origin',
-                'Content-Security-Policy': "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://i.ytimg.com; font-src 'self'; connect-src 'self' https://jdfrottxrdhglxtqvtyx.supabase.co; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+                'Content-Security-Policy': "default-src 'none'; " + paper_csp() + "; img-src 'self' https://i.ytimg.com; font-src 'self'; connect-src 'self' https://jdfrottxrdhglxtqvtyx.supabase.co; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
             }.items():
                 self.send_header(key, value)
             self.end_headers()

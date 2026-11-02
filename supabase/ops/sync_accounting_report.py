@@ -9,6 +9,7 @@ import sys
 import urllib.error
 import urllib.request
 import uuid
+from html import unescape
 from pathlib import Path
 
 REF = 'jdfrottxrdhglxtqvtyx'
@@ -35,18 +36,22 @@ def prepare(manifest_path):
         raise ValueError('title required')
     f = Path(m['file'])
     f = (p.parent / f).resolve() if not f.is_absolute() else f.resolve()
-    if f.suffix.lower() != '.pdf' or len(f.name) > 220 or '\\' in f.name:
+    if f.suffix.lower() not in ('.pdf', '.html') or len(f.name) > 220 or '\\' in f.name:
         raise ValueError('PDF filename required')
     if not 0 < f.stat().st_size <= MAX_SIZE:
         raise ValueError('PDF size out of range')
     data = f.read_bytes()
-    if not data.startswith(b'%PDF-'):
+    if f.suffix.lower() == '.pdf' and not data.startswith(b'%PDF-'):
         raise ValueError('PDF header missing')
+    if f.suffix.lower() == '.html':
+        body = unescape(data.decode('utf-8'))
+        if 'somnium-finance-paper/1' not in body or "default-src 'none'" not in body or "connect-src 'none'" not in body:
+            raise ValueError('self-contained sandbox report required')
     digest = hashlib.sha256(data).hexdigest()
     if digest != m['sha256']:
         raise ValueError('reviewed PDF fingerprint mismatch')
     # Same bytes map to the same immutable object; reruns do not add reports.
-    name = str(uuid.uuid5(uuid.NAMESPACE_URL, 'somnium-accounting:' + digest)) + '.pdf'
+    name = str(uuid.uuid5(uuid.NAMESPACE_URL, 'somnium-accounting:' + digest)) + f.suffix.lower()
     return m, f, data, name
 
 
@@ -79,7 +84,7 @@ class Backend:
             f'https://{REF}.supabase.co/storage/v1/object/{BUCKET}/{name}', data=data,
             method='POST' if data is not None else 'GET',
             headers={'Authorization': 'Bearer ' + key, 'apikey': key,
-                     'Content-Type': 'application/pdf', 'x-upsert': 'false'})
+                     'Content-Type': 'text/html' if name.endswith('.html') else 'application/pdf', 'x-upsert': 'false'})
         try:
             with urllib.request.urlopen(req, timeout=120) as response:
                 return response.read()

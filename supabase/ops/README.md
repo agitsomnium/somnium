@@ -35,3 +35,17 @@ python3 supabase/ops/sync_accounting_report.py --manifest /절대경로/manifest
 ```
 
 기존 로그인된 Supabase CLI를 사용하며, 기관 관리자 계정이 이미 존재해야 한다. 관리자를 새로 만들거나 일반 회원 권한을 바꾸지 않는다. 저장은 비공개 `somnium-accounting` 버킷에 하고 다운로드 바이트를 원본과 대조한다. 키는 도구 프로세스 안에서만 읽는다. 업로드 뒤 DB 등록이 실패하면 파일만 남을 수 있으며, 같은 manifest로 재실행해 확인·등록한다. 성공 전에는 완료로 보고하지 않는다. 수동 업로드 화면은 보조 경로로 유지한다.
+
+### 인터랙티브 웹 페이퍼 (1~9월부터)
+
+회원용 본문은 `accounting_paper.html`, 자료 생성은 `build_accounting_paper.py`다. 기존 회계 엔진·원장·config를 고치지 않는다. LibreOffice는 별도의 새 작업 폴더로 변환해 재계산 사본을 만들고, 그 사본만 읽는다. 원본에 재계산 결과를 덮어쓰지 않는다. 빈 캐시를 0으로 보지 않으며, 통장·한빛누리 대사·계정 합·잔액 이월이 맞지 않으면 생성이 실패한다.
+
+```sh
+/Users/dong-hwankim/회계/.venv/bin/python supabase/ops/build_accounting_paper.py --workbook /새작업폴더/재계산사본.xlsx --previous /Users/dong-hwankim/회계/솜니움/후원현황/후원현황_2025.xlsx --through 9 --out /새작업폴더/재정보고.html
+```
+
+`--through`는 회계 담당이 대조·마감을 확인한 마지막 월을 명시한다. 자동으로 거래가 있는 마지막 월을 고르지 않는다. 현재는 9월이며, 10월은 한빛누리 자료 대기다. 다음 마감에서는 사본과 `--through`만 바꿔 새 판을 생성한다. 보고서 코드·개인정보 제외 경계는 유지한다. 2025년 비교는 후원현황의 명시된 네 가지 후원 분류만 합산한다. 작년 전체 수입·지출 비교라고 쓰지 않는다.
+
+HTML도 같은 검토 manifest와 `sync_accounting_report.py`로 연동한다. **이번 사용자 범위는 `publish:false` 관리자 초안 저장까지**다. 일반 회원 게시 버튼은 사용자가 직접 누른다. 공개 정적 빌드에 실제 보고서·JSON·워크북을 넣지 않는다. HTML은 비공개 Storage에 있고, 기존 열람 RPC 및 다운로드 권한을 통과한 뒤 `allow-scripts allow-modals`만 있는 sandbox srcdoc 프레임에 표시된다. `allow-same-origin`, 외부 통신, 폼 전송은 허용하지 않는다. 부모 CSP도 번들에 고정된 보고서 스크립트·스타일의 SHA256만 허용하므로 템플릿 코드를 바꿀 때는 보기 앱도 다시 빌드·배포해야 한다. **자료만 갱신할 때는 보기 앱의 재배포가 필요 없다.**
+
+초안의 실제 금액과 거래는 외부 모델로 보내지 않고 로컬 Python으로만 집계한다. 통장 메모·계좌·연락처 열은 아예 추출하지 않는다. 이름은 마스킹하며 자유 형식 텍스트는 보수적으로 비공개로 둔다. 화면 업로드는 여전히 PDF 보조 경로다.

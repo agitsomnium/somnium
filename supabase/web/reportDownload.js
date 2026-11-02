@@ -7,5 +7,5 @@ export async function downloadReport(report, {access,list,download,offer}) {
   const rows=await list();
   const end=access();
   if(!end.member || start.userId!==end.userId || start.epoch!==end.epoch || !contains(rows)) return false;
-  offer(blob,report.filename);return true;
+  return (await offer(blob,report.filename))!==false;
 }

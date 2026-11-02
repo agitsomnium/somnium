@@ -1,3 +1,4 @@
+from reportCsp import paper_csp
 """Package the classroom review as a static site for an access-restricted host (Cloudflare Pages behind Cloudflare Access).
 Same file allowlist and headers as serve.py; nothing outside the allowlist is copied. Output dir is regenerated from scratch.
 Usage: build_static.py --config PRIVATE_CONFIG.json --out DIR [--guide review|public] [--profile current|minimal] [--reviewer EMAIL ...]"""
@@ -18,7 +19,7 @@ FILES = {
     'assets/SomniumDisplay.woff2': REPO / 'assets/SomniumDisplay.woff2',
     'SomniumDisplay.woff2': REPO / 'assets/SomniumDisplay.woff2',  # brand.css / site.css resolve ./SomniumDisplay.woff2 from the site root
 }
-CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://i.ytimg.com; font-src 'self'; "
+CSP = ("default-src 'none'; " + paper_csp() + "; img-src 'self' https://i.ytimg.com; font-src 'self'; "
        "connect-src 'self' https://jdfrottxrdhglxtqvtyx.supabase.co; frame-src https://www.youtube-nocookie.com https://player.vimeo.com; "
        "base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
 HEADERS = f"""/*
