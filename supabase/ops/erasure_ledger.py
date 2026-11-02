@@ -3,7 +3,8 @@ and prints a line starting with FAILED. Do not report the work as done unless th
 
   export --out-dir DIR --store-dir DIR2   write the ledger from the database to DIR, copy to DIR2 (a different location, e.g. the institution
                                           Drive folder), re-read both files, and compare them with a fresh query of the database
-  verify --file F                         check a stored ledger file and compare it with the live database (every database entry must be in the file)
+  verify --file F                         check a stored ledger file and compare it with the live database (every database entry must be in the file with the same
+                                          e-mail hash, erasure time and counts, not just the same id)
   apply  --file F                         after restoring a backup: import the file, run the re-erasure, and require 0 remaining members
 
 Database access (pick one):  --psql URL   (e.g. postgresql://postgres@127.0.0.1:5432/db, used for isolated tests)
@@ -86,6 +87,15 @@ def read_file(path):
     return doc, ids, hashlib.sha256(raw).hexdigest()
 
 
+def differences(live, filed):
+    """Compare whole entries by id_hash: e-mail hash, erasure time and removed counts must match, not only the ids.
+    Returns (missing_from_file, changed_count)."""
+    by_id = {e['id_hash']: e for e in filed}
+    missing = [e for e in live if e['id_hash'] not in by_id]
+    changed = [e for e in live if e['id_hash'] in by_id and canonical(by_id[e['id_hash']]) != canonical(e)]
+    return len(missing), len(changed)
+
+
 def live_ids(db):
     entries = db.value("select classroom_private.export_erasure_ledger() as v")
     return entries, check_entries(entries)
@@ -115,20 +125,21 @@ def cmd_export(args):
     _, ids2, h2 = read_file(second)
     if h1 != h2:
         fail('stored copy differs from the exported file')
-    now, now_ids = live_ids(db)  # re-query after writing: nothing may have been erased in between
-    if not now_ids <= ids2:
-        fail('the database now holds ledger entries that are missing from the stored file; export again')
+    now, _ = live_ids(db)  # re-query after writing: nothing may have been erased or changed in between
+    miss, chg = differences(now, read_file(second)[0]['entries'])
+    if miss or chg:
+        fail(f'the database differs from the stored file ({miss} entries missing, {chg} entries with different e-mail hash / erasure time / counts); export again')
     print(f'OK export: {len(entries)} entries, sha256 {h1[:16]}, written and re-read in {first.parent.name}/ and {second.parent.name}/ ({name})')
 
 
 def cmd_verify(args):
     db = Db(args)
     doc, ids, h = read_file(args.file)
-    _, now_ids = live_ids(db)
-    missing = now_ids - ids
-    if missing:
-        fail(f'{len(missing)} database ledger entries are not in {Path(args.file).name}')
-    print(f'OK verify: file has {len(ids)} entries (sha256 {h[:16]}), database has {len(now_ids)}, none missing from the file')
+    now, now_ids = live_ids(db)
+    miss, chg = differences(now, doc['entries'])
+    if miss or chg:
+        fail(f'{Path(args.file).name} does not match the database: {miss} entries missing, {chg} entries with different e-mail hash / erasure time / counts')
+    print(f'OK verify: file has {len(ids)} entries (sha256 {h[:16]}), database has {len(now_ids)}, every database entry matches the file in full')
 
 
 def cmd_apply(args):
@@ -136,9 +147,10 @@ def cmd_apply(args):
     doc, ids, h = read_file(args.file)
     payload = canonical(doc['entries'])
     db.value(f"select classroom_private.import_erasure_ledger($j${payload}$j$::jsonb) as v")
-    _, now_ids = live_ids(db)
-    if not ids <= now_ids:
-        fail('import did not bring every file entry into the database ledger')
+    now, _ = live_ids(db)
+    miss, chg = differences(doc['entries'], now)  # every file entry must exist in the database with identical content
+    if miss or chg:
+        fail(f'after import the database ledger lacks {miss} file entries or holds {chg} with different content (a stale or conflicting ledger already exists); stop and check by hand')
     erased = db.value('select classroom_private.apply_erasure_ledger() as v')
     pending = db.value('select classroom_private.erasure_ledger_pending() as v')
     if pending != 0:

@@ -161,10 +161,14 @@ def main():
                 'edited hash (fingerprint)': ('verify', variant('t1.json', lambda d: d['entries'][0].__setitem__('id_hash', 'a' * 64))),
                 'entry removed but file re-fingerprinted (database comparison)': ('verify', variant('t2.json', lambda d: (d['entries'].clear(), refit(d)))),
                 'e-mail text inside a hash field': ('verify', variant('t3.json', lambda d: (d['entries'][0].__setitem__('email_hash', 'x@example.test'), refit(d)))),
+                'same id, different counts, re-fingerprinted': ('verify', variant('t6.json', lambda d: (d['entries'][0]['removed'].__setitem__('profiles', 7), refit(d)))),
+                'same id, different e-mail hash, re-fingerprinted': ('verify', variant('t7.json', lambda d: (d['entries'][0].__setitem__('email_hash', 'b' * 64), refit(d)))),
+                'same id, different erasure time, re-fingerprinted': ('verify', variant('t8.json', lambda d: (d['entries'][0].__setitem__('erased_at', '2020-01-01T00:00:00+00:00'), refit(d)))),
                 'missing file': ('verify', root / 'nope.json'),
                 'apply with a damaged file': ('apply', variant('t5.json', lambda d: d.__setitem__('count', 99))),
             }
             bad = []
+            conflict = variant('t9.json', lambda d: (d['entries'][0]['removed'].__setitem__('profiles', 7), refit(d)))
             for label, (cmd, f) in cases.items():
                 r = tool('restore_src', cmd, '--file', str(f))
                 if r.returncode != 1 or 'FAILED' not in r.stdout or 'OK' in r.stdout.split('FAILED')[0]:
@@ -182,8 +186,11 @@ def main():
             stale = tool('restore_src', 'verify', '--file', str(ledger))
             if stale.returncode != 1 or 'FAILED' not in stale.stdout:
                 bad.append('stale file after a later erasure')
+            r = tool('restore_src', 'apply', '--file', str(conflict))  # same id already in the ledger with other counts
+            if r.returncode != 1 or 'FAILED' not in r.stdout:
+                bad.append('apply against a conflicting existing entry')
             ok = not bad
-            out.append('tool failure paths all exit 1 with FAILED: ' + ('PASS (%d cases)' % (len(cases) + 3) if ok else 'FAIL ' + ', '.join(bad)))
+            out.append('tool failure paths all exit 1 with FAILED: ' + ('PASS (%d cases)' % (len(cases) + 4) if ok else 'FAIL ' + ', '.join(bad)))
         if ok:
             fresh = tool('restore_src', 'export', '--out-dir', str(root / 'o3'), '--store-dir', str(root / 's3'))  # now includes both erasures
             ledger = sorted((root / 's3').glob('erasure-ledger-*.json'))[0]
