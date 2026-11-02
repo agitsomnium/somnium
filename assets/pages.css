@@ -130,3 +130,7 @@
 .page-toc ul{display:flex;flex-wrap:wrap;gap:8px 28px;list-style:none;margin:0;padding:0}.theme-switch button{font-family:inherit}.muted,.book-state,.resource-seminars .state{color:var(--muted)}
 
 [data-theme-switch] button[aria-pressed="true"]:hover{color:var(--bg)}.detail-facts{display:grid;grid-template-columns:100px minmax(0,1fr);gap:8px 20px}.join-list li>a:first-child{font-size:22px}.channel-card small{margin-top:24px}
+
+/* Clear first-visit route to the supporter classroom. */
+.pz-member-entry{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;margin:32px 0;padding:32px;background:var(--bg);border-left:4px solid var(--accent)}
+.pz-member-entry h2{font-size:clamp(26px,3.3vw,38px);line-height:1.35;margin:10px 0 16px}.pz-member-entry p{line-height:1.8}.pz-member-actions{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:14px}.pz-member-primary{font-weight:700}.pz-member-actions p{font-size:14px;opacity:.8;margin:0}@media(max-width:700px){.pz-member-entry{grid-template-columns:1fr;gap:16px;padding:24px 18px;margin:24px 0}.pz-member-entry h2{font-size:27px}}
