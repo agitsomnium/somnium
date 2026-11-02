@@ -1,3 +1,4 @@
+import { mergeCatalog, localCover } from "./publicCatalog.js";
 import { passwordAuth, authMessage } from "./passwordAuth.js";
 import { entryMode } from "./entryMode.js";
 import { createClient } from "@supabase/supabase-js";
@@ -9,6 +10,7 @@ import { catalogPlan } from "./catalogView.js";
 const openSeries = new Set();
 const openMaterials = new Set();
 let catalogSig = "";
+let requestedLessonShown = false;
 const $ = (id) => document.getElementById(id);
 const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((r) => {
   if (!r.ok) throw new Error("설정을 읽지 못했습니다.");
@@ -232,7 +234,7 @@ function makeCover(l, parent) {
   cover.setAttribute("aria-hidden", "true");
   text("span", l.series_title || "솜니움 회원 강의", cover);
   text("strong", l.title, cover);
-  if (typeof l.thumbnail_url === "string" && /^https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/mqdefault\.jpg$/.test(l.thumbnail_url)) {
+  if (localCover(l.thumbnail_url) || typeof l.thumbnail_url === "string" && /^https:\/\/i\.ytimg\.com\/vi\/[A-Za-z0-9_-]{11}\/mqdefault\.jpg$/.test(l.thumbnail_url)) {
     const image = document.createElement("img");
     image.alt = "";
     image.loading = "lazy";
@@ -256,6 +258,17 @@ function lessonRow(l, parent) {
   const info = text("div", "", row);
   text("h3", l.title, info);
   text("p", l.description, info).className = "lesson-description";
+  row.id = "lecture-" + l.id;
+  if (!l.available) {
+    action(user ? "후원회원으로 강의 보기" : "로그인하고 강의 보기", row, () => {
+      if (!user) { mode(false); show("entry", true); $("entry").scrollIntoView({block:"start"}); }
+      else {
+        notice(me?.suspended ? "계정 이용 상태를 관리자에게 확인해 주세요." : "가입만으로는 시청할 수 없습니다. 후원 확인 후 강의와 자료가 열립니다.");
+        $(me ? "membership" : "profile-panel").scrollIntoView({block:"start"});
+      }
+    });
+    return;
+  }
   action("강의 보기", row, () => play(l));
   const materials = text("div", "", row); materials.className = "lesson-materials"; materials.dataset.lessonId = l.id;
   action("강의자료·추가자료", materials, () => renderMaterials(l, materials));
@@ -270,7 +283,7 @@ function render() {
     const details = document.createElement("details");
     details.className = "series-group";
     details.dataset.seriesKey = group.key;
-    details.open = !!q || !!series || openSeries.has(group.key);
+    details.open = !!q || !!series || openSeries.has(group.key) || group.lessons.some(l => l.id === new URLSearchParams(window.location.search).get("lesson"));
     const summary = document.createElement("summary");
     makeCover(group.lessons[0], summary);
     const label = text("div", "", summary);
@@ -440,6 +453,29 @@ form("lesson-form", async (f) => {
   await refresh();
   notice("강의를 저장했습니다.");
 });
+async function loadCatalog(generation, allowed = []) {
+  const publicRows = await rpc("public_catalog");
+  if (generation !== refreshGeneration) return;
+  const rows = mergeCatalog(publicRows, allowed);
+  const plan = catalogPlan({prev:catalogSig, userId:user?.id || "public-visitor", rows, canLearn:true, rendered:$("catalog").childElementCount > 0});
+  lessons = newestFirst(rows);
+  show("catalog-panel", true);
+  $("catalog-help").textContent = me?.full_access ? "강의 보기와 자료 버튼으로 이용하세요." : "강의 목록은 누구나 둘러볼 수 있습니다. 영상과 자료는 후원 확인 후 이용할 수 있습니다.";
+  if (plan.action === "render") {
+    const scroll = window.scrollY, selected = $("series").value;
+    $("series").replaceChildren();
+    text("option", "전체 시리즈", $("series")).value = "";
+    for (const series of [...new Set(lessons.map(x => x.series_title))].filter(Boolean)) text("option", series, $("series")).value = series;
+    $("series").value = selected;
+    render(); catalogSig = plan.signature;
+    window.scrollTo(0,scroll);
+    const requested = new URLSearchParams(window.location.search).get("lesson");
+    if (!requestedLessonShown && rows.some(row => row.id === requested)) {
+      document.getElementById("lecture-" + requested)?.scrollIntoView({block:"center"});
+      requestedLessonShown = true;
+    }
+  }
+}
 async function refresh() {
   const generation = ++refreshGeneration;
   const { data, error } = await db.auth.getUser();
@@ -448,12 +484,13 @@ async function refresh() {
     user = null;
     me = null;
     clearPrivate();
-    for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel", "logout"]) show(id, false);
+    for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel", "logout", "admin-shortcuts"]) show(id, false);
     settingPassword = false;
     sessionStorage.removeItem("somnium-password-pending");
     show("password-panel", false);
     show("entry", $("otp-panel").hidden);
-    notice(signup ? "처음 한 번 이메일 인증 후 비밀번호와 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다. 처음 이용하시면 회원가입을 선택해 주세요.");
+    notice(signup ? "처음 한 번 이메일 인증 후 비밀번호와 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일과 비밀번호로 로그인하세요.");
+    await loadCatalog(generation);
     return;
   }
   if (user?.id !== data.user.id) privateEpoch++;
@@ -477,31 +514,21 @@ async function refresh() {
     show("membership", !!me);
     show("code-panel", !!me && !me.suspended);
     show("admin-panel", !!me?.admin);
-    show("catalog-panel", !!me?.can_learn);
+    show("admin-shortcuts", !!me?.admin);
     if (!me || !me.can_learn) clearPrivate();
     if (!me) {
-      notice("이메일이 확인됐습니다. 가입 정보를 입력해 주세요.");
+      notice("이메일이확인됐습니다. 가입 정보를 입력해 주세요.");
+      await loadCatalog(generation);
       return;
     }
     $("identity").textContent = me.name + " · " + user.email;
     $("membership-state").textContent = me.suspended ? "계정 이용이 중지됐습니다." : me.full_access ? "모든 회원 강의 이용 가능" : me.can_learn ? "등록한 세미나 강의 이용 가능" : stateNames[me.supporter_state] || "일반회원";
     show("supporter-request", !me.suspended && !me.full_access && me.supporter_state !== "pending");
     show("supporter-guide", !me.suspended && !me.full_access);
+    const allowed = me.can_learn ? await rpc("catalog") : [];
+    await loadCatalog(generation, allowed);
+    if (generation !== refreshGeneration) return;
     if (me.can_learn) {
-      const rows = await rpc("catalog");
-      if (generation !== refreshGeneration) return;
-      lessons = newestFirst(rows);
-      const plan = catalogPlan({ prev: catalogSig, userId: user.id, rows, canLearn: true, rendered: $("catalog").childElementCount > 0 });
-      if (plan.action === "render") {
-        const scroll = window.scrollY, selected = $("series").value;
-        $("series").replaceChildren();
-        text("option", "전체 시리즈", $("series")).value = "";
-        for (const series of [...new Set(lessons.map((x) => x.series_title))].filter(Boolean)) text("option", series, $("series")).value = series;
-        $("series").value = selected;
-        render();
-        catalogSig = plan.signature;
-        window.scrollTo(0, scroll);
-      }
       if (activeLesson) {
         const checkingLesson = activeLesson;
         try {
@@ -529,6 +556,7 @@ async function refresh() {
     if (generation !== refreshGeneration) return;
     clearPrivate();
     show("admin-panel", false);
+    show("admin-shortcuts", false);
     show("catalog-panel", false);
     throw e;
   }
@@ -636,7 +664,7 @@ db.auth.onAuthStateChange((event) => {
     user = null;
     me = null;
     clearPrivate();
-    for (const id of ["membership", "admin-panel", "catalog-panel", "profile-panel", "code-panel"]) show(id, false);
+    for (const id of ["membership", "admin-panel", "admin-shortcuts", "catalog-panel", "profile-panel", "code-panel"]) show(id, false);
     show("entry", true);
     show("logout", false);
   }
@@ -649,3 +677,8 @@ setInterval(() => {
 }, 3e4);
 mode(entryMode(window.location.search) === "signup");
 await refresh().catch((e) => notice(e.message));
+
+// Hash targets become visible only after Auth/catalog refresh has finished.
+if (window.location.hash === "#entry" && !$("entry").hidden) $("entry").scrollIntoView({block:"start"});
+else if (window.location.hash === "#catalog-panel" && !new URLSearchParams(window.location.search).has("lesson") && !$("catalog-panel").hidden) $("catalog-panel").scrollIntoView({block:"start"});
+else if (["#members-admin", "#admin-panel"].includes(window.location.hash) && me?.admin) document.getElementById(window.location.hash.slice(1))?.scrollIntoView({block:"start"});

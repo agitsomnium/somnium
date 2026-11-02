@@ -30,26 +30,23 @@ def text_of(html):
 
 
 class GuideRender(unittest.TestCase):
-    def test_public_shows_all_introduced_lecturers_now(self):
+    def test_public_uses_live_thumbnail_catalog_instead_of_prose_series(self):
         html = render(DATA_JSON, 'public')
-        self.assertGreater(len(ALL_NAMES), 10)
-        for name in ALL_NAMES:
-            self.assertIn(name, html)
-        self.assertNotIn('badge', html)
+        self.assertIn('src="/guide-catalog.js"', html)
+        self.assertIn('id="browse-list"', html)
+        self.assertIn('id="browse-search"', html)
+        self.assertNotIn('class="series-card"', html)
 
-    def test_public_drops_pending_lecturers_and_keeps_public_one(self):
-        html = render(SAMPLE, 'public')
-        self.assertTrue(PENDING_NAMES)
-        for name in PENDING_NAMES:
-            self.assertNotIn(name, html)
-        self.assertIn('정용택', html)
+    def test_catalog_is_first_section_after_intro(self):
+        html = render(DATA_JSON, 'public')
+        self.assertLess(html.index('id="series"'), html.index('id="paths"'))
+        self.assertLess(html.index('id="series"'), html.index('id="benefits"'))
 
-    def test_review_marks_every_pending_series(self):
-        html = render(SAMPLE, 'review')
-        pending = [s for s in SAMPLE['series'] if s['permission'] != 'public' and s['lecturers']]
-        self.assertEqual(html.count('강사 공개 허락 확인 전'), len(pending))
-        for name in PENDING_NAMES:
-            self.assertIn(name, html)
+    def test_public_and_review_use_live_catalog_not_stale_bios(self):
+        for mode in ('public', 'review'):
+            html = render(SAMPLE, mode)
+            self.assertIn('id="browse-list"', html)
+            self.assertNotIn('class="series-card"', html)
 
     def test_unapproved_order_is_omitted_from_public_but_marked_in_review(self):
         self.assertFalse(DATA_JSON['order']['approved'])
@@ -72,10 +69,9 @@ class GuideRender(unittest.TestCase):
         unverified = copy.deepcopy(DATA_JSON)
         unverified['memberLectures']['verified'] = False
         self.assertNotRegex(text_of(render(unverified, 'public')), r'\d+\s*편')
-        self.assertIn('원격 실조회 전', text_of(render(unverified, 'review')))
         data = copy.deepcopy(DATA_JSON)
         data['memberLectures']['verified'] = True
-        self.assertIn(f'회원 강의 {data["memberLectures"]["count"]}편', text_of(render(data, 'public')))
+        self.assertIn(f'지난 강의 {data["memberLectures"]["count"]}편', text_of(render(data, 'public')))
 
     def test_no_private_media_or_invented_numbers(self):
         for mode in ('review', 'public'):
@@ -120,8 +116,8 @@ class GuideServedFromCleanBuild(unittest.TestCase):
             self.build(dist, 'public')
             status, body = self.get(self.serve(dist, 'public'), '/guide/')
             self.assertEqual(status, 200)
-            for name in ALL_NAMES:
-                self.assertIn(name, body)
+            self.assertIn('id="browse-list"', body)
+            self.assertIn('/guide-catalog.js', body)
             self.assertNotIn('운영진 검토본', body)
             self.assertNotIn(ORDER_MARK, body)
             self.assertNotIn('badge', body)

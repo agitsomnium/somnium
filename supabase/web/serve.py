@@ -25,7 +25,7 @@ def handler(config, port, guide_mode='review', dist=None):
                 data = json.dumps(config).encode()
                 mime = 'application/json'
             else:
-                routes = {'/navigation.js': REPO / 'assets/navigation.js', '/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
+                routes = {'/guide-catalog.js': WEB / 'dist/guide-catalog.js', '/guide-catalog.js.LEGAL.txt': WEB / 'dist/guide-catalog.js.LEGAL.txt', '/navigation.js': REPO / 'assets/navigation.js', '/': WEB / 'index.html', '/app.js': WEB / 'dist/app.js', '/app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
                           '/brand.css': REPO / 'assets/site.css', '/tokens.css': REPO / 'assets/tokens.css',
                           '/fonts-display.css': REPO / 'assets/fonts-display.css', '/trial.css': REPO / 'classroom/trial.css', '/member.css': WEB / 'member.css',
                           '/guide/': guide_file, '/guide': guide_file, '/guide.css': WEB / 'guide.css'}
@@ -34,6 +34,10 @@ def handler(config, port, guide_mode='review', dist=None):
                     relative = path.removeprefix('/assets/').lstrip('/')
                     candidate = (REPO / 'assets' / relative).resolve()
                     if candidate.is_relative_to((REPO / 'assets/fonts').resolve()):
+                        file = candidate
+                if path.startswith('/assets/lecture-covers/') and path.endswith('.jpg'):
+                    candidate = (REPO / path.lstrip('/')).resolve()
+                    if candidate.parent == (REPO / 'assets/lecture-covers').resolve():
                         file = candidate
                 if path in ('/assets/brand.css', '/assets/somnium_wordmark_on_paper.svg', '/assets/SomniumDisplay.woff2'):
                     file = REPO / path.lstrip('/')

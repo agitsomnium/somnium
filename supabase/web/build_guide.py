@@ -34,7 +34,7 @@ def render(data, mode):
         '<link rel="stylesheet" href="/brand.css"><link rel="stylesheet" href="/assets/brand.css">'
         '<link rel="stylesheet" href="/tokens.css"><link rel="stylesheet" href="/fonts-display.css">'
         '<link rel="stylesheet" href="/trial.css"><link rel="stylesheet" href="/member.css">'
-        '<link rel="stylesheet" href="/guide.css"><script src="/navigation.js" defer></script></head><body>')
+        '<link rel="stylesheet" href="/guide.css"><script src="/navigation.js" defer></script><script type="module" src="/guide-catalog.js"></script></head><body>')
     add('<a class="skip-link" href="#main">본문으로</a>')
     if review:
         add('<div class="trial-banner">운영진 검토본 · 공개 전 운영진 확인이 필요한 항목에는 표시가 붙어 있습니다.</div>')
@@ -50,6 +50,11 @@ def render(data, mode):
         '<a class="cta primary" href="/?entry=signup#entry">회원가입 시작하기</a>'
         '<a class="cta" href="/?entry=login#entry">이미 가입했어요 · 로그인</a></div></div>')
 
+    add('<section id="series" aria-labelledby="ser-h"><h2 id="ser-h">어떤 강의가 있나요</h2>'
+        '<p>썸네일을 눌러 시리즈와 개별 강의를 둘러보세요. 목록은 누구나 볼 수 있고, 영상과 자료는 후원 확인 후 열립니다.</p>'
+        '<label>강의 검색<input id="browse-search" type="search" placeholder="강의·시리즈 이름"></label>'
+        '<p id="browse-count" role="status">강의 목록을 불러오고 있습니다.</p><div id="browse-list"></div></section>')
+
     add('<section id="paths" aria-labelledby="paths-h"><h2 id="paths-h">어디로 가면 될까요?</h2><div class="path-grid">')
     targets = {'new': '/?entry=signup#entry', 'member': '/?entry=login#entry', 'code': '/?entry=login#entry'}
     for item in data['paths']:
@@ -60,28 +65,6 @@ def render(data, mode):
     add('<section id="benefits" aria-labelledby="ben-h"><h2 id="ben-h">월 1만 원 이상 후원회원의 이용 혜택</h2><div class="card-grid">')
     for item in data['benefits']:
         add(f'<article class="card"><h3>{esc(item["title"])}</h3><p>{esc(item["body"])}</p></article>')
-    add('</div></section>')
-
-    count = data['memberLectures']
-    if count['verified']:
-        intro = f'후원회원 강의실에는 지금 회원 강의 {esc(count["count"])}편이 있습니다. 대표 시리즈입니다.'
-    else:
-        intro = '지난 세미나와 특강을 모아 둔 대표 시리즈입니다.'
-        if review:
-            intro += f' <span class="badge">편수 {esc(count["count"])}편은 원격 실조회 전 · 공개 안내에는 숫자를 쓰지 않음</span>'
-    add('<section id="series" aria-labelledby="ser-h"><h2 id="ser-h">어떤 강의가 있나요</h2>'
-        f'<p class="muted">{intro}</p><div class="series-list">')
-    for s in data['series']:
-        pending = s['permission'] != 'public'
-        add('<article class="series-card"><h3>' + esc(s['name']) + '</h3>'
-            f'<p class="when">{esc(s["when"])}' + (' · 회차 자료 있음' if s.get('materials') else '') + '</p>'
-            f'<p>{esc(s["theme"])}</p>')
-        if s.get('lecturers'):
-            if not pending:
-                add(f'<p class="who">강사 {esc(s["lecturers"])}</p>')
-            elif review:
-                add(f'<p class="who">강사 {esc(s["lecturers"])} <span class="badge">강사 공개 허락 확인 전 · 공개 때 빠짐</span></p>')
-        add('</article>')
     add('</div></section>')
 
     add('<section id="start" aria-labelledby="start-h"><h2 id="start-h">가입부터 강의 이용까지</h2><ol class="flow">')

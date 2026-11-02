@@ -9,6 +9,7 @@ from pathlib import Path
 WEB = Path(__file__).resolve().parent
 REPO = WEB.parents[1]
 FILES = {
+    'guide-catalog.js': WEB / 'dist/guide-catalog.js', 'guide-catalog.js.LEGAL.txt': WEB / 'dist/guide-catalog.js.LEGAL.txt',
     'navigation.js': REPO / 'assets/navigation.js',
     'index.html': WEB / 'index.html', 'app.js': WEB / 'dist/app.js', 'app.js.LEGAL.txt': WEB / 'dist/app.js.LEGAL.txt',
     'brand.css': REPO / 'assets/site.css', 'tokens.css': REPO / 'assets/tokens.css', 'fonts-display.css': REPO / 'assets/fonts-display.css',
@@ -46,6 +47,10 @@ def build(config_path, out, guide='review', profile='minimal', reviewers=(), pub
             raise FileNotFoundError(src)
         (out / rel).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(src, out / rel)
+    for cover in (REPO / 'assets/lecture-covers').glob('*.jpg'):
+        target = out / 'assets/lecture-covers' / cover.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(cover, target)
     for font in (REPO / 'assets/fonts').glob('*.woff2'):
         for base in ('fonts', 'assets/fonts'):
             (out / base).mkdir(parents=True, exist_ok=True)
