@@ -289,6 +289,15 @@ def pay_bar():
             '<div class="pay-rows">%s</div></section>' % rows)
 
 
+def post_image(post, base=''):
+    from urllib.parse import urlsplit
+    shortcode = urlsplit(post.get('link', '')).path.strip('/').split('/')[-1]
+    local = {'DeylqA_hGrj': 'bookclub-love-poster.jpg',
+             'Dev3vMGBHKg': 'bookclub-close-poster.jpg',
+             'DebdXlrhQaQ': 'sonjeol.webp'}
+    return base + '/assets/' + local[shortcode] if shortcode in local else post.get('image', '')
+
+
 def news_strip(insta, limit=6, base=''):
     """홈 맨 앞 «새 소식» — 인스타 홍보 포스터를 크게. 같은 홍보를 여러 번 올렸으면 최신 하나만."""
     import re as _re
@@ -315,7 +324,7 @@ def news_strip(insta, limit=6, base=''):
             continue
         seen.add(key)
         d = p.get('date', '')
-        image = p['image']
+        image = post_image(p, base)
         if title == '손절사회':
             image = base + '/assets/sonjeol.webp'
         cards.append('<a class="news-card" href="%s" target="_blank" rel="noopener">'
@@ -354,7 +363,7 @@ def load_instagram(data_dir, limit=6):
             and str(r.get('image', '')).startswith('https://') and not is_short_video(r)][:limit]
 
 
-def social_feeds(insta):
+def social_feeds(insta, base=''):
     """인스타 최신 글 6개 + 페이스북 페이지 타임라인. 둘 다 없으면 빈 문자열."""
     from urllib.parse import quote
     cfg = site_config()
@@ -363,7 +372,7 @@ def social_feeds(insta):
     cols = []
     if insta:
         tiles = ''.join('<a class="ig-tile" href="%s" target="_blank" rel="noopener"><img src="%s" alt="%s" loading="lazy" width="320" height="320"></a>'
-                        % (e(p['link']), e(p['image']), e(p.get('caption') or '솜니움 인스타그램 게시물')) for p in insta)
+                        % (e(p['link']), e(post_image(p, base)), e(p.get('caption') or '솜니움 인스타그램 게시물')) for p in insta)
         cols.append('<div class="feed-col"><h3>인스타그램 <a href="%s" target="_blank" rel="noopener">%s ↗</a></h3><div class="ig-grid">%s</div></div>'
                     % (e(ig.get('url', '')), e(ig.get('이름', '')), tiles))
     if not cols:

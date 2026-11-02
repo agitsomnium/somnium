@@ -64,6 +64,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=East+Sea+Dokdo&display=swap">
 <link rel="stylesheet" href="{base}/assets/brand.css?v={ASSET_VER}">
 <script src="{base}/assets/extras.js?v={ASSET_VER}" defer></script>
+<script src="{base}/assets/navigation.js?v={ASSET_VER}" defer></script>
 <link rel="icon" href="{base}/assets/favicon.png">
 </head>
 <body>
@@ -76,6 +77,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <div class="theme-switch hidden" data-theme-switch role="group" aria-label="화면 밝기"><button type="button" data-theme-choice="a" aria-pressed="false">어둡게</button><button type="button" data-theme-choice="b" aria-pressed="false">밝게</button></div></div>
 </div>
 </header>
+<nav class="page-navigation" aria-label="페이지 이동"><button type="button" data-page-back data-back-home="{base}/">← 뒤로가기</button><a href="{base}/">홈으로</a></nav>
 <main class="container" id="main">
 {body}
 {_page_steps(title, base, nav)}
@@ -166,7 +168,7 @@ def home(tables, base='', videos=None):
     out.append('</section>')
 
     books = public_rows(tables, '북클럽')
-    posters = {'book-october': 'sonjeol.webp', 'book-november': 'gakkaseuro.webp'}
+    posters = {'book-october': 'sonjeol.webp', 'book-november': 'bookclub-close-poster.jpg', 'book-november-love': 'bookclub-love-poster.jpg'}
     out.append('<section class="bookclub"><h2>책에서 시작하는 대화</h2>')
     if books:
         out.append('<div class="bookclub-grid">')

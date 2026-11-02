@@ -7,7 +7,7 @@ from extras import (today, collect_events, _shift, _month_range, WEEK,
 import datetime as _dt
 from poster_card import program_cards
 
-POSTERS = {'book-october': 'sonjeol.webp', 'book-november': 'gakkaseuro.webp'}
+POSTERS = {'book-october': 'sonjeol.webp', 'book-november': 'bookclub-close-poster.jpg', 'book-november-love': 'bookclub-love-poster.jpg'}
 
 
 def _calendar(tables, base, now):

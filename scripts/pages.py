@@ -184,7 +184,7 @@ def program_page(tables, content, md, base=''):
         out.append('</ul></details>')
     out.append('</section>')
 
-    imgs = {'book-october': ('assets/sonjeol.webp',), 'book-november': ('assets/gakkaseuro.webp',)}
+    imgs = {'book-october': ('assets/sonjeol.webp',), 'book-november': ('assets/bookclub-close-poster.jpg',), 'book-november-love': ('assets/bookclub-love-poster.jpg',)}
     out.append('<section class="content-section" id="bookclubs">')
     out.append('<div class="section-head"><h2>북클럽</h2></div>')
     out.append('<div class="book-listing">')

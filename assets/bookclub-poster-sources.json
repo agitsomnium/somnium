@@ -1,0 +1,22 @@
+[
+  {
+    "file": "bookclub-love-poster.jpg",
+    "source": "https://www.instagram.com/p/DeylqA_hGrj/",
+    "sha256": "cfac9a3ced30876e845a17e85936d813056c85a7b542dc7b1c95d6549cc27a57",
+    "size": [
+      1088,
+      1344
+    ],
+    "downloaded_at": "2026-11-02T04:17:30.931839+00:00"
+  },
+  {
+    "file": "bookclub-close-poster.jpg",
+    "source": "https://www.instagram.com/p/Dev3vMGBHKg/",
+    "sha256": "2206520f49ec5639ad775d7d5e193aa52bc45026a9d7bcf23e41b18eb5b601bb",
+    "size": [
+      1088,
+      1344
+    ],
+    "downloaded_at": "2026-11-02T04:17:30.969831+00:00"
+  }
+]
