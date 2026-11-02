@@ -119,16 +119,16 @@ def _notices(tables):
     return '<section class="pz-sec pz-notice" aria-label="소식"><h2 class="pz-kicker">소식</h2><ul>%s</ul></section>' % items
 
 
+MEMBER_STRIP = ('<p class="pz-member-strip"><span>후원회원은 지난 강의 93편을 다시 볼 수 있어요</span> '
+                '<a href="https://somnium-classroom.pages.dev/guide/">강의실 안내 →</a></p>')
+
+
 def home(tables, base='', videos=None, insta=None):
     now = today()
     out = [
-        '<section class="pz-member-entry" aria-labelledby="member-entry-h"><div><p class="pz-tag">솜니움 후원회원 강의실</p>'
-        '<h2 id="member-entry-h">후원회원이 되면,<br>지난 강의를 다시 볼 수 있습니다.</h2>'
-        '<p>월 1만 원 이상 정기후원으로 솜니움의 공부를 이어 주세요. 후원 확인 후 지난 강의 93편과 등록된 강의자료를 이용할 수 있습니다.</p></div>'
-        '<div class="pz-member-actions"><a class="pz-member-primary" href="https://somnium-classroom.pages.dev/guide/">어떤 강의가 있나요? · 후원회원 안내</a>'
-        '<a href="https://somnium-classroom.pages.dev/?entry=signup#entry">처음 방문했습니다. · 회원가입</a>'
-        '<a href="https://somnium-classroom.pages.dev/?entry=login#entry">이미 가입했어요 · 로그인</a>'
-        '<p>이메일로 가입 → 후원 신청 → 운영진 확인 → 강의 이용<br>이미 후원 중이라면 가입 후 확인만 요청해 주세요.</p></div></section>',
+        '<div class="home-top">' + program_cards(tables, base, now) + pay_bar() + '</div>',
+        MEMBER_STRIP,
+        news_strip(insta or []),
         '<section class="band-navy pz-hero" aria-labelledby="pz-h1">',
         '<h1 id="pz-h1" class="sr-only">솜니움 기독교정치사회연구소</h1>',
         '<div class="hero-l"><img class="brand-mark" src="%s/assets/somnium_wordmark_on_navy.svg" alt="솜니움" width="874" height="560">' % base,
@@ -138,9 +138,6 @@ def home(tables, base='', videos=None, insta=None):
         '기독교의 ‘사회적 꿈’을 모색하는 단체입니다.</p>'
         '<p class="hero-meta">📚 북클럽 · 세미나 · 기획강좌　📍 솜니움 사무실(합정역–상수역 사이) · Zoom 병행</p></div>',
         '</section>',
-        news_strip(insta or []),
-        program_cards(tables, base, now),
-        pay_bar(),
         '<section id="cal" class="pz-cal-wrap" aria-label="달력">', _calendar(tables, base, now), '</section>',
         youtube_section(videos or [], base=base),
         '<p class="archive-more"><a href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a></p>' % base,
