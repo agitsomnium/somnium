@@ -357,6 +357,7 @@ def participate_page(tables, content, md, base=''):
     out.append(f'<p><a class="text-link" href="{e(base)}/programs/">전체 프로그램 보기</a></p>')
     out.append('</section>')
     out.append('<section class="content-section"><h2>후원회원 강의실</h2><p>월 1만 원 이상 정기후원하시면 지난 강의 93편과 등록된 강의자료를 이용할 수 있습니다. 이메일로 가입한 뒤 후원 확인을 요청해 주세요.</p><p><a href="https://somnium-classroom.pages.dev/guide/">강의·후원 안내</a> · <a href="https://somnium-classroom.pages.dev/?entry=signup#entry">회원가입</a> · <a href="https://somnium-classroom.pages.dev/?entry=login#entry">로그인</a></p></section>')
+    out.append('<section class="content-section"><h2>회계 보고·기부금영수증</h2><p>회계 보고서는 로그인한 회원이 볼 수 있습니다.</p><p><a class="text-link" href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고 보기</a> · <a class="text-link" href="https://mrmweb.hsit.co.kr/v2/?server=OB24ScQzNnMeOyh7ApK%2BSw==&amp;action=receiptedit" target="_blank" rel="noopener noreferrer">한빛누리 기부금영수증 ↗</a></p></section>')
     out.append('<section id="support" class="content-section"><h2>연구소를 후원하기</h2>')
     out.append('<p>솜니움은 한빛누리 공익기금 Bright Fund를 통해 정기후원을 받고 있습니다. 세미나 참가비도 아래 계좌로 보내 주시면 됩니다.</p>')
     out.append(accounts_block('후원·참가비 계좌'))
