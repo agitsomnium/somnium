@@ -188,8 +188,10 @@ def program_page(tables, content, md, base=''):
     out.append('<section class="content-section" id="bookclubs">')
     out.append('<div class="section-head"><h2>북클럽</h2></div>')
     out.append('<div class="book-listing">')
-    if books:
-        for r in books:
+    live_books = [r for r in books if status(r) != '종료']
+    ended_books = [r for r in books if status(r) == '종료']
+    if live_books:
+        for r in live_books:
             bid = g(r, 'id').strip()
             st = status(r)
             out.append('<article class="book-program" id="book-%s">' % e(bid))
@@ -231,8 +233,17 @@ def program_page(tables, content, md, base=''):
                 out.append('<a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의 ↗</a>')
             out.append('</div></article>')
     else:
-        out.append('<p class="empty">현재 공개된 북클럽이 없습니다.</p>')
-    out.append('</div></section>')
+        out.append('<p class="empty">%s</p>' % ('지금 모집 중인 북클럽이 없습니다.' if ended_books else '현재 공개된 북클럽이 없습니다.'))
+    out.append('</div>')
+    if ended_books:
+        out.append('<details class="archive-fold"><summary>지난 북클럽</summary><ul class="archive-list">')
+        for r in ended_books:
+            name = g(r, '도서').strip() or g(r, '제목').strip()
+            when = fmt_days(g(r, '날짜').strip()) if g(r, '날짜').strip() else ''
+            out.append('<li><span class="title">%s</span> <span class="archive-state">%s</span></li>'
+                       % (e(name), e(' · '.join(x for x in (when, '종료') if x))))
+        out.append('</ul></details>')
+    out.append('</section>')
 
     out.append('<section class="content-section" id="lectures"><div class="split-content">')
     out.append('<div class="split-main"><h2>기획강좌·특강</h2>')

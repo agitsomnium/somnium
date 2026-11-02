@@ -4,6 +4,7 @@
 - 사이트 전체: robots.txt(AI 수집기 허용), sitemap.xml, llms.txt(AI용 요약)
 값은 config/site.json 과 시트에서만 옵니다. 지어낸 정보는 넣지 않습니다."""
 import json
+import re
 from html import escape as e
 
 from data import public_rows
@@ -45,10 +46,9 @@ def _place(text):
     text = (text or '').strip()
     if not text:
         return []
-    online = '줌' in text or '온라인' in text
+    online = bool(re.search(r'줌|온라인|zoom', text, re.I))
     name = text
-    for w in ('+ 온라인 줌', '온라인 줌', '· 줌', '+ 줌', '줌', '온라인'):
-        name = name.replace(w, '')
+    name = re.sub(r'[·+]?\s*(온라인\s*)?(zoom|줌)(\s*병행)?', '', name, flags=re.I).replace('온라인', '')
     name = name.strip(' ·+,')
     places = []
     if name:

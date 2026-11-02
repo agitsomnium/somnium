@@ -117,6 +117,28 @@ def auto_status(row, today, fields):
     return "모집중"
 
 
+def settle_status(row, today, fields):
+    """상태 칸이 비었으면 날짜로 정하고, 「모집중·진행중」으로 적혀 있어도 마지막 날짜가 지났으면 「종료」로 내린다.
+    예고·종료·취소는 적힌 대로 둔다(날짜가 없거나 사람이 정한 값)."""
+    st = (row.get("상태") or "").strip()
+    if not st:
+        return auto_status(row, today, fields)
+    if st in ("모집중", "진행중") and auto_status(row, today, fields) == "종료":
+        return "종료"
+    return st
+
+
+PLACE_OFFICE = "솜니움 사무실(합정역–상수역 사이) · Zoom 병행"
+
+
+def normalize_place(v):
+    """솜니움 사무실·모임공간 + Zoom/줌 병행 표기를 한 가지로 맞춘다. 다른 장소는 그대로 둔다."""
+    t = (v or "").strip()
+    if re.search(r"솜니움\s*(사무실|모임공간)", t) and re.search(r"zoom|줌", t, re.I):
+        return PLACE_OFFICE
+    return v
+
+
 def resolve(tables, today=None):
     """쉬운 입력을 내부 꼴로 바꾼다. load_tables 바로 뒤에 부른다."""
     today = today or datetime.date.today()
@@ -207,11 +229,13 @@ def resolve(tables, today=None):
             s["시작일"] = ds[0]
         if ds and not (s.get("종료일") or "").strip():
             s["종료일"] = ds[-1]
-        if not (s.get("상태") or "").strip():
-            s["상태"] = auto_status(s, today, ("시작일", "종료일"))
+        s["상태"] = settle_status(s, today, ("시작일", "종료일"))
     for b in tables.get("북클럽", []):
-        if not (b.get("상태") or "").strip():
-            b["상태"] = auto_status(b, today, ("날짜",))
+        b["상태"] = settle_status(b, today, ("날짜",))
+    for stem in ("세미나", "북클럽"):
+        for r in tables.get(stem, []):
+            if "장소" in r:
+                r["장소"] = normalize_place(r["장소"])
     # 숨긴 세미나·회차에 딸린 것은 함께 숨김
     hidden_sem = {s["id"] for s in sems if s.get("공개") == "아니오"}
     for r in tables.get("회차", []):

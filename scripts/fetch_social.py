@@ -2,6 +2,7 @@
 """인스타그램 최신 글(behold.so JSON 피드)을 data/live/instagram.json 으로 저장. 키·토큰 없음.
 실패하면 이전 파일을 그대로 두고 0으로 끝난다(빌드를 막지 않음)."""
 import json
+import re
 import sys
 import urllib.request
 from pathlib import Path
@@ -19,6 +20,21 @@ def is_short_video(post):
             or str(post.get("mediaType", "")).upper() in ("VIDEO", "REEL", "REELS"))
 
 
+def clip(text, limit):
+    """limit 자를 넘으면 문장 끝, 없으면 낱말 끝에서 끊고 «…»를 붙인다. 낱말 중간에서 자르지 않는다."""
+    t = re.sub(r"\s+", " ", text or "").strip()
+    if len(t) <= limit:
+        return t
+    head = t[:limit + 1]
+    ends = [m.end() for m in re.finditer(r"[.!?。][\"”’』」)\]》]*(?=\s)", head) if m.end() <= limit]
+    if ends and ends[-1] >= limit * 0.5:
+        cut = head[:ends[-1]]
+    else:
+        sp = head.rfind(" ")
+        cut = head[:sp] if sp >= limit * 0.4 else head[:limit]
+    return cut.rstrip(" ,;:·-—.") + "…"
+
+
 def normalize(data):
     posts = data.get('posts', data) if isinstance(data, dict) else data
     out = []
@@ -32,7 +48,7 @@ def normalize(data):
         if not img or not str(link).startswith('https://www.instagram.com/'):
             continue
         cap = (p.get('prunedCaption') or p.get('caption') or '').strip()
-        out.append({'image': img, 'link': link, 'caption': cap[:140], 'text': (p.get('caption') or cap)[:4000],
+        out.append({'image': img, 'link': link, 'caption': clip(cap, 140), 'text': (p.get('caption') or cap)[:4000],
                     'date': str(p.get('timestamp', ''))[:10]})
     return out
 

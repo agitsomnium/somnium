@@ -6,7 +6,7 @@ from html import escape as e
 from pathlib import Path
 
 from data import public_rows
-from fetch_social import is_short_video
+from fetch_social import is_short_video, clip
 from fetch_youtube import is_short
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -317,7 +317,7 @@ def news_strip(insta, limit=6, base=''):
             after = first[m.end():].strip()
             kind, title = m.group(2).strip(), (_re.split(r'\s[:：]\s', after)[0].strip() if after else m.group(2).strip())
         else:
-            kind, title = '', first[:40]
+            kind, title = '', clip(first, 40)
         kind = _re.sub(r'^솜니움\s*', '', kind)
         key = _re.sub(r'\W', '', title)
         if key in seen:
@@ -372,7 +372,7 @@ def social_feeds(insta, base=''):
     cols = []
     if insta:
         tiles = ''.join('<a class="ig-tile" href="%s" target="_blank" rel="noopener"><img src="%s" alt="%s" loading="lazy" width="320" height="320"></a>'
-                        % (e(p['link']), e(post_image(p, base)), e(p.get('caption') or '솜니움 인스타그램 게시물')) for p in insta)
+                        % (e(p['link']), e(post_image(p, base)), e(clip(p.get('text') or p.get('caption') or '', 100) or '솜니움 인스타그램 게시물')) for p in insta)
         cols.append('<div class="feed-col"><h3>인스타그램 <a href="%s" target="_blank" rel="noopener">%s ↗</a></h3><div class="ig-grid">%s</div></div>'
                     % (e(ig.get('url', '')), e(ig.get('이름', '')), tiles))
     if not cols:

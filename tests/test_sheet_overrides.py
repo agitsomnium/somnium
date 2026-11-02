@@ -56,3 +56,37 @@ class SheetFormats(unittest.TestCase):
         self.assertEqual(data.norm_date('46282'), '2026-09-17')
         self.assertEqual(data.norm_date('2026. 11. 10 오전 12:00:00'), '2026-11-10')
         self.assertEqual(data.norm_time('0.7916666667'), '19:00')
+
+
+class SettleStatusAndPlaceTest(unittest.TestCase):
+    """날짜가 지난 모집중·진행중은 자동으로 종료, 장소 표기는 한 가지로."""
+
+    def test_ended_dates_override_manual_status(self):
+        import datetime
+        import sheet_friendly as sf
+        today = datetime.date(2026, 11, 2)
+        self.assertEqual(sf.settle_status({"상태": "진행중", "시작일": "2026-09-17", "종료일": "2026-10-29"}, today, ("시작일", "종료일")), "종료")
+        self.assertEqual(sf.settle_status({"상태": "진행중", "날짜": "2026-10-20;2026-10-27"}, today, ("날짜",)), "종료")
+        self.assertEqual(sf.settle_status({"상태": "모집중", "날짜": "2026-11-12;2026-11-19"}, today, ("날짜",)), "모집중")
+        self.assertEqual(sf.settle_status({"상태": "예고"}, today, ("시작일", "종료일")), "예고")
+        self.assertEqual(sf.settle_status({"상태": "취소", "날짜": "2026-10-01"}, today, ("날짜",)), "취소")
+        self.assertEqual(sf.settle_status({"상태": "", "날짜": "2026-10-01"}, today, ("날짜",)), "종료")
+
+    def test_place_unified(self):
+        import sheet_friendly as sf
+        for v in ("솜니움 모임공간(합정) · 줌", "솜니움 사무실 · Zoom 병행", "솜니움 사무실(합정–상수역 사이) · Zoom 병행",
+                  "솜니움 사무실(합정역–상수역 사이) · 온라인 Zoom 병행"):
+            self.assertEqual(sf.normalize_place(v), sf.PLACE_OFFICE)
+        self.assertEqual(sf.normalize_place("서울 마포구 독막로 43, 2층"), "서울 마포구 독막로 43, 2층")
+
+    def test_clip_at_word_or_sentence(self):
+        from fetch_social import clip
+        t = "첫 문장입니다. 두 번째 문장은 조금 더 깁니다. 세 번째 문장이 이어집니다 그리고 계속됩니다"
+        c = clip(t, 40)
+        self.assertTrue(c.endswith("…"))
+        self.assertEqual(c, "첫 문장입니다. 두 번째 문장은 조금 더 깁니다…")
+        self.assertEqual(clip("짧은 글", 40), "짧은 글")
+        w = clip("가나다라 마바사아 자차카타 파하거너 더러머버 서어저처", 20)
+        self.assertTrue(w.endswith("…") and not w[:-1].endswith(" "))
+        self.assertIn(w[:-1], "가나다라 마바사아 자차카타 파하거너 더러머버 서어저처")
+        self.assertTrue(w[:-1].split()[-1] in "가나다라 마바사아 자차카타 파하거너 더러머버 서어저처".split())

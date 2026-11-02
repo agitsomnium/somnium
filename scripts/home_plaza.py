@@ -136,7 +136,7 @@ def home(tables, base='', videos=None, insta=None):
         '<div class="hero-r"><p class="hero-name"><b>Somnium</b> 라틴어로 ‘꿈’을 뜻합니다.</p>'
         '<p class="hero-about">기독교신앙을 근거로, 청년 시민들이 함께 오늘날의 정치사회이론과 현실을 공부하며 '
         '기독교의 ‘사회적 꿈’을 모색하는 단체입니다.</p>'
-        '<p class="hero-meta">📚 북클럽 · 세미나 · 기획강좌　📍 합정–상수 사무실 + Zoom</p></div>',
+        '<p class="hero-meta">📚 북클럽 · 세미나 · 기획강좌　📍 솜니움 사무실(합정역–상수역 사이) · Zoom 병행</p></div>',
         '</section>',
         news_strip(insta or []),
         program_cards(tables, base, now),
