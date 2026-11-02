@@ -134,3 +134,5 @@
 /* Clear first-visit route to the supporter classroom. */
 .pz-member-entry{display:grid;grid-template-columns:1.2fr 1fr;gap:40px;margin:32px 0;padding:32px;background:var(--bg);border-left:4px solid var(--accent)}
 .pz-member-entry h2{font-size:clamp(26px,3.3vw,38px);line-height:1.35;margin:10px 0 16px}.pz-member-entry p{line-height:1.8}.pz-member-actions{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:14px}.pz-member-primary{font-weight:700}.pz-member-actions p{font-size:14px;opacity:.8;margin:0}@media(max-width:700px){.pz-member-entry{grid-template-columns:1fr;gap:16px;padding:24px 18px;margin:24px 0}.pz-member-entry h2{font-size:27px}}
+
+.pz-member-actions>a{display:inline-flex;align-items:center;min-height:46px;padding:10px 16px;border:1px solid var(--line);color:var(--ink);text-decoration:none;line-height:1.5}.pz-member-actions>.pz-member-primary{background:var(--feature);color:var(--feature-ink);border-color:var(--feature)}.pz-member-actions>a:hover,.pz-member-actions>a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
