@@ -55,4 +55,9 @@ begin; set local role authenticated; select set_config('request.jwt.claim.sub','
 select pg_temp.expect_error($$select public.somnium_erase_member('20000000-0000-0000-0000-000000000005')$$,'22023','director roster member refused');
 rollback;
 select pg_temp.check_true(exists(select 1 from auth.users where id='20000000-0000-0000-0000-000000000005'),'director member still present');
+-- ledger: every erasure leaves one row of one-way hashes and counts, no personal data
+select pg_temp.check_true((select count(*) from classroom_private.erasure_ledger)=1,'ledger has exactly the one executed erasure');
+select pg_temp.check_true(not exists(select 1 from classroom_private.erasure_ledger where to_jsonb(erasure_ledger)::text ilike any(array['%member@example%','%20000000-0000-0000-0000-000000000002%','%삭제 대상%','%01012345678%','%1990-02-03%'])),'ledger holds no plaintext identity');
+select pg_temp.check_true((select removed from classroom_private.erasure_ledger)=jsonb_build_object('profiles',1,'supporter_requests',1,'entitlements',1,'code_attempts',0,'audit_targets_scrubbed',3),'ledger counts match what was removed');
+select pg_temp.check_true(not has_table_privilege('authenticated','classroom_private.erasure_ledger','select') and not has_function_privilege('authenticated','classroom_private.apply_erasure_ledger()','execute') and not has_function_privilege('authenticated','classroom_private.import_erasure_ledger(jsonb)','execute'),'ledger and restore functions are operator-only');
 select 'MEMBER ERASURE PASS';
