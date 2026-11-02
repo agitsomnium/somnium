@@ -83,7 +83,7 @@ class GuideRender(unittest.TestCase):
         html = render(DATA_JSON, 'public')
         self.assertEqual([s['n'] for s in DATA_JSON['flow']], [1, 2, 3, 4])
         self.assertEqual(set(re.findall(r'href="(https?://[^"]+)"', html)),
-                         {'https://somniumagit.com', 'https://somniumagit.com/participate/', 'https://online.mrm.or.kr/PCjx2kb'})
+                         {'https://somniumagit.com', 'https://somniumagit.com/participate/', 'https://online.mrm.or.kr/PCjx2kb', 'https://mrmweb.hsit.co.kr/v2/?server=OB24ScQzNnMeOyh7ApK%2BSw==&amp;action=receiptedit'})
         data = copy.deepcopy(DATA_JSON)
         data['hero']['lead'] = '<script>alert(1)</script>'
         self.assertNotIn('<script>alert', render(data, 'public'))

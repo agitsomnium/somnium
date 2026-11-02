@@ -1,3 +1,4 @@
+import { accounting } from "./accounting.js";
 import { mergeCatalog, localCover } from "./publicCatalog.js";
 import { passwordAuth, authMessage } from "./passwordAuth.js";
 import { entryMode } from "./entryMode.js";
@@ -20,6 +21,7 @@ const db = createClient(config.url, config.publishableKey, { auth: { storage: se
 const credentials = passwordAuth(db.auth);
 let settingPassword = sessionStorage.getItem("somnium-password-pending") === "yes";
 let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, privateEpoch = 0, managedLessons = [];
+const reportUI = accounting(db, {access:()=>({userId:user?.id,epoch:privateEpoch,member:!!me && !me.suspended,admin:!!me?.admin}),rpc,notice});
 const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 확인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
 function notice(t) {
   $("notice").textContent = t;
@@ -64,6 +66,7 @@ async function rpc(name, args = {}) {
   return data;
 }
 function clearPrivate() {
+  reportUI.clear();
   privateEpoch++;
   openMaterials.clear();
   catalogSig = "";
@@ -525,6 +528,8 @@ async function refresh() {
     $("membership-state").textContent = me.suspended ? "계정 이용이 중지됐습니다." : me.full_access ? "모든 회원 강의 이용 가능" : me.can_learn ? "등록한 세미나 강의 이용 가능" : stateNames[me.supporter_state] || "일반회원";
     show("supporter-request", !me.suspended && !me.full_access && me.supporter_state !== "pending");
     show("supporter-guide", !me.suspended && !me.full_access);
+    await reportUI.load();
+    if (generation !== refreshGeneration) return;
     const allowed = me.can_learn ? await rpc("catalog") : [];
     await loadCatalog(generation, allowed);
     if (generation !== refreshGeneration) return;
@@ -682,3 +687,6 @@ await refresh().catch((e) => notice(e.message));
 if (window.location.hash === "#entry" && !$("entry").hidden) $("entry").scrollIntoView({block:"start"});
 else if (window.location.hash === "#catalog-panel" && !new URLSearchParams(window.location.search).has("lesson") && !$("catalog-panel").hidden) $("catalog-panel").scrollIntoView({block:"start"});
 else if (["#members-admin", "#admin-panel"].includes(window.location.hash) && me?.admin) document.getElementById(window.location.hash.slice(1))?.scrollIntoView({block:"start"});
+
+if (window.location.hash === "#accounting-panel") $("accounting-panel").scrollIntoView({block:"start"});
+if (window.location.hash === "#report-upload" && me?.admin) $("report-upload").scrollIntoView({block:"start"});

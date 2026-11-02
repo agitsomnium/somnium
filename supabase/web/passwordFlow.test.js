@@ -32,7 +32,7 @@ async function harness({existing=false, pending=false, verifyError=null, hasProf
     async signOut(){current=null;callback('SIGNED_OUT');return {error:null};},
   };
   const db={auth,rpc:async(name)=>{calls.push(['rpc',name]);return {data:name==='somnium_me'?(hasProfile?{name:'시험회원',can_learn:false,admin:false,full_access:false,supporter_state:'not_requested'}:null):[],error:null};}};
-  const context=vm.createContext({passwordAuth,authMessage,entryMode,catalogPlan,newestFirst,seriesGroups,mergeCatalog,localCover,URLSearchParams,createClient:()=>db,
+  const context=vm.createContext({accounting:()=>({clear(){},async load(){}}),passwordAuth,authMessage,entryMode,catalogPlan,newestFirst,seriesGroups,mergeCatalog,localCover,URLSearchParams,createClient:()=>db,
     sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     fetch:async()=>({ok:true,json:async()=>({openSignup:true,profileMode:'minimal'})}),
     document:{createElement:tag=>node(tag+Math.random()),getElementById:node,querySelectorAll:()=>[],addEventListener(){},visibilityState:'visible'},

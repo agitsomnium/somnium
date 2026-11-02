@@ -42,7 +42,7 @@ def render(data, mode):
         '<img src="/assets/somnium_wordmark_on_paper.svg" width="75" height="48" alt="솜니움">'
         '<span>솜니움<br>기독교정치사회연구소</span></a><nav class="site-nav" aria-label="주요 메뉴">'
         '<a class="classroom-link" href="/guide/" aria-current="page">후원회원 안내</a><a href="/?entry=login#entry">강의실 로그인</a>'
-        '<a href="https://somniumagit.com/participate/">참여·후원</a></nav></div></header>')
+        '<a href="/#accounting-panel">회계 보고</a><a href="https://somniumagit.com/participate/">참여·후원</a></nav></div></header>')
     add('<nav class="page-navigation" aria-label="페이지 이동"><button type="button" data-page-back data-back-home="https://somniumagit.com/">← 뒤로가기</button><a href="https://somniumagit.com">홈으로</a><a href="/">강의실 첫 화면</a></nav>')
     add('<main class="container guide" id="main">')
     add(f'<div class="intro"><p class="eyebrow">{esc(hero["eyebrow"])}</p><h1>{paragraphs(hero["title"])}</h1>'
@@ -100,6 +100,8 @@ def render(data, mode):
         '<div><h3>누구나 볼 수 있는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['open'] if order['approved'] or review or '추천' not in x) + '</ul></div>'
         '<div><h3>후원회원·수강 코드 이용자에게만 열리는 것</h3><ul>' + ''.join(f'<li>{esc(x)}</li>' for x in vis['members']) + '</ul></div></div>'
         f'<p class="muted">{esc(vis["tasterNote"])}</p></section>')
+
+    add('<a class="catalog-open receipt-button" href="https://mrmweb.hsit.co.kr/v2/?server=OB24ScQzNnMeOyh7ApK%2BSw==&amp;action=receiptedit" target="_blank" rel="noopener noreferrer">한빛누리 기부금영수증 ↗</a><p class="muted">한빛누리의 별도 본인 확인 후 영수증을 확인할 수 있습니다.</p>')
 
     add('<section id="faq" aria-labelledby="faq-h"><h2 id="faq-h">자주 묻는 질문</h2>')
     for item in data['faq']:
