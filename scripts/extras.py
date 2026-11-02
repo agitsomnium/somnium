@@ -328,9 +328,9 @@ def news_strip(insta, limit=6, base=''):
         if title == '손절사회':
             image = base + '/assets/sonjeol.webp'
         cards.append('<a class="news-card" href="%s" target="_blank" rel="noopener">'
-                     '<img src="%s" alt="%s 포스터" loading="lazy" width="432" height="540">'
+                     '<img src="%s" alt="%s 포스터" loading="%s" width="432" height="540">'
                      '<span class="news-kind">%s</span><strong>%s</strong>%s</a>'
-                     % (e(p['link']), e(image), e(title), e(kind or '소식'), e(title),
+                     % (e(p['link']), e(image), e(title), 'eager' if not cards else 'lazy', e(kind or '소식'), e(title),
                         ('<time datetime="%s">%s 올림</time>' % (e(d), e(d[5:].replace('-', '.')))) if d else ''))
         if len(cards) >= limit:
             break
