@@ -1,3 +1,4 @@
+import { passwordAuth, authMessage } from "./passwordAuth.js";
 import { entryMode } from "./entryMode.js";
 import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
@@ -14,6 +15,8 @@ const config = await fetch("/runtime-config.json", { cache: "no-store" }).then((
   return r.json();
 });
 const db = createClient(config.url, config.publishableKey, { auth: { storage: sessionStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+const credentials = passwordAuth(db.auth);
+let settingPassword = sessionStorage.getItem("somnium-password-pending") === "yes";
 let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, privateEpoch = 0, managedLessons = [];
 const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 확인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
 function notice(t) {
@@ -46,6 +49,7 @@ async function run(button, fn) {
   }
 }
 function safeError(error) {
+  if (authMessage(error)) return authMessage(error);
   if (error.code === "otp_expired") return "인증번호가 올바르지 않거나 만료됐습니다.";
   if (error.status === 429) return "잠시 기다린 뒤 다시 시도해 주세요.";
   if (error.code === "user_not_found" || error.code === "signup_disabled") return "가입 정보가 없거나 로그인이 제한되었습니다. 회원가입을 확인해 주세요.";
@@ -72,11 +76,16 @@ function mode(value) {
   signup = value;
   $("login-tab").setAttribute("aria-pressed", String(!value));
   $("signup-tab").setAttribute("aria-pressed", String(value));
-  $("login-form").querySelector("button").textContent = value ? "가입 인증번호 받기" : "인증번호 받기";
-  $("entry-heading").textContent = value ? "이메일로 회원가입" : "이메일로 로그인";
-  $("entry-help").textContent = value ? "이메일 인증 → 이름 입력 → 후원 확인 요청 순서로 진행합니다. 가입만으로 후원금이 결제되지는 않습니다." : "가입한 이메일로 인증번호를 받습니다. 처음 이용하시면 ‘처음 회원가입’을 선택해 주세요.";
-  $("otp-form").querySelector("button").textContent = value ? "확인하고 가입 계속하기" : "확인하고 로그인";
-  notice(value ? "이메일 확인 후 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다.");
+  $("login-form").querySelector("button").textContent = value ? "가입 인증번호 받기" : "로그인";
+  $("entry-heading").textContent = value ? "이메일로 회원가입" : "이메일·비밀번호로 로그인";
+  $("entry-help").textContent = value ? "처음 한 번 이메일 인증 → 비밀번호 설정 → 이름 입력 순서입니다. 가입만으로 후원금이 결제되지는 않습니다." : "가입한 이메일과 비밀번호로 로그인하세요. 기존 회원의 비밀번호 설정과 비밀번호 찾기는 아래 버튼을 이용해 주세요.";
+  show("login-password-field", !value);
+  $("login-password").disabled = value;
+  $("login-password").required = !value;
+  $("login-password").value = "";
+  show("password-help", !value);
+  $("otp-form").querySelector("button").textContent = "인증하고 비밀번호 설정";
+  notice(value ? "처음 한 번 이메일 인증 후 비밀번호와 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다.");
 }
 {
   const minimal = config.profileMode === "minimal";
@@ -114,7 +123,7 @@ async function send() {
   const email = targetEmail;
   if (!emailAllowed(email)) throw new Error("현재는 지정된 검토 이메일만 이용할 수 있습니다.");
   if (Date.now() - lastSend < 6e4) throw new Error("인증번호 요청 후 1분을 기다려 주세요.");
-  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: signup } });
+  const { error } = await credentials.requestCode(email, signup);
   if (error) {
     if (!signup && error.code === "otp_disabled") throw new Error("처음 이용하시는 경우 ‘처음 회원가입’을 선택해 주세요. 가입한 이메일도 확인해 주세요.");
     throw new Error(safeError(error));
@@ -129,6 +138,22 @@ async function send() {
 }
 form("login-form", async (f) => {
   targetEmail = String(f.get("email")).trim().toLowerCase();
+  if (signup) { await send(); return; }
+  const password = String(f.get("password") || "");
+  $("login-password").value = "";
+  if (!emailAllowed(targetEmail)) throw new Error("현재는 지정된 검토 이메일만 이용할 수 있습니다.");
+  const { error } = await credentials.login(targetEmail, password);
+  if (error) throw new Error(safeError(error));
+  show("otp-panel", false);
+  await refresh();
+  notice("로그인했습니다.");
+});
+$("password-help").onclick = () => run($("password-help"), async () => {
+  const emailField = $("login-form").elements.email;
+  if (!emailField.reportValidity()) return;
+  signup = false;
+  targetEmail = emailField.value.trim().toLowerCase();
+  $("login-password").value = "";
   await send();
 });
 $("existing-otp").onclick = () => {
@@ -144,12 +169,30 @@ $("existing-otp").onclick = () => {
   $("otp-form").elements.token.focus();
 };
 form("otp-form", async (f) => {
-  const { error } = await db.auth.verifyOtp({ email: targetEmail, token: String(f.get("token")).trim(), type: "email" });
+  const { error } = await credentials.verifyCode(targetEmail, String(f.get("token")).trim());
   $("otp-form").reset();
   if (error) throw new Error(safeError(error));
   show("otp-panel", false);
+  settingPassword = true;
+  sessionStorage.setItem("somnium-password-pending", "yes");
   await refresh();
-  notice(me ? "로그인했습니다." : "이메일이 확인됐습니다. 가입 정보를 입력해 주세요.");
+  notice("이메일이 확인됐습니다. 다음부터 사용할 비밀번호를 정해 주세요.");
+});
+form("password-form", async (f) => {
+  const password = String(f.get("password") || ""), confirmation = String(f.get("confirmation") || "");
+  $("password-form").reset();
+  const { error } = await credentials.setPassword(user?.email || targetEmail, password, confirmation);
+  if (error) throw new Error(safeError(error));
+  settingPassword = false;
+  sessionStorage.removeItem("somnium-password-pending");
+  show("password-panel", false);
+  await refresh();
+  notice(me ? "비밀번호를 저장했습니다. 다음부터 이메일과 비밀번호로 로그인하세요." : "비밀번호를 저장했습니다. 이름을 입력하면 가입이 끝납니다.");
+});
+$("password-cancel").onclick = () => run($("password-cancel"), async () => {
+  const { error } = await db.auth.signOut({ scope: "local" });
+  if (error) throw new Error(safeError(error));
+  await refresh();
 });
 $("resend").onclick = () => run($("resend"), send);
 setInterval(() => {
@@ -406,12 +449,24 @@ async function refresh() {
     me = null;
     clearPrivate();
     for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel", "logout"]) show(id, false);
+    settingPassword = false;
+    sessionStorage.removeItem("somnium-password-pending");
+    show("password-panel", false);
     show("entry", $("otp-panel").hidden);
-    notice(signup ? "이메일 확인 후 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다. 처음 이용하시면 회원가입을 선택해 주세요.");
+    notice(signup ? "처음 한 번 이메일 인증 후 비밀번호와 이름을 입력하면 가입할 수 있습니다." : "가입한 이메일로 로그인합니다. 처음 이용하시면 회원가입을 선택해 주세요.");
     return;
   }
   if (user?.id !== data.user.id) privateEpoch++;
   user = data.user;
+  if (settingPassword) {
+    clearPrivate();
+    for (const id of ["entry", "otp-panel", "membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel"]) show(id, false);
+    show("password-panel", true);
+    show("logout", true);
+    notice("이메일이 확인됐습니다. 다음부터 사용할 비밀번호를 정해 주세요.");
+    return;
+  }
+  show("password-panel", false);
   try {
     const profile = await rpc("me");
     if (generation !== refreshGeneration) return;
@@ -573,6 +628,11 @@ function renderMaterialAdmin(rows) {
 db.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT") {
     refreshGeneration++;
+    settingPassword = false;
+    sessionStorage.removeItem("somnium-password-pending");
+    $("password-form").reset();
+    show("password-panel", false);
+    show("otp-panel", false);
     user = null;
     me = null;
     clearPrivate();
