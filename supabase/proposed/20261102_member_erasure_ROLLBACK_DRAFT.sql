@@ -9,6 +9,7 @@ do $$ begin
   raise exception 'rollback refused: an erasure has been executed (keep the ledger, the nullable audit.actor and the functions)' using errcode='55000';
  end if;
 end $$;
+drop function classroom_private.erasure_ledger_pending();
 drop function classroom_private.apply_erasure_ledger();
 drop function classroom_private.import_erasure_ledger(jsonb);
 drop function classroom_private.export_erasure_ledger();

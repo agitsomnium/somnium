@@ -76,21 +76,31 @@ begin
  return n;
 end $$;
 
+-- A restored copy can carry an older e-mail than the one hashed at erasure time (the member changed it after the backup).
+-- So the restored copy's own e-mail is read from auth.users, used to clean the audit trail, and is never written to the ledger.
 create function classroom_private.apply_erasure_ledger() returns int
  language plpgsql security definer set search_path='' as $$
-declare uid uuid; n int:=0;
+declare r record; n int:=0;
 begin
- for uid in select u.id from auth.users u join classroom_private.erasure_ledger l on l.id_hash=classroom_private.erasure_hash(u.id::text) loop
-  if exists(select 1 from classroom_private.admins where user_id=uid) then raise exception 'ledger matches an admin account; stop and check by hand' using errcode='55000'; end if;
-  delete from classroom_private.series_entitlements where user_id=uid;
-  delete from classroom_private.code_attempts where user_id=uid;
-  delete from auth.users where id=uid;
+ for r in select u.id, u.email from auth.users u join classroom_private.erasure_ledger l on l.id_hash=classroom_private.erasure_hash(u.id::text) loop
+  if exists(select 1 from classroom_private.admins where user_id=r.id) then raise exception 'ledger matches an admin account; stop and check by hand' using errcode='55000'; end if;
+  if r.email is not null and exists(select 1 from classroom_private.directors where email=lower(r.email)) then
+   raise exception 'restored member is on the director roster; the organization owner must clean the roster first' using errcode='55000'; end if;
+  update classroom_private.audit set target='erased' where target<>'erased' and (target=r.id::text or (r.email is not null and lower(target)=lower(r.email)));
+  delete from classroom_private.series_entitlements where user_id=r.id;
+  delete from classroom_private.code_attempts where user_id=r.id;
+  delete from auth.users where id=r.id;
   n:=n+1;
  end loop;
  update classroom_private.audit a set target='erased' where a.target<>'erased' and exists(
   select 1 from classroom_private.erasure_ledger l where l.id_hash=classroom_private.erasure_hash(a.target) or l.email_hash=classroom_private.erasure_hash(a.target));
  return n;
 end $$;
-revoke all on function classroom_private.export_erasure_ledger(), classroom_private.import_erasure_ledger(jsonb), classroom_private.apply_erasure_ledger() from public,anon,authenticated;
+
+-- How many ledger members are still present after a restore (must be 0 once apply has run).
+create function classroom_private.erasure_ledger_pending() returns int
+ language sql security definer set search_path='' as $$
+ select count(*)::int from auth.users u join classroom_private.erasure_ledger l on l.id_hash=classroom_private.erasure_hash(u.id::text) $$;
+revoke all on function classroom_private.export_erasure_ledger(), classroom_private.import_erasure_ledger(jsonb), classroom_private.apply_erasure_ledger(), classroom_private.erasure_ledger_pending() from public,anon,authenticated;
 
 commit;

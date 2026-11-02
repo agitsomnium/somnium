@@ -9,3 +9,9 @@ https://drive.google.com/file/d/1p33N1QQ_BPW-NiH5Cwm0EZ-CeQ9czx24/view
 SHA256 `788d674c838c3406b1ac5af569938fdec81024fb70dab065da8880fbac0fc0c9`.
 
 Encryption passphrase remains only in macOS Keychain service `somnium-classroom-backup-20261102`; never include its value in documents, terminal output or model inputs. A second authorized custodian and institution-owned secret vault have not been designated. A future operator must arrange that handoff securely before relying on recovery without this Mac. No recurring backup scheduler was added or claimed.
+
+## Backup decryption + integrity check (not a restore test)
+`decrypt_integrity_check.py ENCRYPTED_FILE` decrypts with a hidden passphrase prompt and verifies the manifest row counts and file hashes. It restores nothing.
+
+## Erasure ledger (member deletion)
+After the erasure draft is applied, run `erasure_ledger.py --ref <project> export --out-dir <private dir> --store-dir <institution folder>` after every deletion; only an `OK export` line counts. After restoring any backup, run `erasure_ledger.py --ref <project> apply --file <stored ledger>`; only an `OK apply` line counts. `verify` checks a stored file against the live database. Any `FAILED` line means not done. The ledger holds one-way hashes only.
