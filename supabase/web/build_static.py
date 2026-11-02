@@ -29,7 +29,7 @@ HEADERS = f"""/*
 """
 
 
-def build(config_path, out, guide='review', profile='minimal', reviewers=()):
+def build(config_path, out, guide='review', profile='minimal', reviewers=(), public=False):
     private = json.loads(Path(config_path).read_text())
     if private.get('url') != 'https://jdfrottxrdhglxtqvtyx.supabase.co' or not private.get('publishableKey', '').startswith('sb_publishable_'):
         raise ValueError('Expected Somnium test project and publishable client key')
@@ -55,6 +55,8 @@ def build(config_path, out, guide='review', profile='minimal', reviewers=()):
     config = {k: private[k] for k in ('url', 'publishableKey')}
     # UI review restriction only; real access control is the host's Access policy plus Auth/RLS.
     config['testEmails'] = sorted({'agit.somnium@gmail.com', *reviewers})
+    if public:
+        config['openSignup'] = True  # public site: any e-mail may sign up; membership still needs a supporter confirmation or a series code
     config['profileMode'] = profile
     (out / 'runtime-config.json').write_text(json.dumps(config))
     (out / '_headers').write_text(HEADERS)
@@ -68,6 +70,9 @@ if __name__ == '__main__':
     ap.add_argument('--guide', choices=['review', 'public'], default='review')
     ap.add_argument('--profile', choices=['current', 'minimal'], default='minimal')
     ap.add_argument('--reviewer', action='append', default=[])
+    ap.add_argument('--public', action='store_true', help='open sign-up to any e-mail (production host); requires --guide public')
     a = ap.parse_args()
-    for name in build(a.config, a.out, a.guide, a.profile, a.reviewer):
+    if a.public and a.guide != 'public':
+        ap.error('--public requires --guide public')
+    for name in build(a.config, a.out, a.guide, a.profile, a.reviewer, a.public):
         print(name)

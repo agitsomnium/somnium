@@ -35,7 +35,7 @@
       "when": "2024년",
       "theme": "페미니즘 정치신학, 롤스, 독일 정치신학, 칼 슈미트, 벤야민, 칸토로비치를 차례로 다룹니다.",
       "lecturers": "최순양 · 정태창 · 박성철 · 홍철기 · 고지현 · 홍용진",
-      "permission": "pending"
+      "permission": "public"
     },
     {
       "key": "spectrum",
@@ -43,7 +43,7 @@
       "when": "2021년",
       "theme": "68혁명, 푸코, 데리다, 들뢰즈, 랑시에르, 발리바르, 지젝에서 스피노자, 버틀러까지 현대 정치철학자를 한 사람씩 만납니다.",
       "lecturers": "허경 · 민승기 · 김재인 · 주형일 · 진태원 · 이택광 · 하상복 · 조현준 외",
-      "permission": "pending"
+      "permission": "public"
     },
     {
       "key": "theology-social-theory",
@@ -51,7 +51,7 @@
       "when": "2021~2022년",
       "theme": "정치학, 한국정치, 부르디외, 칼 슈미트, 벤야민과 메시아니즘 등 신학이 정치사회이론과 만나는 자리를 살핍니다.",
       "lecturers": "박상훈 · 서복경 · 이상길 · 김항 · 한상원 외",
-      "permission": "pending"
+      "permission": "public"
     },
     {
       "key": "east-asia",
@@ -59,7 +59,7 @@
       "when": "2021년",
       "theme": "한국·중국·일본의 근대사회 형성과 기독교의 관계를 나라별로 짚어 봅니다.",
       "lecturers": "옥성득 · 김건우 · 오동일 · 홍이표",
-      "permission": "pending"
+      "permission": "public"
     },
     {
       "key": "earlier",

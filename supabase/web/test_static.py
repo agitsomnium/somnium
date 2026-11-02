@@ -39,6 +39,19 @@ class StaticPackage(unittest.TestCase):
         css = (out / 'member.css').read_text()
         self.assertIn('@media (max-width:480px){.site-header .site-nav{flex-wrap:wrap', css)
 
+    def test_public_build_opens_signup_and_has_no_review_wording(self):
+        out, files = self.build(guide='public', profile='current', public=True)
+        cfg = json.loads((out / 'runtime-config.json').read_text())
+        self.assertIs(cfg['openSignup'], True)
+        self.assertEqual(cfg['profileMode'], 'current')
+        html = (out / 'index.html').read_text(encoding='utf-8')
+        for word in ('가상 정보', 'trial-banner', '검토 문안', '연결 검토'):
+            self.assertNotIn(word, html)
+        self.assertNotIn('운영진 검토본', (out / 'guide/index.html').read_text(encoding='utf-8'))
+        self.assertIn('10일 이내', html)
+        review, _ = self.build()
+        self.assertNotIn('openSignup', json.loads((review / 'runtime-config.json').read_text()))
+
     def test_runtime_config_keys_and_reviewers(self):
         out, _ = self.build(reviewers=['reviewer@example.test'])
         cfg = json.loads((out / 'runtime-config.json').read_text())

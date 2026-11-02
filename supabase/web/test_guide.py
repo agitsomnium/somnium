@@ -16,7 +16,12 @@ from serve import handler
 WEB = Path(__file__).resolve().parent
 DATA_JSON = json.loads(DATA.read_text(encoding='utf-8'))
 MEDIA = re.compile(r'(youtu\.be/|youtube\.com/|vimeo\.com/|i\.ytimg\.com|\.pdf)', re.I)
-PENDING_NAMES = [n.split(' 외')[0] for s in DATA_JSON['series'] if s['permission'] != 'public' for n in s['lecturers'].split(' · ') if n]
+# 2026-11-02: the operator decided that lecturer names within the already-published introductions are shown; no series is pending now.
+# The pending mechanism (drop in public, badge in review) stays and is tested on a copy where one series is marked pending.
+SAMPLE = copy.deepcopy(DATA_JSON)
+SAMPLE['series'][1]['permission'] = 'pending'
+PENDING_NAMES = [n.split(' 외')[0] for s in SAMPLE['series'] if s['permission'] != 'public' for n in s['lecturers'].split(' · ') if n]
+ALL_NAMES = [n.split(' 외')[0] for s in DATA_JSON['series'] for n in s['lecturers'].split(' · ') if n]
 ORDER_MARK = '처음이라면 이 순서로'
 
 
@@ -25,16 +30,23 @@ def text_of(html):
 
 
 class GuideRender(unittest.TestCase):
-    def test_public_drops_pending_lecturers_and_keeps_public_one(self):
+    def test_public_shows_all_introduced_lecturers_now(self):
         html = render(DATA_JSON, 'public')
+        self.assertGreater(len(ALL_NAMES), 10)
+        for name in ALL_NAMES:
+            self.assertIn(name, html)
+        self.assertNotIn('badge', html)
+
+    def test_public_drops_pending_lecturers_and_keeps_public_one(self):
+        html = render(SAMPLE, 'public')
         self.assertTrue(PENDING_NAMES)
         for name in PENDING_NAMES:
             self.assertNotIn(name, html)
         self.assertIn('정용택', html)
 
     def test_review_marks_every_pending_series(self):
-        html = render(DATA_JSON, 'review')
-        pending = [s for s in DATA_JSON['series'] if s['permission'] != 'public' and s['lecturers']]
+        html = render(SAMPLE, 'review')
+        pending = [s for s in SAMPLE['series'] if s['permission'] != 'public' and s['lecturers']]
         self.assertEqual(html.count('강사 공개 허락 확인 전'), len(pending))
         for name in PENDING_NAMES:
             self.assertIn(name, html)
@@ -108,8 +120,9 @@ class GuideServedFromCleanBuild(unittest.TestCase):
             self.build(dist, 'public')
             status, body = self.get(self.serve(dist, 'public'), '/guide/')
             self.assertEqual(status, 200)
-            for name in PENDING_NAMES:
-                self.assertNotIn(name, body)
+            for name in ALL_NAMES:
+                self.assertIn(name, body)
+            self.assertNotIn('운영진 검토본', body)
             self.assertNotIn(ORDER_MARK, body)
             self.assertNotIn('badge', body)
             self.assertEqual(self.get(self.serve(dist, 'review'), '/guide/')[0], 404)
@@ -117,8 +130,8 @@ class GuideServedFromCleanBuild(unittest.TestCase):
     def test_public_server_never_falls_back_to_leftover_review_file(self):
         with tempfile.TemporaryDirectory() as dist:
             self.build(dist, 'all')
-            self.assertNotIn(PENDING_NAMES[0], self.get(self.serve(dist, 'public'), '/guide/')[1])
-            self.assertIn(PENDING_NAMES[0], self.get(self.serve(dist, 'review'), '/guide/')[1])
+            self.assertNotIn('운영진 검토본', self.get(self.serve(dist, 'public'), '/guide/')[1])
+            self.assertIn('운영진 검토본', self.get(self.serve(dist, 'review'), '/guide/')[1])
 
     def test_empty_build_is_404_not_stale(self):
         with tempfile.TemporaryDirectory() as dist:

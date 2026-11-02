@@ -99,9 +99,11 @@ function form(id, fn) {
     run(e.submitter, () => fn(new FormData(e.target)));
   };
 }
+// Review hosts restrict the UI to listed e-mails; the public build sets openSignup and lets any e-mail sign up (Auth/RLS still decide access).
+const emailAllowed = (email) => config.openSignup === true || config.testEmails.includes(email);
 async function send() {
   const email = targetEmail;
-  if (!config.testEmails.includes(email)) throw new Error("현재는 지정된 검토 이메일만 이용할 수 있습니다.");
+  if (!emailAllowed(email)) throw new Error("현재는 지정된 검토 이메일만 이용할 수 있습니다.");
   if (Date.now() - lastSend < 6e4) throw new Error("인증번호 요청 후 1분을 기다려 주세요.");
   const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: signup } });
   if (error) throw new Error(safeError(error));
@@ -119,7 +121,7 @@ form("login-form", async (f) => {
 });
 $("existing-otp").onclick = () => {
   targetEmail = String($("login-form").elements.email.value).trim().toLowerCase();
-  if (!config.testEmails.includes(targetEmail)) {
+  if (!emailAllowed(targetEmail)) {
     notice("검토 이메일을 입력해 주세요.");
     return;
   }
@@ -135,7 +137,7 @@ form("otp-form", async (f) => {
   if (error) throw new Error(safeError(error));
   show("otp-panel", false);
   await refresh();
-  notice(me ? "로그인했습니다." : "이메일이 확인됐습니다. 가상 정보로 가입을 완료해 주세요.");
+  notice(me ? "로그인했습니다." : "이메일이 확인됐습니다. 가입 정보를 입력해 주세요.");
 });
 $("resend").onclick = () => run($("resend"), send);
 setInterval(() => {
