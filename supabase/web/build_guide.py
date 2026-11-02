@@ -41,7 +41,7 @@ def render(data, mode):
     add('<header class="site-header"><div class="header-inner"><a class="logo" href="https://somniumagit.com">'
         '<img src="/assets/somnium_wordmark_on_paper.svg" width="75" height="48" alt="솜니움">'
         '<span>솜니움<br>기독교정치사회연구소</span></a><nav class="site-nav" aria-label="주요 메뉴">'
-        '<a class="classroom-link" href="/guide/" aria-current="page">후원회원 안내</a><a href="/">강의실 로그인</a>'
+        '<a class="classroom-link" href="/guide/" aria-current="page">후원회원 안내</a><a href="/?entry=login#entry">강의실 로그인</a>'
         '<a href="https://somniumagit.com/participate/">참여·후원</a></nav></div></header>')
     add('<main class="container guide" id="main">')
     add(f'<div class="intro"><p class="eyebrow">{esc(hero["eyebrow"])}</p><h1>{paragraphs(hero["title"])}</h1>'
