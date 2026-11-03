@@ -48,13 +48,13 @@ class TextFixes(unittest.TestCase):
         self.assertNotIn('<span>감사</span>', b)
         people = (ROOT / 'content' / 'people.md').read_text(encoding='utf-8')
         for t in ('김민수 · 1기 대표 (2017~2025)', '정혜진 · 오지훈 간사 (2017~2020, 창립 때부터)',
-                  '2025년부터 대표', '오수연 간사 (2021년 선임)', '2025년 2월~2026년 3월',
+                  '오수연 간사 (2021~2022)', '김동환 간사 (2020년 10월 선임, 2021~2022 활동)', '최현정 간사 (2022년 3월 선임)', '2025년 2월~2026년 3월',
                   '최지은 간사 (2026년 9월~)', '2026년 9월 2일 이사회'):
             self.assertIn(t, people)
         # 시트에 옛 문장이 남아 있어도 교정.json 으로 같은 결과가 나온다
         self.assertIn('김민수 · 1기 대표 (2017~2025)', build._corrected('people', '- 김민수 · 1기 대표 (2017~2024)'))
-        hist = build._corrected('history', '2월 이수경 연구원 합류.')
-        self.assertIn('합류(2026년 3월까지).', hist)
+        hist = build._corrected('history', '2025년 1월: 김동환 대표 부임. 2월 이수경 연구원 합류.')
+        self.assertIn('2025년 1월 31일: 김동환 대표 부임. 2월 이수경 연구원 합류(2026년 3월까지).', hist)
         h = (ROOT / 'content' / 'history.md').read_text(encoding='utf-8')
         self.assertIn('2026년 3월: 이수경 연구원 활동 마무리.', h)
 
