@@ -128,7 +128,7 @@ h1,h2,.pz-display,.page-intro h1,.reading-body h2,.content-section h2,.resources
 .news-strip{margin-top:56px}
 .pz-month h2{font-size:36px}
 .pz-month.is-now h2{color:var(--feat)}
-.news-kind,.yt-kicker,.yt-series-tag,.pz-kicker{color:var(--navy)}
+.news-kind,.yt-kicker,.yt-series-tag,.pz-kicker{color:var(--accent)}
 
 /* 영상: 쪽빛 띠 */
 main.container>.yt-section.band-navy{padding:72px 0 80px;margin-top:80px}
@@ -174,3 +174,9 @@ main.container>.yt-section.band-navy{padding:72px 0 80px;margin-top:80px}
 /* 폭 900px 안팎에서 로고 글자·계좌 «복사» 단추가 세로로 꺾이지 않게 */
 .logo span{white-space:nowrap}
 .acct-copy,.pay-copy{white-space:nowrap}
+
+/* 첫 방문자도 가로 메뉴를 밀지 않고 강의실·로그인으로 진입 */
+.classroom-entry{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:8px 0}
+.classroom-entry a{font-size:14px;font-weight:800;min-height:44px;display:inline-flex;align-items:center;color:var(--accent)}
+.classroom-entry a:first-child{background:var(--navy);color:var(--feat);padding:0 14px}
+@media (max-width:760px){.classroom-entry{gap:20px;padding:4px 0 8px}}

@@ -240,8 +240,8 @@ def program_page(tables, content, md, base=''):
         for r in ended_books:
             name = g(r, '도서').strip() or g(r, '제목').strip()
             when = fmt_days(g(r, '날짜').strip()) if g(r, '날짜').strip() else ''
-            out.append('<li><span class="title">%s</span> <span class="archive-state">%s</span></li>'
-                       % (e(name), e(' · '.join(x for x in (when, '종료') if x))))
+            out.append('<li id="book-%s"><span class="title">%s</span> <span class="archive-state">%s</span></li>'
+                       % (e(g(r, 'id').strip()), e(name), e(' · '.join(x for x in (when, '종료') if x))))
         out.append('</ul></details>')
     out.append('</section>')
 

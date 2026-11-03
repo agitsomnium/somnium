@@ -156,6 +156,34 @@ class OpsTest(unittest.TestCase):
             self.assertIn("data-theme-switch",body)
             self.assertIn("/somnium/assets/theme.js",body)
 
+    def test_ended_bookclub_calendar_target_survives_without_signup(self):
+        from html.parser import HTMLParser
+        class Elements(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.ids, self.links = set(), []
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                if 'id' in attrs:
+                    self.ids.add(attrs['id'])
+                if tag == 'a':
+                    self.links.append(attrs.get('href', ''))
+        self.tables['북클럽'] = [{
+            'id': 'book-october', '제목': '10월 북클럽', '도서': '손절사회',
+            '날짜': '2026-10-20;2026-10-27', '시간': '19:00', '상태': '종료',
+            '공개': '예', '신청_url': 'https://forms.gle/EndedDoNotApply',
+        }]
+        with mock.patch.dict(os.environ, {'SITE_TODAY': '2026-11-04'}):
+            self.run_build()
+        page = (self.output / 'programs/index.html').read_text()
+        elements = Elements()
+        elements.feed(page)
+        self.assertIn('book-book-october', elements.ids)
+        self.assertIn('종료', page)
+        self.assertNotIn('https://forms.gle/EndedDoNotApply', elements.links)
+        home = (self.output / 'index.html').read_text()
+        self.assertIn('/somnium/programs/#book-book-october', home)
+
     def test_reject_preserves_output(self):
         self.run_build()
         baseline_hash = _hash_tree(self.output)

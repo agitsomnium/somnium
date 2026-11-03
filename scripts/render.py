@@ -42,7 +42,7 @@ def shell(title, body, base='', theme='b', preview=False):
     t = e(title)
     nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('오시는 길', '/about/#visit'), ('참여·후원', '/participate/')]
     navhtml = ''.join(f'<a href="{base}{h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
-    navhtml += '<a href="https://somnium-classroom.pages.dev/guide/">후원회원 강의실</a><a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고</a>'
+    navhtml += '<a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고</a>'
     page_navigation = '' if title == '홈' else (
         f'<nav class="page-navigation" aria-label="페이지 이동"><button type="button" data-page-back data-back-home="{base}/">← 뒤로가기</button><a href="{base}/">홈으로</a></nav>\n')
     banner = '<div class="preview-banner">검토용 / 프로그램 일정과 신청 안내를 확인하고 있습니다</div>' if preview else ''
@@ -75,7 +75,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <header class="site-header">
 <div class="header-inner">
 <a class="logo" href="{base}/"><img src="{base}/assets/somnium_wordmark_on_paper.svg" alt="솜니움" width="874" height="560"><span>솜니움<br>기독교정치사회연구소</span></a>
-<div class="header-actions"><nav class="site-nav" aria-label="주요 메뉴">{navhtml}</nav>
+<div class="header-actions"><div class="classroom-entry" aria-label="강의실 바로가기"><a href="https://somnium-classroom.pages.dev/guide/">후원회원 강의실</a><a href="https://somnium-classroom.pages.dev/?entry=login#entry">로그인</a></div><nav class="site-nav" aria-label="주요 메뉴">{navhtml}</nav>
 <div class="theme-switch hidden" data-theme-switch role="group" aria-label="화면 밝기"><button type="button" data-theme-choice="a" aria-pressed="false">어둡게</button><button type="button" data-theme-choice="b" aria-pressed="false">밝게</button></div></div>
 </div>
 </header>
