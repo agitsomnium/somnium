@@ -348,8 +348,12 @@ def board_frame():
     cells = []
     for s in seats:
         name = s.get('이름', '').strip()
+        if not name:  # 명단이 정해지지 않은 자리는 «정리 중» 칸을 내지 않고 숨긴다
+            continue
         cells.append('<div class="board-seat"><span>%s</span><strong>%s</strong></div>'
-                     % (e(s.get('자리', '')), e(name) if name else '<em>명단 정리 중</em>'))
+                     % (e(s.get('자리', '')), e(name)))
+    if not cells:
+        return ''
     return '<div class="board-grid">' + ''.join(cells) + '</div>'
 
 

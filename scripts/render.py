@@ -43,6 +43,8 @@ def shell(title, body, base='', theme='b', preview=False):
     nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('오시는 길', '/about/#visit'), ('참여·후원', '/participate/')]
     navhtml = ''.join(f'<a href="{base}{h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
     navhtml += '<a href="https://somnium-classroom.pages.dev/guide/">후원회원 강의실</a><a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고</a>'
+    page_navigation = '' if title == '홈' else (
+        f'<nav class="page-navigation" aria-label="페이지 이동"><button type="button" data-page-back data-back-home="{base}/">← 뒤로가기</button><a href="{base}/">홈으로</a></nav>\n')
     banner = '<div class="preview-banner">검토용 / 프로그램 일정과 신청 안내를 확인하고 있습니다</div>' if preview else ''
     return f'''<!DOCTYPE html>
 <html lang="ko" class="theme-{e(theme)}">
@@ -77,8 +79,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <div class="theme-switch hidden" data-theme-switch role="group" aria-label="화면 밝기"><button type="button" data-theme-choice="a" aria-pressed="false">어둡게</button><button type="button" data-theme-choice="b" aria-pressed="false">밝게</button></div></div>
 </div>
 </header>
-<nav class="page-navigation" aria-label="페이지 이동"><button type="button" data-page-back data-back-home="{base}/">← 뒤로가기</button><a href="{base}/">홈으로</a></nav>
-<main class="container" id="main">
+{page_navigation}<main class="container" id="main">
 {body}
 {_page_steps(title, base, nav)}
 </main>

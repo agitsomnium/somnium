@@ -66,10 +66,21 @@ def main(out_dir='data/live'):
         old = []
     known = {r.get('id') for r in old}
     new = [v for v in videos if v['id'] not in known]
-    if new:
+    # 유튜브에서 제목을 고친 영상은 누적 목록의 옛 제목도 따라 고친다(오타 제목이 굳지 않게)
+    latest = {v['id']: v['title'] for v in videos}
+    renamed = 0
+    for r in old:
+        t = latest.get(r.get('id'))
+        if t and t != r.get('title'):
+            r['title'] = t
+            renamed += 1
+    if new or renamed:
         cat.parent.mkdir(parents=True, exist_ok=True)
         cat.write_text(json.dumps(new + old, ensure_ascii=False, indent=1), encoding='utf-8')
-        print('누적 영상 목록에 %d개 추가' % len(new))
+        if new:
+            print('누적 영상 목록에 %d개 추가' % len(new))
+        if renamed:
+            print('누적 영상 목록의 제목 %d개를 유튜브 제목으로 고침' % renamed)
     return 0
 
 

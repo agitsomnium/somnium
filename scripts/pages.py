@@ -321,6 +321,31 @@ def resources_page(tables, base=''):
                '<p>강의의 주요 내용과 토론의 질문을 글로 남깁니다. 정리글은 강사 확인을 거쳐 공개합니다.</p></section>')
     return '\n'.join(out)
 
+def bookclub_labels(rows):
+    """북클럽 (줄, 보일 이름) 목록을 날짜순으로. «11월 북클럽 1/2» 같은 번호는 날짜 차례로 다시 매기고,
+    책 제목(도서 칸)이 있으면 『책』을 덧붙인다."""
+    def first_day(r):
+        return (str(r.get('날짜') or '').split(';')[0]).strip() or '9999-12-31'
+    ordered = sorted(rows, key=first_day)
+    stem = lambda r: re.match(r'^(\d+월 북클럽)(?:\s*\d+)?$', str(r.get('제목') or '').strip())
+    groups = {}
+    for r in ordered:
+        m = stem(r)
+        if m:
+            groups.setdefault(m.group(1), []).append(r)
+    out = []
+    for r in ordered:
+        title = str(r.get('제목') or '').strip()
+        m = stem(r)
+        if m and len(groups[m.group(1)]) > 1:
+            title = '%s %d' % (m.group(1), groups[m.group(1)].index(r) + 1)
+        book = str(r.get('도서') or '').strip()
+        if book:
+            title = '%s · 『%s』' % (title, book)
+        out.append((r, title))
+    return out
+
+
 def participate_page(tables, content, md, base=''):
     out = [page_intro('참여·후원', '함께 공부하는 자리와 연구소의 다음 활동을 이어 주세요.', base)]
     out.append('<nav class="page-toc"><a href="#join">프로그램 참여</a> '
@@ -345,12 +370,12 @@ def participate_page(tables, content, md, base=''):
             li += ' <a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의</a>'
         li += '</li>'
         items.append(li)
-    for b in public_rows(tables, '북클럽') or []:
+    for b, label in bookclub_labels(public_rows(tables, '북클럽') or []):
         state = b.get('상태')
         if state not in active:
             continue
         bid = b.get('id')
-        title = b.get('제목')
+        title = label
         if bid in (None, '') or not title:
             continue
         url = b.get('신청_url')

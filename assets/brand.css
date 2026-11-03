@@ -171,3 +171,6 @@ main.container>.yt-section.band-navy{padding:72px 0 80px;margin-top:80px}
 .yt-grid.yt-grid-4{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;margin-top:18px}
 .yt-grid-4 .yt-card strong{font-size:15px}
 @media (max-width:760px){.yt-grid.yt-grid-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}}
+/* 폭 900px 안팎에서 로고 글자·계좌 «복사» 단추가 세로로 꺾이지 않게 */
+.logo span{white-space:nowrap}
+.acct-copy,.pay-copy{white-space:nowrap}

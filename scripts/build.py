@@ -35,13 +35,27 @@ PAGE_DESC = {
 LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
 
 
-def _inline(text):
+BOLD_RE = re.compile(r"\*\*(?=\S)(.+?)(?<=\S)\*\*")
+
+
+def _links(text):
     out, pos = [], 0
     for m in LINK_RE.finditer(text):
         out.append(html.escape(text[pos:m.start()]))
         out.append('<a href="%s">%s</a>' % (html.escape(m.group(2), quote=True), html.escape(m.group(1))))
         pos = m.end()
     out.append(html.escape(text[pos:]))
+    return "".join(out)
+
+
+def _inline(text):
+    """링크 [글](주소)와 **굵게**만 읽는다."""
+    out, pos = [], 0
+    for m in BOLD_RE.finditer(text):
+        out.append(_links(text[pos:m.start()]))
+        out.append("<strong>%s</strong>" % _links(m.group(1)))
+        pos = m.end()
+    out.append(_links(text[pos:]))
     return "".join(out)
 
 
@@ -83,6 +97,18 @@ def markdown(text):
 def _read(path):
     p = ROOT / "content" / path
     return p.read_text(encoding="utf-8") if p.is_file() else ""
+
+
+def _corrected(page, text):
+    """content/교정.json 의 «옛 문장 → 고친 문장»을 쪽 글에 적용한다(시트 본문에 옛 문장이 남아 있을 때)."""
+    try:
+        fixes = json.loads(_read("교정.json") or "{}").get("고침", [])
+    except ValueError:
+        return text
+    for f in fixes:
+        if f.get("page") == page and f.get("old") and f["old"] in text:
+            text = text.replace(f["old"], f.get("new", ""))
+    return text
 
 
 def _write(path, text):
@@ -173,7 +199,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
             sdesc = ' '.join(x for x in (s.get('제목', ''), s.get('부제', ''), (s.get('소개') or '').split('\n')[0]) if x)
             sev = [ev for ev in events if ('seminars/%s/' % sid) in ev.get('url', '')]
             _page(stage, 'seminars/%s/index.html' % sid, s.get('제목', '세미나'), body, base, theme, preview, sdesc, sev)
-        content = {name: page_over.get(name[:-3]) or _read(name) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md','people.md')}
+        content = {name: _corrected(name[:-3], page_over.get(name[:-3]) or _read(name)) for name in ('about.md','board.md','history.md','visit.md','lectures.md','agit.md','participate.md','archive.md','people.md')}
         for slug, title, body in (
             ('about', '연구소 소개', about_page(content, markdown, base)),
             ('programs', '프로그램', program_page(tables, content, markdown, base)),

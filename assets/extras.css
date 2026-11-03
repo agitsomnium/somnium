@@ -43,7 +43,7 @@
 .acct-num{margin-top:10px;font-size:clamp(20px,2.4vw,28px);font-variant-numeric:tabular-nums}
 .acct-num strong{font-weight:800;letter-spacing:.01em}
 .acct-holder{margin-top:6px;color:var(--muted);font-size:14px}
-.acct-copy{margin-top:14px;min-height:44px;padding:8px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);font:inherit;font-weight:800;cursor:pointer}
+.acct-copy{white-space:nowrap;flex:none;margin-top:14px;min-height:44px;padding:8px 16px;border:1px solid var(--accent);background:transparent;color:var(--accent);font:inherit;font-weight:800;cursor:pointer}
 .acct-copy:hover,.acct-copy:focus-visible{background:var(--accent);color:var(--feature-ink)}
 .acct-cms{margin-top:24px}
 .acct-note{margin-top:16px;color:var(--muted);font-size:14px}
