@@ -214,6 +214,9 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
         assets_src = Path(ROOT) / 'assets'
         if assets_src.is_dir():
             shutil.copytree(str(assets_src), str(stage / 'assets'))
+        social_images = Path(ROOT) / 'data' / 'catalog' / 'instagram-images'
+        if social_images.is_dir():
+            shutil.copytree(social_images, stage / 'assets' / 'instagram')
         _page(stage, '404.html', '찾을 수 없음', '<div class="prose"><h1>페이지를 찾을 수 없습니다</h1><p>메뉴에서 원하시는 자료를 찾아 주세요.</p></div>', base, theme, preview)
         _write(stage / '.nojekyll', '')
         _write(stage / 'robots.txt', seo.robots_txt())

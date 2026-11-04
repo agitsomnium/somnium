@@ -6,7 +6,7 @@ from html import escape as e
 from pathlib import Path
 
 from data import public_rows
-from fetch_social import is_short_video, clip
+from fetch_social import is_short_video, clip, cached_image
 from fetch_youtube import is_short
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -295,7 +295,12 @@ def post_image(post, base=''):
     local = {'DeylqA_hGrj': 'bookclub-love-poster.jpg',
              'Dev3vMGBHKg': 'bookclub-close-poster.jpg',
              'DebdXlrhQaQ': 'sonjeol.webp'}
-    return base + '/assets/' + local[shortcode] if shortcode in local else post.get('image', '')
+    if shortcode in local:
+        return base + '/assets/' + local[shortcode]
+    saved = cached_image(post)
+    if saved:
+        return base + '/assets/instagram/' + saved.name
+    return base + '/assets/somnium_wordmark_on_navy.svg'
 
 
 def news_strip(insta, limit=6, base=''):

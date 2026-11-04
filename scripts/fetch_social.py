@@ -53,10 +53,61 @@ def normalize(data):
     return out
 
 
+def post_shortcode(post):
+    path = urlsplit(str(post.get('link', ''))).path.strip('/').split('/')
+    return path[-1] if len(path) == 2 and path[0] == 'p' and re.fullmatch(r'[A-Za-z0-9_-]{1,80}', path[-1]) else ''
+
+
+def cached_image(post):
+    code = post_shortcode(post)
+    if code:
+        for suffix in ('.jpg', '.png', '.webp'):
+            path = ROOT / 'data' / 'catalog' / 'instagram-images' / (code + suffix)
+            if path.is_file() and path.stat().st_size:
+                return path
+    return None
+
+
+def cache_images(posts):
+    # Bound work to the six photos shown on the site, preserving already saved originals.
+    photos = [p for p in posts if isinstance(p, dict) and not is_short_video(p)][:6]
+    for post in photos:
+        code = post_shortcode(post)
+        if not code or cached_image(post):
+            continue
+        url = str(post.get('image', ''))
+        host = urlsplit(url).hostname or ''
+        if not url.startswith('https://') or not (host == 'behold.pictures' or host.endswith(('.cdninstagram.com', '.fbcdn.net'))):
+            continue
+        try:
+            request = urllib.request.Request(url, headers={'User-Agent': 'somnium-site'})
+            with urllib.request.urlopen(request, timeout=15) as response:
+                data = response.read(5 * 1024 * 1024 + 1)
+            if len(data) > 5 * 1024 * 1024:
+                raise ValueError('image exceeds 5MB')
+            if data.startswith(b'\xff\xd8\xff'):
+                suffix = '.jpg'
+            elif data.startswith(b'\x89PNG\r\n\x1a\n'):
+                suffix = '.png'
+            elif data[:4] == b'RIFF' and data[8:12] == b'WEBP':
+                suffix = '.webp'
+            else:
+                raise ValueError('not a supported image')
+            folder = ROOT / 'data' / 'catalog' / 'instagram-images'
+            folder.mkdir(parents=True, exist_ok=True)
+            target = folder / (code + suffix)
+            temporary = target.with_suffix('.tmp')
+            temporary.write_bytes(data)
+            temporary.replace(target)
+        except Exception as exc:
+            print('인스타 이미지 보관 실패 %s (%s) — 기본 표지 사용' % (code, type(exc).__name__))
+
+
 def _fallback(target):
     """새로 못 받으면 누적 목록을 그대로 쓴다(없으면 빈 목록)."""
     catalog = ROOT / 'data' / 'catalog' / 'instagram.json'
     if catalog.exists():
+        cache_images(json.loads(catalog.read_text(encoding='utf-8')))
         target.write_text(catalog.read_text(encoding='utf-8'), encoding='utf-8')
     elif not target.exists():
         target.write_text('[]', encoding='utf-8')
@@ -88,6 +139,7 @@ def main(out_dir='data/live'):
     merged = posts + [p for p in old if isinstance(p, dict) and p.get('link') not in seen]
     merged.sort(key=lambda p: p.get('date', ''), reverse=True)
     merged = merged[:80]
+    cache_images(merged)
     catalog.parent.mkdir(parents=True, exist_ok=True)
     catalog.write_text(json.dumps(merged, ensure_ascii=False, indent=1), encoding='utf-8')
     target.write_text(json.dumps(merged, ensure_ascii=False, indent=1), encoding='utf-8')
