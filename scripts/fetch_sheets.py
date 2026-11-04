@@ -6,6 +6,8 @@ import os
 import shutil
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -51,11 +53,25 @@ def fetch_csv(url):
     if not _valid_url(url):
         raise ValueError("invalid spreadsheet CSV URL")
     req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        ctype = (resp.headers.get("Content-Type") or "").lower()
-        if "html" in ctype or "text/html" in ctype:
-            raise ValueError("unexpected HTML response")
-        data = resp.read(MAX_BYTES + 1)
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                ctype = (resp.headers.get("Content-Type") or "").lower()
+                if "html" in ctype:
+                    raise ValueError("unexpected HTML response")
+                data = resp.read(MAX_BYTES + 1)
+            break
+        except (TimeoutError, urllib.error.URLError) as exc:
+            if isinstance(exc, urllib.error.HTTPError) and not (
+                exc.code in (408, 429) or 500 <= exc.code < 600
+            ):
+                raise
+            if attempt == 3:
+                raise
+            delay = 2 ** attempt
+            print(f"CSV download failed ({type(exc).__name__}); "
+                  f"retry {attempt + 1}/3 in {delay}s", file=sys.stderr)
+            time.sleep(delay)
     if len(data) > MAX_BYTES:
         raise ValueError("response exceeds 5MB")
     if not data:
@@ -108,7 +124,10 @@ def fetch_all(config_path, outdir):
     success = False
     try:
         for k in list(SCHEMA) + [k for k in OPTIONAL_SCHEMA if config.get(k)]:
-            text = fetch_csv(config[k])
+            try:
+                text = fetch_csv(config[k])
+            except Exception as exc:
+                raise RuntimeError(f"{k}: {exc}") from exc
             with open(tmp / (k + ".csv"), "w", encoding="utf-8", newline="") as f:
                 f.write(text)
         validate(load_tables(tmp), lenient=True)
