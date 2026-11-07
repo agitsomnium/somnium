@@ -9,10 +9,10 @@
 - 알림은 비공개 outbox와 서버 요청, 브라우저 보조 요청을 사용한다. 동시 요청은 1분 간격으로 제한한다. 성공한 알림은 다시 발송하지 않는다. 실패 시 대기 상태를 유지하고 관리자가 「신청 알림 다시 보내기」를 사용할 수 있다. 메일 실패는 강의 이용 승인을 취소하지 않는다.
 - Edge Function은 JWT를 직접 검증하고 본인 신청 또는 관리자 요청만 허용한다. 일반 회원에게 queue RPC 권한은 없다. SMTP 자격은 플랫폼 secret에만 둔다. Auth 설정 조회로 받은 SMTP 비밀번호를 재사용 가능한 원문이라고 가정하지 않는다.
 
-## 현재 배포와 남은 일
+## 배포와 검증
 
 20261107041035 migration을 원격 SQL로 적용했다. 기존 프로젝트와 동일하게 native migration history에는 등록하지 않았으므로 `db push`로 재적용하지 않는다. 실제 신청 1명은 사용자 지시에 따라 신청 기준으로 승인했으며 납부 확인 칸은 비워 두었다. 원본 회원 정보는 이 문서에 복사하지 않는다.
 
-발송은 Gmail SMTP의 AUTH PLAIN에서 535로 거부됐다. 따라서 이메일 알림 연결은 아직 완료가 아니다. agit.somnium@gmail.com의 유효한 Gmail 앱 비밀번호를 안전하게 설정한 뒤 실제 대기 알림을 발송하고 sent_at을 확인해야 한다. Supabase CLI 연결은 유효하므로 Supabase 웹 재로그인은 필요하지 않다.
+초기 Gmail SMTP 인증 오류(535)는 사용자가 생성한 앱 비밀번호를 플랫폼 secret에 직접 저장하여 해결했다. 2026-11-07 13:46:55 KST 대기 알림의 sent_at 및 sent 상태를 확인했다. faithseeking11@gmail.com 받은편지함에서 실제 수신을 조회했으며 사용자도 「메일 왔어」라고 확인했다. 비밀번호는 채팅·로컬 파일·로그에 저장하지 않았다. Supabase 웹 재로그인은 필요하지 않았다. 실제 신청 회원의 qualified·verified·계정 중지 없음 상태도 다시 확인했다.
 
 정책 회귀 시험은 supabase/tests/auto_supporter.sql을 BEGIN/ROLLBACK으로 감싸 기존 프로젝트에 실행한다. tests/access.sql은 최초 수동 승인 정책의 격리 baseline 시험이며 새 정책 시험을 대신하지 않는다.
