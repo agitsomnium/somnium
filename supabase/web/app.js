@@ -213,12 +213,13 @@ form("profile-form", async (f) => {
   await rpc(call.rpc, call.args);
   $("profile-form").reset();
   await refresh();
-  notice("일반회원 가입을 마쳤습니다. 후원 확인 전에는 회원 강의를 이용할 수 없습니다.");
+  notice("일반회원 가입을 마쳤습니다. 후원을 신청하셨다면 아래에서 후원 신청 완료를 알려 주세요.");
 });
 $("supporter-request").onclick = () => run($("supporter-request"), async () => {
   await rpc("request_supporter");
   await refresh();
-  notice("후원 확인을 요청했습니다. 관리자의 확인을 기다려 주세요.");
+  notice("강의 이용을 승인했습니다. 후원 내역은 월별 회계 정리 때 확인합니다.");
+  db.functions.invoke("supporter-notice").catch(() => {});
 });
 $("refresh").onclick = () => run($("refresh"), refresh);
 $("logout").onclick = () => run($("logout"), async () => {
@@ -368,6 +369,15 @@ async function admin(generation) {
     const supporterLine = supporterNameLine(m);
     if (supporterLine) text("p", supporterLine, row);
     text("p", `${m.suspended ? "계정 중지" : stateNames[m.supporter_state] || "일반회원"}`, row);
+    if (m.supporter_state === "qualified" && !m.checked_at) {
+      text("p", "신청 기준 이용 승인 · 월별 후원 내역 대조 전", row);
+      if (m.notice_state && m.notice_state !== "sent") action("신청 알림 다시 보내기", row, async () => {
+        const {data, error} = await db.functions.invoke("supporter-notice", {body:{user_id:m.id}});
+        if (error) throw new Error("알림을 보내지 못했습니다. 발송 계정 설정을 확인해 주세요.");
+        await refresh();
+        notice(data?.sent ? "신청 알림을 발송했습니다." : "알림 발송 대기 중입니다. 1분 후 다시 확인해 주세요.");
+      });
+    }
     const label = text("label", "", row);
     label.className = "check";
     const check = document.createElement("input");
@@ -376,7 +386,7 @@ async function admin(generation) {
     text("span", "한빛누리에서 월 1만 원 이상 후원을 확인했습니다.", label);
     const actions = text("div", "", row);
     actions.className = "actions";
-    action("후원 자격 승인", actions, async () => {
+    action(m.supporter_state === "qualified" ? "월별 후원 확인 완료" : "후원 자격 승인", actions, async () => {
       if (!check.checked) throw new Error("후원 내역 확인란을 먼저 체크해 주세요.");
       if (!confirm(`${m.name} 회원의 후원 자격을 승인할까요?`)) return;
       await rpc("review_supporter", { p_user: m.id, p_state: "qualified", p_minimum_confirmed: true });
@@ -463,7 +473,7 @@ async function loadCatalog(generation, allowed = []) {
   const plan = catalogPlan({prev:catalogSig, userId:user?.id || "public-visitor", rows, canLearn:true, rendered:$("catalog").childElementCount > 0});
   lessons = newestFirst(rows);
   show("catalog-panel", true);
-  $("catalog-help").textContent = me?.full_access ? "강의 보기와 자료 버튼으로 이용하세요." : "강의 목록은 누구나 둘러볼 수 있습니다. 영상과 자료는 후원 확인 후 이용할 수 있습니다.";
+  $("catalog-help").textContent = me?.full_access ? "강의 보기와 자료 버튼으로 이용하세요." : "강의 목록은 누구나 둘러볼 수 있습니다. 영상과 자료는 후원 신청 완료를 알린 뒤 이용할 수 있습니다.";
   if (plan.action === "render") {
     const scroll = window.scrollY, selected = $("series").value;
     $("series").replaceChildren();
@@ -526,7 +536,7 @@ async function refresh() {
     }
     $("identity").textContent = me.name + " · " + user.email;
     $("membership-state").textContent = me.suspended ? "계정 이용이 중지됐습니다." : me.full_access ? "모든 회원 강의 이용 가능" : me.can_learn ? "등록한 세미나 강의 이용 가능" : stateNames[me.supporter_state] || "일반회원";
-    show("supporter-request", !me.suspended && !me.full_access && me.supporter_state !== "pending");
+    show("supporter-request", !me.suspended && !me.full_access && ["not_requested", "pending"].includes(me.supporter_state));
     show("supporter-guide", !me.suspended && !me.full_access);
     await reportUI.load();
     if (generation !== refreshGeneration) return;
