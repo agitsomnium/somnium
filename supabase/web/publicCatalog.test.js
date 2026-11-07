@@ -18,3 +18,9 @@ test('public cover accepts only fixed local image paths, never arbitrary media U
   assert.equal(localCover('/assets/lecture-covers/12345678-1234-1234-1234-123456789abc.jpg'),true);
   for(const url of ['https://i.ytimg.com/vi/example/mqdefault.jpg','/assets/lecture-covers/../../secret.jpg','javascript:alert(1)',null]) assert.equal(localCover(url),false);
 });
+
+test('signed-in playback metadata preserves the designed local public cover',()=>{
+ const path='/assets/lecture-covers/12345678-1234-1234-1234-123456789abc.jpg';
+ const [row]=mergeCatalog([{id:'a',thumbnail_url:path}],[{id:'a',thumbnail_url:'https://i.ytimg.com/vi/example/mqdefault.jpg',provider:'youtube'}]);
+ assert.equal(row.thumbnail_url,path);assert.equal(row.available,true);assert.equal(row.provider,'youtube');
+});
