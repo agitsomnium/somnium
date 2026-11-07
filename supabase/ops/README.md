@@ -49,3 +49,7 @@ python3 supabase/ops/sync_accounting_report.py --manifest /절대경로/manifest
 HTML도 같은 검토 manifest와 `sync_accounting_report.py`로 연동한다. **이번 사용자 범위는 `publish:false` 관리자 초안 저장까지**다. 일반 회원 게시 버튼은 사용자가 직접 누른다. 공개 정적 빌드에 실제 보고서·JSON·워크북을 넣지 않는다. HTML은 비공개 Storage에 있고, 기존 열람 RPC 및 다운로드 권한을 통과한 뒤 `allow-scripts allow-modals`만 있는 sandbox srcdoc 프레임에 표시된다. `allow-same-origin`, 외부 통신, 폼 전송은 허용하지 않는다. 부모 CSP도 번들에 고정된 보고서 스크립트·스타일의 SHA256만 허용하므로 템플릿 코드를 바꿀 때는 보기 앱도 다시 빌드·배포해야 한다. **자료만 갱신할 때는 보기 앱의 재배포가 필요 없다.**
 
 초안의 실제 금액과 거래는 외부 모델로 보내지 않고 로컬 Python으로만 집계한다. 통장 메모·계좌·연락처 열은 아예 추출하지 않는다. 이름은 마스킹하며 자유 형식 텍스트는 보수적으로 비공개로 둔다. 화면 업로드는 여전히 PDF 보조 경로다.
+
+### 강의 날짜와 목록 정렬 (2026-11-07)
+
+회원에게 게시하는 모든 강의는 `lecture_date`가 필요합니다. 실제 강의일을 행사 포스터·연혁·활동보고서 회차표로 확인하며 YouTube 업로드일·도서 출간연도를 사용하지 않습니다. 관리자 등록 화면에서 날짜를 입력하고 `somnium_save_lesson`의 `p_lecture_date` 인자를 함께 전달합니다. 공개 목록과 강의실은 개별 강의를 실제 강의일 최신순으로 표시하며, 같은 날 분할된 영상은 회차 순서를 유지합니다. 날짜 근거는 `data/lecture-dates.json`에 있습니다. 기존 자료·권한·후원 정책은 별도입니다.
