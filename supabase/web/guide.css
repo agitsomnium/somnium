@@ -28,3 +28,5 @@
 .flow p{margin:0 0 12px;color:var(--muted);line-height:1.7}
 #faq details{border-bottom:1px solid var(--line)}
 @media(max-width:700px){.two-col{grid-template-columns:1fr;gap:12px}.flow li{grid-template-columns:32px minmax(0,1fr);gap:10px}.guide-cta .cta{flex:1;justify-content:center}}
+
+.lesson-date{display:block;color:#536173;font-size:.9rem;margin-bottom:.35rem;font-variant-numeric:tabular-nums}

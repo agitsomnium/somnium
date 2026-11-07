@@ -23,3 +23,14 @@ test('a month/day inherits a year only from an unambiguous series',()=>{
 test('undated lectures in one known year use the latest recorded series order first',()=>{
  assert.deepEqual(newestFirst([row('one','2024 첫 강의','2024 시리즈',1),row('last','2024 마지막 강의','2024 시리즈',12)]).map(x=>x.id),['last','one']);
 });
+
+test('stored lecture dates place the recent Spinoza series before 2025 archive lectures',()=>{
+ const old={...row('old','2025 강의'),lecture_date:'2025-08-05'};
+ const cho={...row('cho','스피노자 정치철학의 현재성','스피노자의 삶과 철학과 신학',3,'current'),lecture_date:'2026-08-06'};
+ assert.deepEqual(newestFirst([old,cho]).map(x=>x.id),['cho','old']);
+});
+test('verified lecture date overrides a conflicting date in an old title',()=>{
+ const revised={...row('revised','강의_2021.9.10'),lecture_date:'2021-09-12'};
+ const other={...row('other','강의_2021.9.11'),lecture_date:'2021-09-11'};
+ assert.deepEqual(newestFirst([other,revised]).map(x=>x.id),['revised','other']);
+});

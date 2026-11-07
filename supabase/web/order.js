@@ -27,6 +27,8 @@ export function newestFirst(rows) {
     seriesYears.get(row.series_title).add(year);
   }
   function key(row) {
+    const stored = row.lecture_date?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (stored) {const date=validDate(...stored.slice(1).map(Number));if(date)return date;}
     if (row.era === 'current' && /현대.*자본/.test(row.series_title)) return capitalismDates[Number(row.position) - 1] || 20260000;
     const exact = explicitDate(row.title);
     if (exact) return exact;

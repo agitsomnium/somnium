@@ -39,3 +39,5 @@
 #accounting-panel,#report-upload{scroll-margin-top:100px}#accounting-panel{margin:40px 0;padding:24px 0;border-top:2px solid var(--feature)}#report-upload{margin:24px 0;padding:20px;border:1px solid var(--line)}.report-row{padding:18px 0;border-bottom:1px solid var(--line)}.report-row button{margin-right:10px}.receipt-help{margin-top:28px}.receipt-help p{font-size:14px;color:var(--muted)}
 
 #report-reader{width:min(1200px,96vw);height:94dvh;padding:0;border:1px solid #ccc;border-radius:8px;color:#24384b}#report-reader::backdrop{background:#142434ba}.report-reader-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#f5f1e9}#report-frame{width:100%;height:calc(100% - 65px);border:0;background:#fff}@media(max-width:600px){#report-reader{width:98vw;height:96dvh;max-width:98vw}.report-reader-head{font-size:14px;padding:8px}}
+
+.lesson-date{display:block;color:var(--muted,#536173);font-size:.9rem;margin-bottom:.35rem;font-variant-numeric:tabular-nums}

@@ -4,11 +4,9 @@ import { passwordAuth, authMessage } from "./passwordAuth.js";
 import { entryMode } from "./entryMode.js";
 import { createClient } from "@supabase/supabase-js";
 import { newestFirst } from "./order.js";
-import { seriesGroups } from "./series.js";
 import { profileCall, supporterNameLine } from "./profile.js";
 import { downloadMaterial } from "./materialDownload.js";
 import { catalogPlan } from "./catalogView.js";
-const openSeries = new Set();
 const openMaterials = new Set();
 let catalogSig = "";
 let requestedLessonShown = false;
@@ -260,6 +258,7 @@ function lessonRow(l, parent) {
   row.className = "catalog-row";
   makeCover(l, row);
   const info = text("div", "", row);
+  const date=text("time",l.lecture_date?.replaceAll("-",".")||"",info);date.dateTime=l.lecture_date||"";date.className="lesson-date";
   text("h3", l.title, info);
   text("p", l.description, info).className = "lesson-description";
   row.id = "lecture-" + l.id;
@@ -282,23 +281,7 @@ function render() {
   const list = lessons.filter(l => (!series || l.series_title === series) && `${l.title} ${l.series_title} ${l.description}`.toLowerCase().includes(q));
   $("catalog").replaceChildren();
   $("count").textContent = `등록 영상 ${lessons.length}개 · 검색 결과 ${list.length}개`;
-  for (const group of seriesGroups(list)) {
-    if (!group.bundled) { lessonRow(group.lessons[0], $("catalog")); continue; }
-    const details = document.createElement("details");
-    details.className = "series-group";
-    details.dataset.seriesKey = group.key;
-    details.open = !!q || !!series || openSeries.has(group.key) || group.lessons.some(l => l.id === new URLSearchParams(window.location.search).get("lesson"));
-    const summary = document.createElement("summary");
-    makeCover(group.lessons[0], summary);
-    const label = text("div", "", summary);
-    text("h3", group.name, label);
-    text("p", `${group.lessons.length}개 강의 · 눌러서 펼쳐보기`, label).className = "muted";
-    details.append(summary);
-    const body = text("div", "", details); body.className = "series-lessons";
-    for (const l of group.lessons) lessonRow(l, body);
-    details.addEventListener("toggle", () => { if (details.open) openSeries.add(group.key); else openSeries.delete(group.key); });
-    $("catalog").append(details);
-  }
+  for (const lesson of list) lessonRow(lesson, $("catalog"));
   for (const box of $("catalog").querySelectorAll(".lesson-materials")) {
     const lesson = lessons.find((l) => l.id === box.dataset.lessonId);
     if (lesson && openMaterials.has(lesson.id)) renderMaterials(lesson, box).catch(() => {});
@@ -429,7 +412,7 @@ function sourceUrl(l) {
   return l.provider === "youtube" ? `https://www.youtube.com/watch?v=${l.video_id}` : `https://vimeo.com/${l.video_id}${l.video_privacy ? "/" + l.video_privacy : ""}`;
 }
 function lessonArgs(l) {
-  return { p_id: l.id || null, p_title: l.title, p_description: l.description || "", p_series: l.series_title || "", p_position: Number(l.position), p_era: l.era, p_published: l.published, p_provider: l.provider, p_video_id: l.video_id, p_video_privacy: l.video_privacy || "" };
+  return { p_id: l.id || null, p_title: l.title, p_description: l.description || "", p_series: l.series_title || "", p_position: Number(l.position), p_era: l.era, p_published: l.published, p_provider: l.provider, p_video_id: l.video_id, p_video_privacy: l.video_privacy || "", p_lecture_date:l.lecture_date || null };
 }
 function renderManaged() {
   const q = $("admin-search").value.toLowerCase();
@@ -441,7 +424,7 @@ function renderManaged() {
     text("p", (l.published ? "표시" : "숨김") + " · " + l.series_title, row);
     action("수정", row, () => {
       const f = $("lesson-form");
-      for (const [key, value] of Object.entries({ id: l.id, title: l.title, description: l.description, series: l.series_title, position: l.position, era: l.era, video: sourceUrl(l) })) f.elements[key].value = value;
+      for (const [key, value] of Object.entries({ id: l.id, title: l.title, description: l.description, series: l.series_title, position: l.position, era: l.era, video: sourceUrl(l), lecture_date:l.lecture_date || "" })) f.elements[key].value = value;
       f.elements.published.checked = l.published;
       f.scrollIntoView({ block: "start" });
     });
@@ -460,7 +443,7 @@ $("new-lesson").onclick = () => {
 form("lesson-form", async (f) => {
   if (f.get("published") === "on" && isQa(String(f.get("title")))) throw new Error("질의응답 영상은 회원 목록에 게시하지 않습니다.");
   const source = sourceFields(String(f.get("video")));
-  await rpc("save_lesson", lessonArgs({ id: f.get("id"), title: f.get("title"), description: f.get("description"), series_title: f.get("series"), position: f.get("position"), era: f.get("era"), published: f.get("published") === "on", provider: source.provider, video_id: source.id, video_privacy: source.privacy }));
+  await rpc("save_lesson", lessonArgs({ id: f.get("id"), title: f.get("title"), description: f.get("description"), series_title: f.get("series"), lecture_date:f.get("lecture_date"), position: f.get("position"), era: f.get("era"), published: f.get("published") === "on", provider: source.provider, video_id: source.id, video_privacy: source.privacy }));
   $("lesson-form").reset();
   $("lesson-form").elements.id.value = "";
   await refresh();
