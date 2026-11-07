@@ -1,3 +1,4 @@
+import {seriesGroups} from './series.js';
 import {createClient} from '@supabase/supabase-js';
 import {newestFirst} from './order.js';
 import {localCover} from './publicCatalog.js';
@@ -21,7 +22,13 @@ function render(){
   const q=$('browse-search').value.trim().toLowerCase();
   const found=rows.filter(r=>(r.title+' '+r.series_title+' '+r.description).toLowerCase().includes(q));
   $('browse-list').replaceChildren();$('browse-count').textContent=`강의 ${rows.length}편 · 검색 결과 ${found.length}편`;
-  for(const row of found)card(row,$('browse-list'));
+  for(const group of seriesGroups(found)){
+    if(!group.bundled){card(group.lessons[0],$('browse-list'));continue;}
+    const details=el('details','',$('browse-list'));details.className='series-group';details.open=!!q;
+    const summary=el('summary','',details);cover(group.lessons[0],summary);
+    const label=el('div','',summary);el('h3',group.name,label);el('p',`${group.lessons.length}개 강의 · 눌러서 펼쳐보기`,label);
+    const body=el('div','',details);body.className='series-lessons';for(const row of group.lessons)card(row,body);
+  }
 }
 $('browse-search').oninput=render;
 try{

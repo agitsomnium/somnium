@@ -51,7 +51,7 @@ def render(data, mode):
         '<a class="cta" href="/?entry=login#entry">이미 가입했어요 · 로그인</a></div></div>')
 
     add('<section id="series" aria-labelledby="ser-h"><h2 id="ser-h">어떤 강의가 있나요</h2>'
-        '<p>강의 날짜 최신순으로 정렬했습니다. 제목·강사·시리즈 이름으로 검색할 수 있습니다. 영상과 자료는 후원회원에게 열립니다.</p>'
+        '<p>시리즈와 단독 강의는 최신 날짜순입니다. 시리즈를 누르면 1강부터 순서대로 펼쳐집니다. 제목·강사·시리즈 이름으로 검색할 수 있습니다. 영상과 자료는 후원회원에게 열립니다.</p>'
         '<label>강의 검색<input id="browse-search" type="search" placeholder="강의·시리즈 이름"></label>'
         '<p id="browse-count" role="status">강의 목록을 불러오고 있습니다.</p><div id="browse-list"></div></section>')
 

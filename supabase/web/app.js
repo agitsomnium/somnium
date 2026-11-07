@@ -1,3 +1,5 @@
+const openSeries = new Set();
+import {seriesGroups} from './series.js';
 import { accounting } from "./accounting.js";
 import { mergeCatalog, localCover } from "./publicCatalog.js";
 import { passwordAuth, authMessage } from "./passwordAuth.js";
@@ -281,7 +283,23 @@ function render() {
   const list = lessons.filter(l => (!series || l.series_title === series) && `${l.title} ${l.series_title} ${l.description}`.toLowerCase().includes(q));
   $("catalog").replaceChildren();
   $("count").textContent = `등록 영상 ${lessons.length}개 · 검색 결과 ${list.length}개`;
-  for (const lesson of list) lessonRow(lesson, $("catalog"));
+  for (const group of seriesGroups(list)) {
+    if (!group.bundled) { lessonRow(group.lessons[0], $("catalog")); continue; }
+    const details = document.createElement("details");
+    details.className = "series-group";
+    details.dataset.seriesKey = group.key;
+    details.open = !!q || !!series || openSeries.has(group.key) || group.lessons.some(l => l.id === new URLSearchParams(window.location.search).get("lesson"));
+    const summary = document.createElement("summary");
+    makeCover(group.lessons[0], summary);
+    const label = text("div", "", summary);
+    text("h3", group.name, label);
+    text("p", `${group.lessons.length}개 강의 · 눌러서 펼쳐보기`, label).className = "muted";
+    details.append(summary);
+    const body = text("div", "", details); body.className = "series-lessons";
+    for (const l of group.lessons) lessonRow(l, body);
+    details.addEventListener("toggle", () => { if (details.open) openSeries.add(group.key); else openSeries.delete(group.key); });
+    $("catalog").append(details);
+  }
   for (const box of $("catalog").querySelectorAll(".lesson-materials")) {
     const lesson = lessons.find((l) => l.id === box.dataset.lessonId);
     if (lesson && openMaterials.has(lesson.id)) renderMaterials(lesson, box).catch(() => {});
