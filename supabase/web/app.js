@@ -21,7 +21,7 @@ const db = createClient(config.url, config.publishableKey, { auth: { storage: se
 const credentials = passwordAuth(db.auth);
 let settingPassword = sessionStorage.getItem("somnium-password-pending") === "yes";
 let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, privateEpoch = 0, managedLessons = [];
-const reportUI = accounting(db, {access:()=>({userId:user?.id,epoch:privateEpoch,member:!!me && !me.suspended,admin:!!me?.admin}),rpc,notice});
+const reportUI = accounting(db, {access:()=>({userId:user?.id,epoch:privateEpoch,member:!!me && !me.suspended,canReadReports:!!me?.can_read_reports,admin:!!me?.admin}),rpc,notice});
 const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 확인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
 function notice(t) {
   $("notice").textContent = t;
@@ -100,6 +100,14 @@ function mode(value) {
     for (const input of e.querySelectorAll("input")) input.disabled = !on;
   }
 }
+$("switch-to-signup").onclick = async () => {
+  mode(true);
+  await $("logout").onclick();
+  if (user) return;
+  show("account-switch", false);
+  $("entry").scrollIntoView({block:"start"});
+  $("login-form").elements.email.focus();
+};
 $("login-tab").onclick = () => mode(false);
 $("path-new").onclick = () => {
   mode(true);
@@ -497,6 +505,7 @@ async function refresh() {
   if (error || !data.user) {
     user = null;
     me = null;
+    show("account-switch", false);
     clearPrivate();
     for (const id of ["membership", "profile-panel", "catalog-panel", "admin-panel", "code-panel", "logout", "admin-shortcuts"]) show(id, false);
     settingPassword = false;
@@ -522,6 +531,7 @@ async function refresh() {
     const profile = await rpc("me");
     if (generation !== refreshGeneration) return;
     me = profile;
+    show("account-switch", !!me && new URLSearchParams(window.location.search).get("entry") === "signup");
     show("logout", true);
     show("entry", false);
     show("profile-panel", !me);
@@ -695,7 +705,8 @@ mode(entryMode(window.location.search) === "signup");
 await refresh().catch((e) => notice(e.message));
 
 // Hash targets become visible only after Auth/catalog refresh has finished.
-if (window.location.hash === "#entry" && !$("entry").hidden) $("entry").scrollIntoView({block:"start"});
+if (window.location.hash === "#entry" && !$("account-switch").hidden) $("account-switch").scrollIntoView({block:"start"});
+else if (window.location.hash === "#entry" && !$("entry").hidden) $("entry").scrollIntoView({block:"start"});
 else if (window.location.hash === "#catalog-panel" && !new URLSearchParams(window.location.search).has("lesson") && !$("catalog-panel").hidden) $("catalog-panel").scrollIntoView({block:"start"});
 else if (["#members-admin", "#admin-panel"].includes(window.location.hash) && me?.admin) document.getElementById(window.location.hash.slice(1))?.scrollIntoView({block:"start"});
 

@@ -10,7 +10,7 @@ import {newestFirst} from './order.js';
 import {seriesGroups} from './series.js';
 import {mergeCatalog,localCover} from './publicCatalog.js';
 const source=readFileSync(new URL('./app.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,'');
-async function harness({existing=false, pending=false, verifyError=null, hasProfile=true}={}) {
+async function harness({existing=false, pending=false, verifyError=null, hasProfile=true, search='?entry=login'}={}) {
   const nodes=new Map(), storage=new Map(pending?[['somnium-password-pending','yes']]:[]), calls=[];
   const field=()=>({value:'',disabled:false,required:false,focus(){},reportValidity(){return !!this.value;}});
   function node(id) {
@@ -36,7 +36,7 @@ async function harness({existing=false, pending=false, verifyError=null, hasProf
     sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     fetch:async()=>({ok:true,json:async()=>({openSignup:true,profileMode:'minimal'})}),
     document:{createElement:tag=>node(tag+Math.random()),getElementById:node,querySelectorAll:()=>[],addEventListener(){},visibilityState:'visible'},
-    window:{location:{search:'?entry=login'},scrollY:0,scrollTo(){}},setInterval(){},Date,Set,URL,
+    window:{location:{search},scrollY:0,scrollTo(){}},setInterval(){},Date,Set,URL,
     FormData:class{constructor(form){this.form=form;}get(k){return this.form.elements[k]?.value;}},
   });
   await vm.runInContext(`(async()=>{${source}\n})()`,context);
@@ -91,4 +91,15 @@ test('reload during setup keeps password step; cancellation clears marker and si
   assert.equal(h.storage.size,0);
   assert.equal(h.node('password-panel').hidden,true);
   assert.equal(h.node('entry').hidden,false);
+});
+
+test('signed-in signup link explains account switch instead of hiding all signup paths',async()=>{
+  const h=await harness({existing:true,search:'?entry=signup'});
+  assert.equal(h.node('entry').hidden,true);
+  assert.equal(h.node('account-switch').hidden,false);
+  await h.click('switch-to-signup');
+  assert.equal(h.node('account-switch').hidden,true);
+  assert.equal(h.node('entry').hidden,false);
+  assert.equal(h.node('entry-heading').textContent,'이메일로 회원가입');
+  assert.equal(h.calls.filter(x=>x[0]==='code').length,0);
 });
