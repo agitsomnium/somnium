@@ -2,9 +2,9 @@
   "version": "welcome-flow-20261101",
   "note": "permission 이 pending 인 항목은 검토본에만 표시한다. 공개용 빌드(--mode public)는 pending 을 뺀다. 영상 주소·영상 ID·자료 파일명은 이 파일에 넣지 않는다.",
   "memberLectures": {
-    "count": 95,
+    "count": 99,
     "verified": true,
-    "basis": "2026-11-07 비강의 소개영상 1개 숨김. 연혁·실제 활동보고서 회차표·행사 포스터·원본 제목으로 게시 강의95편 실제 강의일 확인."
+    "basis": "2026-11-09 기존 95편에 지젝 강의·질의응답 한 세트와 정용택 교수 특강 2편 추가. 실제 강의일 확인."
   },
   "hero": {
     "eyebrow": "솜니움 후원회원 안내",

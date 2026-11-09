@@ -459,7 +459,7 @@ $("new-lesson").onclick = () => {
   $("lesson-form").elements.id.value = "";
 };
 form("lesson-form", async (f) => {
-  if (f.get("published") === "on" && isQa(String(f.get("title")))) throw new Error("질의응답 영상은 회원 목록에 게시하지 않습니다.");
+  if (f.get("published") === "on" && isQa(String(f.get("title"))) && f.get("id") !== "383cfced-2fe6-5f96-ba64-a7c43db2a0b4") throw new Error("질의응답 영상은 회원 목록에 게시하지 않습니다.");
   const source = sourceFields(String(f.get("video")));
   await rpc("save_lesson", lessonArgs({ id: f.get("id"), title: f.get("title"), description: f.get("description"), series_title: f.get("series"), lecture_date:f.get("lecture_date"), position: f.get("position"), era: f.get("era"), published: f.get("published") === "on", provider: source.provider, video_id: source.id, video_privacy: source.privacy }));
   $("lesson-form").reset();
