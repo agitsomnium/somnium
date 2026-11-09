@@ -482,7 +482,7 @@ async function loadCatalog(generation, allowed = []) {
   const plan = catalogPlan({prev:catalogSig, userId:user?.id || "public-visitor", rows, canLearn:true, rendered:$("catalog").childElementCount > 0});
   lessons = newestFirst(rows);
   show("catalog-panel", true);
-  $("catalog-help").textContent = me?.full_access ? "강의 보기와 자료 버튼으로 이용하세요." : "강의 목록은 누구나 둘러볼 수 있습니다. 영상과 자료는 후원 신청 완료를 알린 뒤 이용할 수 있습니다.";
+  $("catalog-help").textContent = me?.full_access ? "강의 보기와 자료 버튼으로 이용하세요." : "강의 목록은 누구나 둘러볼 수 있습니다. 영상과 자료는 운영자가 후원 신청을 승인한 뒤 이용할 수 있습니다.";
   if (plan.action === "render") {
     const scroll = window.scrollY, selected = $("series").value;
     $("series").replaceChildren();
