@@ -48,15 +48,17 @@ def _clean(rows):
 
 def load_catalog(live=None):
     try:
-        rows = _clean(json.loads(CATALOG.read_text(encoding='utf-8')))
+        catalog = json.loads(CATALOG.read_text(encoding='utf-8'))
+        members = {r['id'] for r in catalog if r.get('member_only')}
+        rows = _clean([r for r in catalog if r.get('id') not in members])
     except (OSError, ValueError):
-        rows = []
+        rows, members = [], set()
     try:
         dates = json.loads(DATES.read_text(encoding='utf-8'))
     except (OSError, ValueError):
         dates = {}
     known = {r['id'] for r in rows}
-    fresh = [v for v in _clean(live or []) if v['id'] not in known]
+    fresh = [v for v in _clean(live or []) if v['id'] not in known and v['id'] not in members]
     rows = fresh + rows
     n = len(rows)
     for i, r in enumerate(rows):

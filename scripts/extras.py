@@ -159,10 +159,15 @@ def load_videos(data_dir):
         rows = json.loads(p.read_text(encoding='utf-8'))
     except (OSError, ValueError):
         return []
+    from videos_page import CATALOG
+    try:
+        members = {r['id'] for r in json.loads(CATALOG.read_text(encoding='utf-8')) if r.get('member_only')}
+    except (OSError, ValueError):
+        members = set()
     clean = []
     for r in rows if isinstance(rows, list) else []:
         vid = str(r.get('id', ''))
-        if len(vid) == 11 and all(c.isalnum() or c in '-_' for c in vid) \
+        if vid not in members and len(vid) == 11 and all(c.isalnum() or c in '-_' for c in vid) \
                 and not is_short(str(r.get('title', '')), str(r.get('url', ''))):
             clean.append({'id': vid, 'title': str(r.get('title', '')), 'published': str(r.get('published', ''))[:10]})
     return clean

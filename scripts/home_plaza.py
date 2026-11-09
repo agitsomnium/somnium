@@ -119,7 +119,7 @@ def _notices(tables):
     return '<section class="pz-sec pz-notice" aria-label="소식"><h2 class="pz-kicker">소식</h2><ul>%s</ul></section>' % items
 
 
-MEMBER_STRIP = ('<p class="pz-member-strip"><span>후원회원은 지난 강의 93편을 다시 볼 수 있어요</span> '
+MEMBER_STRIP = ('<p class="pz-member-strip"><span>후원회원은 지난 강의 99편을 다시 볼 수 있어요</span> '
                 '<a href="https://somnium-classroom.pages.dev/guide/">강의실 안내 →</a></p>')
 
 
