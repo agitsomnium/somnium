@@ -66,7 +66,7 @@ def about_page(content, md, base=''):
     visit = clean_content(content.get('visit.md', ''))
     raw = [content.get('about.md', ''), content.get('board.md', ''), content.get('history.md', ''), content.get('visit.md', '')]
     sources = _sources(raw)
-    toc = [('spirit', '솜니움의 정신'), ('board', '이사회'), ('history', '걸어온 길'), ('people', '함께한 사람들'), ('visit', '오시는 길')]
+    toc = [('spirit', '솜니움의 정신'), ('board', '이사회'), ('past-programs', '지난 프로그램'), ('history', '걸어온 길'), ('people', '함께한 사람들'), ('visit', '오시는 길')]
     people = clean_content(content.get('people.md', ''))
     toc_html = ''.join('<li><a href="#%s">%s</a></li>' % (i, t) for i, t in toc)
     src_html = ''.join(sources)
@@ -83,6 +83,11 @@ def about_page(content, md, base=''):
         + '<section id="board"><h2>이사회</h2>' + board_frame() + '</section>'
         + '<section id="history"><h2>걸어온 길</h2>' + md(history)
         + '<p><a class="text-link" href="' + b + '/archive/">해마다 정리한 지난 프로그램 보기 →</a></p></section>'
+        + '<section id="past-programs"><h2>지난 프로그램</h2>'
+        + '<p>지난 공부를 영상으로 다시 만나 보세요. 월 1만 원 이상 정기후원으로 회원 강의와 자료를 이용할 수 있습니다.</p>'
+        + '<p><a class="button" href="https://somnium-classroom.pages.dev/guide/">후원회원 강의 둘러보기 →</a> <a class="text-link" href="' + b + '/videos/">유튜브 공개 강의 보기 ↗</a></p>'
+        + '<details class="archive-fold"><summary>연도별 프로그램 기록</summary>' + md(clean_content(content.get('archive.md', ''))) + '<h3>기획강좌·특강</h3>' + md(clean_content(content.get('lectures.md', ''))) + '</details></section>'
+        + '<section id="agit"><h2>아지트솜니움</h2>' + md(clean_content(content.get('agit.md', ''))) + '</section>'
         + '<section id="people"><h2>함께한 사람들</h2>' + md(people) + '</section>'
         + '<section id="visit"><h2>오시는 길</h2>' + md(visit)
         + '<figure><img src="' + b + '/assets/visit-building.webp" width="1196" height="900" loading="lazy" alt="솜니움 사무실이 있는 건물"></figure>'
@@ -118,112 +123,42 @@ def public_seminar_videos(base=''):
 
 
 def program_page(tables, content, md, base=''):
-    base = base or ''
-    if base and not base.startswith('/'):
-        base = '/' + base
-    base = base.rstrip('/')
-
-    def g(r, k, d=''):
-        v = r.get(k, d)
-        return '' if v is None else str(v)
-
-    def status(r):
-        return g(r, '상태').strip()
-
+    from extras import today
+    base = _base(base)
     books = public_rows(tables, '북클럽')
-
-    out = []
-    out.append(page_intro('프로그램', '함께 읽고, 질문하고, 토론하는 공부에 초대합니다.', base))
-    out.append('<nav class="page-toc" aria-label="프로그램 분류"><a href="#bookclubs">북클럽 신청</a> <a href="#seminars">세미나</a> <a href="#lectures">기획강좌·특강</a> <a href="#agit">아지트솜니움</a></nav>')
-
-    imgs = {'book-october': ('assets/sonjeol.webp',), 'book-november': ('assets/bookclub-close-poster.jpg',), 'book-november-love': ('assets/bookclub-love-poster.jpg',)}
-    out.append('<section class="content-section" id="bookclubs">')
-    out.append('<div class="section-head"><h2>북클럽</h2></div>')
-    live_books = [r for r in books if status(r) != '종료']
-    ended_books = [r for r in books if status(r) == '종료']
-    signups = [r for r in live_books if status(r) in ('모집중', '진행중') and g(r, '신청_url').strip()]
-    if signups:
-        out.append('<div class="program-signups" aria-label="현재 신청 가능한 북클럽">')
-        for r in signups:
-            title = g(r, '도서').strip() or g(r, '제목').strip()
-            out.append('<article class="signup-card"><p class="book-state">%s</p><h3>%s</h3>' % (e(status(r)), e(title)))
-            out.append('<p>%s · %s</p>' % (e(fmt_days(g(r, '날짜'))), e(g(r, '시간'))))
-            out.append('<a class="button" href="%s">신청하기 ↗</a> <a class="text-link" href="#book-%s">자세히 보기 ↓</a></article>' % (e(g(r, '신청_url').strip()), e(g(r, 'id').strip())))
-        out.append('</div>')
-    out.append('<div class="book-listing">')
-    if live_books:
-        for r in live_books:
-            bid = g(r, 'id').strip()
-            st = status(r)
-            out.append('<article class="book-program" id="book-%s">' % e(bid))
-            if bid in imgs:
-                out.append('<aside class="book-cover"><img src="%s/%s" width="864" height="1080" loading="lazy" alt="%s 북클럽 안내"></aside>' % (e(base), e(imgs[bid][0]), e(g(r, '도서') or g(r, '제목'))))
-            out.append('<div class="book-copy">')
-            out.append('<p class="book-state">%s</p>' % e(st))
-            title = g(r, '도서').strip() or g(r, '제목').strip()
-            out.append('<h3>%s</h3>' % e(title))
-            desc = g(r, '소개').strip()
-            if desc:
-                out.append('<p>%s</p>' % e(desc))
-            out.append('<dl class="detail-facts">')
-            d = g(r, '날짜').strip()
-            t = g(r, '시간').strip()
-            loc = g(r, '장소').strip()
-            if d:
-                out.append('<dt>날짜</dt><dd>%s</dd>' % e(fmt_days(d)))
-            if t:
-                out.append('<dt>시간</dt><dd>%s</dd>' % e(t))
-            if loc:
-                out.append('<dt>장소</dt><dd>%s</dd>' % e(loc))
-            if not (d or t or loc):
-                out.append('<dt>일정</dt><dd>일정 미정</dd>')
-            out.append('</dl>')
-            if st == '취소':
-                reason = g(r, '취소사유').strip()
-                if reason:
-                    out.append('<p class="book-cancel">%s</p>' % e(reason))
-            elif st in ('모집중', '진행중'):
-                url = g(r, '신청_url').strip()
-                if url:
-                    out.append('<a class="button" href="%s">신청하기 ↗</a>' % e(url))
-                else:
-                    out.append('<a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의 ↗</a>')
-            elif st == '종료':
-                out.append('<p class="book-archived">종료된 프로그램입니다.</p>')
-            else:
-                out.append('<a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의 ↗</a>')
-            out.append('</div></article>')
-    else:
-        out.append('<p class="empty">%s</p>' % ('지금 모집 중인 북클럽이 없습니다.' if ended_books else '현재 공개된 북클럽이 없습니다.'))
-    out.append('</div>')
-    if ended_books:
-        out.append('<details class="archive-fold"><summary>지난 북클럽</summary><ul class="archive-list">')
-        for r in ended_books:
-            name = g(r, '도서').strip() or g(r, '제목').strip()
-            when = fmt_days(g(r, '날짜').strip()) if g(r, '날짜').strip() else ''
-            out.append('<li id="book-%s"><span class="title">%s</span> <span class="archive-state">%s</span></li>'
-                       % (e(g(r, 'id').strip()), e(name), e(' · '.join(x for x in (when, '종료') if x))))
-        out.append('</ul></details>')
-    out.append('</section>')
-
-    out.append('<section class="content-section" id="seminars">')
-    out.append('<div class="section-head"><h2>세미나 · 공개 강의</h2><p>공개된 강의로 솜니움의 공부를 만나 보세요.</p></div>')
+    live_books = [r for r in books if r.get('상태') in ('모집중', '진행중')]
+    imgs = {'book-october': 'assets/sonjeol.webp', 'book-november': 'assets/bookclub-close-poster.jpg', 'book-november-love': 'assets/bookclub-love-poster.jpg'}
+    out = ['<div class="program-page">', '<header class="program-heading"><h1>%s월 북클럽</h1></header>' % today().month]
+    out.append('<section id="bookclubs" aria-label="현재 모집 중인 북클럽"><div class="book-listing">')
+    for r in live_books:
+        bid, title = r['id'], r.get('도서') or r.get('제목') or ''
+        out.append('<article class="book-program" id="book-%s">' % e(bid))
+        if bid in imgs:
+            out.append('<aside class="book-cover"><img src="%s/%s" width="864" height="1080" loading="eager" alt="%s 북클럽 포스터"></aside>' % (e(base), e(imgs[bid]), e(title)))
+        out.append('<div class="book-copy"><h2>%s</h2>' % e(title))
+        schedule = ' · '.join(x for x in (fmt_days(r.get('날짜') or ''), r.get('시간')) if x)
+        out.append('<p class="book-schedule">%s</p>' % e(schedule))
+        if r.get('신청_url'):
+            out.append('<a class="button book-apply" href="%s" aria-label="%s 북클럽 신청하기">신청하기 ↗</a>' % (e(r['신청_url']), e(title)))
+        else:
+            out.append('<a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의 ↗</a>')
+        out.append('<details class="book-details"><summary>모임 소개·장소</summary>')
+        if r.get('소개'):
+            out.append('<p>%s</p>' % e(r['소개']))
+        if r.get('장소'):
+            out.append('<p>장소: %s</p>' % e(r['장소']))
+        if r.get('참가비'):
+            out.append('<p>참가비: %s</p>' % e(r['참가비']))
+        out.append('</details></div></article>')
+    if not live_books:
+        out.append('<p>지금 모집 중인 북클럽이 없습니다. 아래에서 공개 강의와 후원회원 강의를 만나 보세요.</p>')
+    out.append('</div></section>')
+    out.append('<section class="member-invitation" id="member-lectures"><h2>월 1만 원 후원으로, 지난 강의를 다시</h2>')
+    out.append('<p>현대 자본주의 세미나 전체 6강과 솜니움의 지난 강의·자료를 보실 수 있습니다.</p>')
+    out.append('<a class="button" href="https://somnium-classroom.pages.dev/guide/">후원회원 강의 둘러보기 →</a></section>')
+    out.append('<section class="content-section" id="seminars"><div class="section-head"><h2>세미나 · 공개 강의</h2><p>공개된 강의로 먼저 만나 보세요.</p></div>')
     out.append(public_seminar_videos(base))
-    out.append('<div class="signup-card member-seminar-guide"><h3>후원회원 강의 안내</h3>')
-    out.append('<p>현대 자본주의 세미나 전체 6강과 솜니움의 지난 강의·자료는 후원회원 강의실에서 보실 수 있습니다. 월 1만 원 이상 정기후원을 신청하고, 홈페이지에서 후원 신청을 알려 주세요.</p>')
-    out.append('<a class="button" href="https://somnium-classroom.pages.dev/guide/">전체 강의·후원회원 안내 →</a></div></section>')
-
-    out.append('<section class="content-section" id="lectures"><div class="split-content">')
-    out.append('<div class="split-main"><h2>기획강좌·특강</h2>')
-    out.append(md(clean_content(content.get('lectures.md', ''))))
-    out.append('<a class="text-link" href="%s/archive/">2017년부터 걸어온 프로그램 보기 →</a>' % e(base))
-    out.append('</div></div></section>')
-
-    out.append('<section class="content-section" id="agit"><h2>아지트솜니움</h2>')
-    out.append(md(clean_content(content.get('agit.md', ''))))
-    out.append('<a class="button" href="mailto:agit.somnium@gmail.com">문의하기</a>')
-    out.append('</section>')
-
+    out.append('</section><p class="program-history-link"><a href="%s/about/#past-programs">연구소 소개에서 지난 프로그램 기록 보기 →</a></p></div>' % e(base))
     return ''.join(out)
 
 def resources_page(tables, base=''):
@@ -379,4 +314,5 @@ def archive_page(content, md, base=''):
     """창립 이후 프로그램을 해마다 모은 쪽. content/archive.md 를 그대로 옮긴다."""
     body = clean_content(content.get('archive.md', ''))
     return (page_intro('지난 프로그램', '2017년 창립부터 지금까지, 솜니움이 함께 공부한 시간입니다.', base)
+            + '<p><a class="button" href="https://somnium-classroom.pages.dev/guide/">월 1만 원 후원 · 회원 강의 둘러보기 →</a> <a class="text-link" href="' + e(base) + '/videos/">유튜브 공개 강의 보기 ↗</a></p><p><a href="' + e(base) + '/about/#past-programs">연구소 소개 · 지난 프로그램 →</a></p>'
             + '<div class="prose archive-prose">' + md(body) + '</div>')

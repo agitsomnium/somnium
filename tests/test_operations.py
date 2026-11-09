@@ -143,8 +143,8 @@ class OpsTest(unittest.TestCase):
         for anchor in ("spirit","board","history","visit"):
             self.assertIn('id="'+anchor+'"',about)
         program=(self.output/"programs/index.html").read_text()
-        self.assertIn("느슨한 네트워크",program)
-        self.assertIn("2021-2024",program)
+        self.assertIn("느슨한 네트워크",about)
+        self.assertIn("2021-2024",about)
         archive=(self.output/"archive/index.html").read_text()
         self.assertIn("지난 프로그램",archive)
         self.assertFalse((self.output/"resources/index.html").exists())
@@ -178,11 +178,11 @@ class OpsTest(unittest.TestCase):
         page = (self.output / 'programs/index.html').read_text()
         elements = Elements()
         elements.feed(page)
-        self.assertIn('book-book-october', elements.ids)
-        self.assertIn('종료', page)
+        self.assertNotIn('book-book-october', elements.ids)
+        self.assertIn('/somnium/about/#past-programs', elements.links)
         self.assertNotIn('https://forms.gle/EndedDoNotApply', elements.links)
         home = (self.output / 'index.html').read_text()
-        self.assertIn('/somnium/programs/#book-book-october', home)
+        self.assertIn('/somnium/about/#past-programs', home)
 
     def test_reject_preserves_output(self):
         self.run_build()

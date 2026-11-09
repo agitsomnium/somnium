@@ -97,7 +97,7 @@ def collect_events(tables, base=''):
             continue
         days = [x for x in (_d(v) for v in (bk.get('날짜') or '').split(';')) if x]
         title = '%s 『%s』' % (bk.get('제목', ''), bk.get('도서', '')) if bk.get('도서') else bk.get('제목', '')
-        href = '%s/programs/#book-%s' % (base, bk.get('id'))
+        href = ('%s/about/#past-programs' % base) if bk.get('상태') == '종료' else ('%s/programs/#book-%s' % (base, bk.get('id')))
         if days:
             for n, d in enumerate(days, 1):
                 t = title + (' (%d/%d)' % (n, len(days)) if len(days) > 1 else '')
