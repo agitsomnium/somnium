@@ -17,8 +17,12 @@ class ProgramPriority(unittest.TestCase):
         for i in range(2):
             self.assertIn(f'href="https://example.org/apply/{i}"', overview)
         self.assertNotIn('<h3><a', overview)
-        self.assertIn('작동의 정치', result)
-        self.assertIn('지난 세미나', result)
+        self.assertNotIn('작동의 정치', result)
+        self.assertNotIn('지난 세미나', result)
+        self.assertIn('행성적 사유와 신학의 만남', result)
+        self.assertIn('HcpmsrS_s7w', result)
+        self.assertIn('후원회원 강의 안내', result)
+        self.assertNotIn('5YT5ias8Qzk', result)
 
     def test_menu_uses_build_month_and_application_anchor(self):
         with patch('render.today', return_value=date(2026, 12, 1)):

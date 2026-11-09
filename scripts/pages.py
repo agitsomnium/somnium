@@ -97,6 +97,26 @@ def about_page(content, md, base=''):
 
 
 
+def public_seminar_videos(base=''):
+    """Curated public seminar videos; member-only catalog entries never appear."""
+    import json
+    from pathlib import Path
+    from videos_page import load_catalog
+    programs = json.loads((Path(__file__).resolve().parents[1] / 'config/program-videos.json').read_text(encoding='utf-8'))
+    public = {row['id']: row for row in load_catalog()}
+    out = []
+    for program in programs:
+        videos = [public[vid] for vid in program['video_ids'] if vid in public]
+        if not videos:
+            continue
+        out.append('<div class="public-seminar"><h3>%s</h3><p>%s</p><div class="yt-grid">' % (e(program['title']), e(program['description'])))
+        for row in videos:
+            vid = e(row['id'])
+            out.append('<a class="yt-card" href="https://www.youtube.com/watch?v=%s" target="_blank" rel="noopener"><img src="https://i.ytimg.com/vi/%s/hqdefault.jpg" width="480" height="360" loading="lazy" alt=""><strong>%s</strong><span>유튜브에서 강의 보기 ↗</span></a>' % (vid, vid, e(row['title'])))
+        out.append('</div></div>')
+    return ''.join(out)
+
+
 def program_page(tables, content, md, base=''):
     base = base or ''
     if base and not base.startswith('/'):
@@ -110,58 +130,7 @@ def program_page(tables, content, md, base=''):
     def status(r):
         return g(r, '상태').strip()
 
-    sems = public_rows(tables, '세미나')
     books = public_rows(tables, '북클럽')
-
-    inst = {}
-    for r in public_rows(tables, '강사진'):
-        inst[g(r, 'id').strip()] = g(r, '이름').strip() or g(r, '제목').strip()
-
-    def names(raw):
-        out = []
-        for part in (raw or '').split(';'):
-            pid = part.strip()
-            if pid and pid in inst and inst[pid]:
-                out.append(inst[pid])
-        return ', '.join(out)
-
-    def dates(r):
-        s, en = g(r, '시작일').strip(), g(r, '종료일').strip()
-        if s and en and s != en:
-            return e(s) + ' ~ ' + e(en)
-        if s:
-            return e(s)
-        if en:
-            return e(en)
-        return '일정 확인 중'
-
-    def tile(r, featured=False):
-        sid = g(r, 'id').strip()
-        st = status(r)
-        cls = 'program-tile' + (' featured' if featured else '')
-        h = ['<article class="%s">' % cls]
-        h.append('<div class="tile-top">%s</div>' % e(st))
-        h.append('<h3><a href="%s/seminars/%s/">%s</a></h3>' % (e(base), e(sid), e(g(r, '제목'))))
-        sub = g(r, '부제').strip()
-        if sub:
-            h.append('<p class="tile-subtitle">%s</p>' % e(sub))
-        intro = g(r, '소개').strip()
-        if intro:
-            h.append('<p class="tile-intro">%s</p>' % e(intro))
-        h.append('<p class="tile-dates">%s</p>' % dates(r))
-        nm = names(g(r, '강사진_id'))
-        if nm:
-            h.append('<p class="tile-instructors">%s</p>' % e(nm))
-        if st == '취소':
-            reason = g(r, '취소사유').strip()
-            if reason:
-                h.append('<p class="tile-cancel">%s</p>' % e(reason))
-        h.append('<a class="text-link" href="%s/seminars/%s/">세미나 내용과 일정 ↗</a>' % (e(base), e(sid)))
-        h.append('</article>')
-        return ''.join(h)
-
-    active = [r for r in sems if status(r) != '종료']
-    ended = [r for r in sems if status(r) == '종료']
 
     out = []
     out.append(page_intro('프로그램', '함께 읽고, 질문하고, 토론하는 공부에 초대합니다.', base))
@@ -238,22 +207,11 @@ def program_page(tables, content, md, base=''):
     out.append('</section>')
 
     out.append('<section class="content-section" id="seminars">')
-    out.append('<div class="section-head"><h2>세미나</h2><p>주제와 강사진, 회차별 자료를 한곳에서 만납니다.</p></div>')
-    out.append('<div class="program-listing">')
-    if active:
-        for i, r in enumerate(active):
-            out.append(tile(r, featured=(i == 0)))
-    else:
-        out.append('<p class="empty">현재 공개된 세미나가 없습니다.</p>')
-    out.append('</div>')
-    if ended:
-        out.append('<details class="archive-fold"><summary>지난 세미나</summary><ul class="archive-list">')
-        for r in ended:
-            sid = g(r, 'id').strip()
-            out.append('<li><a href="%s/seminars/%s/">%s</a> <span class="archive-state">%s</span></li>' % (e(base), e(sid), e(g(r, '제목')), e(status(r))))
-        out.append('</ul></details>')
-    out.append('</section>')
-
+    out.append('<div class="section-head"><h2>세미나 · 공개 강의</h2><p>공개된 강의로 솜니움의 공부를 만나 보세요.</p></div>')
+    out.append(public_seminar_videos(base))
+    out.append('<div class="signup-card member-seminar-guide"><h3>후원회원 강의 안내</h3>')
+    out.append('<p>현대 자본주의 세미나 전체 6강과 솜니움의 지난 강의·자료는 후원회원 강의실에서 보실 수 있습니다. 월 1만 원 이상 정기후원을 신청하고, 홈페이지에서 후원 신청을 알려 주세요.</p>')
+    out.append('<a class="button" href="https://somnium-classroom.pages.dev/guide/">전체 강의·후원회원 안내 →</a></div></section>')
 
     out.append('<section class="content-section" id="lectures"><div class="split-content">')
     out.append('<div class="split-main"><h2>기획강좌·특강</h2>')

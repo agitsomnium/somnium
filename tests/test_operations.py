@@ -87,7 +87,7 @@ class OpsTest(unittest.TestCase):
         text = page.read_text(encoding="utf-8")
         self.assertNotIn("https://forms.gle/ExampleOnly123", text)
         self.assertIn("일정 변경", text)
-        self.assertIn("일정 변경", (self.output / "programs" / "index.html").read_text(encoding="utf-8"))
+        self.assertIn("세미나 · 공개 강의", (self.output / "programs" / "index.html").read_text(encoding="utf-8"))
 
         new.update(상태="종료", 종료일="2026-12-20")
         self.run_build()

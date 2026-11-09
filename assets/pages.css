@@ -159,3 +159,5 @@
 .signup-card h3{font-size:clamp(26px,3vw,38px);line-height:1.25;margin:12px 0}
 .signup-card .button{margin:12px 12px 0 0}
 @media(max-width:800px){.program-signups{grid-template-columns:1fr;gap:16px;margin-bottom:40px}.signup-card{padding:20px}}
+
+.public-seminar{margin:32px 0 48px}.public-seminar>h3{font-size:clamp(26px,3vw,36px);line-height:1.3}.public-seminar .yt-grid{margin-top:24px}.member-seminar-guide{margin-top:40px}.member-seminar-guide h3{font-size:28px;line-height:1.3}
