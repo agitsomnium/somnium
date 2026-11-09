@@ -165,31 +165,23 @@ def program_page(tables, content, md, base=''):
 
     out = []
     out.append(page_intro('프로그램', '함께 읽고, 질문하고, 토론하는 공부에 초대합니다.', base))
-    out.append('<nav class="page-toc" aria-label="프로그램 분류"><a href="#seminars">세미나</a> <a href="#bookclubs">북클럽</a> <a href="#lectures">기획강좌·특강</a> <a href="#agit">아지트솜니움</a></nav>')
-
-    out.append('<section class="content-section" id="seminars">')
-    out.append('<div class="section-head"><h2>세미나</h2><p>주제와 강사진, 회차별 자료를 한곳에서 만납니다.</p></div>')
-    out.append('<div class="program-listing">')
-    if active:
-        for i, r in enumerate(active):
-            out.append(tile(r, featured=(i == 0)))
-    else:
-        out.append('<p class="empty">현재 공개된 세미나가 없습니다.</p>')
-    out.append('</div>')
-    if ended:
-        out.append('<details class="archive-fold"><summary>지난 세미나</summary><ul class="archive-list">')
-        for r in ended:
-            sid = g(r, 'id').strip()
-            out.append('<li><a href="%s/seminars/%s/">%s</a> <span class="archive-state">%s</span></li>' % (e(base), e(sid), e(g(r, '제목')), e(status(r))))
-        out.append('</ul></details>')
-    out.append('</section>')
+    out.append('<nav class="page-toc" aria-label="프로그램 분류"><a href="#bookclubs">북클럽 신청</a> <a href="#seminars">세미나</a> <a href="#lectures">기획강좌·특강</a> <a href="#agit">아지트솜니움</a></nav>')
 
     imgs = {'book-october': ('assets/sonjeol.webp',), 'book-november': ('assets/bookclub-close-poster.jpg',), 'book-november-love': ('assets/bookclub-love-poster.jpg',)}
     out.append('<section class="content-section" id="bookclubs">')
     out.append('<div class="section-head"><h2>북클럽</h2></div>')
-    out.append('<div class="book-listing">')
     live_books = [r for r in books if status(r) != '종료']
     ended_books = [r for r in books if status(r) == '종료']
+    signups = [r for r in live_books if status(r) in ('모집중', '진행중') and g(r, '신청_url').strip()]
+    if signups:
+        out.append('<div class="program-signups" aria-label="현재 신청 가능한 북클럽">')
+        for r in signups:
+            title = g(r, '도서').strip() or g(r, '제목').strip()
+            out.append('<article class="signup-card"><p class="book-state">%s</p><h3>%s</h3>' % (e(status(r)), e(title)))
+            out.append('<p>%s · %s</p>' % (e(fmt_days(g(r, '날짜'))), e(g(r, '시간'))))
+            out.append('<a class="button" href="%s">신청하기 ↗</a> <a class="text-link" href="#book-%s">자세히 보기 ↓</a></article>' % (e(g(r, '신청_url').strip()), e(g(r, 'id').strip())))
+        out.append('</div>')
+    out.append('<div class="book-listing">')
     if live_books:
         for r in live_books:
             bid = g(r, 'id').strip()
@@ -244,6 +236,24 @@ def program_page(tables, content, md, base=''):
                        % (e(g(r, 'id').strip()), e(name), e(' · '.join(x for x in (when, '종료') if x))))
         out.append('</ul></details>')
     out.append('</section>')
+
+    out.append('<section class="content-section" id="seminars">')
+    out.append('<div class="section-head"><h2>세미나</h2><p>주제와 강사진, 회차별 자료를 한곳에서 만납니다.</p></div>')
+    out.append('<div class="program-listing">')
+    if active:
+        for i, r in enumerate(active):
+            out.append(tile(r, featured=(i == 0)))
+    else:
+        out.append('<p class="empty">현재 공개된 세미나가 없습니다.</p>')
+    out.append('</div>')
+    if ended:
+        out.append('<details class="archive-fold"><summary>지난 세미나</summary><ul class="archive-list">')
+        for r in ended:
+            sid = g(r, 'id').strip()
+            out.append('<li><a href="%s/seminars/%s/">%s</a> <span class="archive-state">%s</span></li>' % (e(base), e(sid), e(g(r, '제목')), e(status(r))))
+        out.append('</ul></details>')
+    out.append('</section>')
+
 
     out.append('<section class="content-section" id="lectures"><div class="split-content">')
     out.append('<div class="split-main"><h2>기획강좌·특강</h2>')

@@ -1,7 +1,7 @@
 import html
 from html import escape as e
 from data import public_rows
-from extras import month_calendar, youtube_section, social_strip, footer_social, accounts_block
+from extras import month_calendar, youtube_section, social_strip, footer_social, accounts_block, today
 
 
 def _asset_version():
@@ -40,7 +40,7 @@ def _page_steps(title, base, nav):
 
 def shell(title, body, base='', theme='b', preview=False):
     t = e(title)
-    nav = [('이달의 프로그램', '/#cal'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('오시는 길', '/about/#visit'), ('참여·후원', '/participate/')]
+    nav = [(f'{today().month}월 프로그램', '/programs/#bookclubs'), ('프로그램', '/programs/'), ('유튜브', '/videos/'), ('지난 프로그램', '/archive/'), ('연구소 소개', '/about/'), ('오시는 길', '/about/#visit'), ('참여·후원', '/participate/')]
     navhtml = ''.join(f'<a href="{base}{h}"' + (' aria-current="page"' if title == l else '') + f'>{e(l)}</a>' for l, h in nav)
     navhtml += '<a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고</a>'
     page_navigation = '' if title == '홈' else (
