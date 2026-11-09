@@ -22,7 +22,7 @@ const credentials = passwordAuth(db.auth);
 let settingPassword = sessionStorage.getItem("somnium-password-pending") === "yes";
 let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, privateEpoch = 0, managedLessons = [];
 const reportUI = accounting(db, {access:()=>({userId:user?.id,epoch:privateEpoch,member:!!me && !me.suspended,canReadReports:!!me?.can_read_reports,admin:!!me?.admin}),rpc,notice});
-const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 확인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
+const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 신청 접수 · 관리자 승인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
 function notice(t) {
   $("notice").textContent = t;
 }
@@ -226,7 +226,7 @@ form("profile-form", async (f) => {
 $("supporter-request").onclick = () => run($("supporter-request"), async () => {
   await rpc("request_supporter");
   await refresh();
-  notice("강의 이용을 승인했습니다. 후원 내역은 월별 회계 정리 때 확인합니다.");
+  notice("후원 신청을 접수했습니다. 운영자가 확인·승인하면 강의실이 열립니다.");
   db.functions.invoke("supporter-notice").catch(() => {});
 });
 $("refresh").onclick = () => run($("refresh"), refresh);
@@ -378,8 +378,8 @@ async function admin(generation) {
     const supporterLine = supporterNameLine(m);
     if (supporterLine) text("p", supporterLine, row);
     text("p", `${m.suspended ? "계정 중지" : stateNames[m.supporter_state] || "일반회원"}`, row);
-    if (m.supporter_state === "qualified" && !m.checked_at) {
-      text("p", "신청 기준 이용 승인 · 월별 후원 내역 대조 전", row);
+    if (["pending", "qualified"].includes(m.supporter_state) && !m.checked_at) {
+      text("p", m.supporter_state === "pending" ? "신청 내용 확인 후 승인해 주세요." : "이용 승인 완료 · 월별 후원 내역 대조 전", row);
       if (m.notice_state && m.notice_state !== "sent") action("신청 알림 다시 보내기", row, async () => {
         const {data, error} = await db.functions.invoke("supporter-notice", {body:{user_id:m.id}});
         if (error) throw new Error("알림을 보내지 못했습니다. 발송 계정 설정을 확인해 주세요.");
@@ -392,13 +392,13 @@ async function admin(generation) {
     const check = document.createElement("input");
     check.type = "checkbox";
     label.append(check);
-    text("span", "한빛누리에서 월 1만 원 이상 후원을 확인했습니다.", label);
+    text("span", m.supporter_state === "qualified" ? "한빛누리에서 월 1만 원 이상 후원 납부를 확인했습니다." : "이름·이메일·후원자명 등 후원 신청 내용을 확인했습니다.", label);
     const actions = text("div", "", row);
     actions.className = "actions";
-    action(m.supporter_state === "qualified" ? "월별 후원 확인 완료" : "후원 자격 승인", actions, async () => {
+    action(m.supporter_state === "qualified" ? "월별 후원 확인 완료" : "후원 신청 승인", actions, async () => {
       if (!check.checked) throw new Error("후원 내역 확인란을 먼저 체크해 주세요.");
       if (!confirm(`${m.name} 회원의 후원 자격을 승인할까요?`)) return;
-      await rpc("review_supporter", { p_user: m.id, p_state: "qualified", p_minimum_confirmed: true });
+      await rpc("review_supporter", { p_user: m.id, p_state: "qualified", p_minimum_confirmed: m.supporter_state === "qualified" });
       await refresh();
     });
     for (const [title, state] of [["후원 보류", "held"], ["후원 종료", "withdrawn"]]) action(title, actions, async () => {
@@ -547,8 +547,9 @@ async function refresh() {
     }
     $("identity").textContent = me.name + " · " + user.email;
     $("membership-state").textContent = me.suspended ? "계정 이용이 중지됐습니다." : me.full_access ? "모든 회원 강의 이용 가능" : me.can_learn ? "등록한 세미나 강의 이용 가능" : stateNames[me.supporter_state] || "일반회원";
-    show("supporter-request", !me.suspended && !me.full_access && ["not_requested", "pending"].includes(me.supporter_state));
+    show("supporter-request", !me.suspended && !me.full_access && me.supporter_state === "not_requested");
     show("supporter-guide", !me.suspended && !me.full_access);
+    $("supporter-guide").textContent = me.supporter_state === "pending" ? "후원 신청이 접수되어 운영자 승인을 기다리고 있습니다. 승인 후 상태를 새로고침해 주세요." : "한빛누리에서 월 1만 원 이상 정기후원을 신청하셨다면 ‘후원 신청했어요’를 눌러 주세요. 운영자가 확인·승인하면 강의실이 열립니다.";
     await reportUI.load();
     if (generation !== refreshGeneration) return;
     const allowed = me.can_learn ? await rpc("catalog") : [];

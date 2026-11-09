@@ -33,9 +33,9 @@ Deno.serve(async(req) => {
     auth:{user:Deno.env.get('NOTICE_SMTP_USER'),pass:Deno.env.get('NOTICE_SMTP_PASSWORD')},
     connectionTimeout:10000,socketTimeout:10000});
    await transport.sendMail({from:{name:'솜니움',address:Deno.env.get('NOTICE_SMTP_FROM')!},
-    to:Deno.env.get('NOTICE_TO'),subject:'[솜니움] 후원 신청 접수 · 강의 이용 승인',
+    to:Deno.env.get('NOTICE_TO'),subject:notice.supporter_state==='pending'?'[솜니움] 후원 신청 접수 · 관리자 승인 대기':'[솜니움] 후원회원 신청 알림',
     messageId:`<supporter-${notice.user_id}@somniumagit.com>`,
-    text:`후원 신청을 접수하고 강의 이용을 승인했습니다.\n\n이름: ${notice.name}\n가입 이메일: ${notice.email}\n신청 시각: ${notice.created_at}\n\n본인의 후원 신청 신고를 기준으로 이용을 승인했습니다. 실제 납부 내역은 월별 회계 정리 때 한빛누리 자료와 대조해 주세요. 내역이 맞지 않으면 회원에게 먼저 연락해 주세요.\n\n회원·후원 확인: https://somnium-classroom.pages.dev/#members-admin`});
+    text:`${notice.supporter_state==='pending'?'후원 신청을 접수했습니다. 운영자의 확인·승인이 필요합니다.':'후원회원 신청 알림입니다.'}\n\n이름: ${notice.name}\n가입 이메일: ${notice.email}\n신청 시각: ${notice.created_at}\n\n회원·후원 확인 화면에서 신청 내용을 확인하고 후원 신청을 승인해 주세요. 승인 전에는 강의가 열리지 않습니다. 실제 납부 내역은 월별 회계 정리 때 한빛누리 자료와 대조해 주세요. 내역이 맞지 않으면 회원에게 먼저 연락해 주세요.\n\n회원·후원 확인: https://somnium-classroom.pages.dev/#members-admin`});
    const {error:markError}=await db.rpc('somnium_finish_supporter_notice',{p_user:target,p_sent:true});
    return markError?response({error:'delivery status unavailable'},503):response({sent:true});
   }catch(error){
