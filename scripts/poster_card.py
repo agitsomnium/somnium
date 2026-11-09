@@ -159,5 +159,5 @@ def program_cards(tables, base='', today=None):
         return (nxt is None, nxt or today)
     items.sort(key=key)
     return ('<section class="pz-sec pz-progs" aria-labelledby="pz-progs-h">'
-            '<h2 id="pz-progs-h" class="band-h">이달 프로그램</h2>'
+            f'<h2 id="pz-progs-h" class="band-h">{today.month}월 프로그램</h2>'
             '<div class="pc-grid">' + ''.join(_card(c, base) for c in items) + '</div></section>')

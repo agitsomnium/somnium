@@ -140,7 +140,7 @@ def month_calendar(tables, base='', now=None):
         cols.append('<div class="cal-col%s"%s><h3><span>%s</span>%d년 %d월</h3>%s</div>'
                     % (' is-now' if n == 0 else '', cur_attr, name, first.year, first.month, body))
     out = ['<section class="month-cal" aria-labelledby="cal-title">',
-           '<div class="section-heading"><h2 id="cal-title">이달의 프로그램</h2>'
+           f'<div class="section-heading"><h2 id="cal-title">{now.month}월 프로그램</h2>'
            '<p>지난달 기록과 이번 달, 다음 달 일정을 한눈에 봅니다.</p></div>',
            '<div class="cal-grid">' + ''.join(cols) + '</div>']
     if undated:
