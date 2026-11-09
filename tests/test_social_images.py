@@ -32,7 +32,7 @@ class SocialImagesTest(unittest.TestCase):
         download.side_effect = TimeoutError()
         fetch_social.cache_images([POST])
         self.assertEqual(download.call_count, 1)
-        self.assertEqual(post_image(POST, '/somnium'), '/somnium/assets/instagram/De3FtRxATMA.jpg')
+        self.assertRegex(post_image(POST, '/somnium'), r'^/somnium/assets/instagram/De3FtRxATMA\.jpg\?v=[a-f0-9]{12}$')
 
     @mock.patch.object(fetch_social.urllib.request, 'urlopen')
     def test_missing_or_invalid_image_keeps_card_with_brand_cover(self, download):

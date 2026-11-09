@@ -9,6 +9,9 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from html.parser import HTMLParser
+from urllib.parse import urlsplit, unquote
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -155,6 +158,47 @@ def _home_videos(data_dir):
     return rows[:6]
 
 
+def validate_local_images(stage, base=''):
+    """Fail before replacing the site if an HTML image points at a missing/invalid local asset."""
+    class Images(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.sources = []
+        def handle_starttag(self, tag, attrs):
+            if tag == 'img':
+                self.sources.append(dict(attrs).get('src', ''))
+    checked = set()
+    for document in stage.rglob('*.html'):
+        parser = Images()
+        parser.feed(document.read_text(encoding='utf-8'))
+        for source in parser.sources:
+            url = urlsplit(source)
+            if url.scheme or url.netloc or not url.path:
+                continue
+            path = unquote(url.path)
+            if base and path.startswith(base + '/'):
+                path = path[len(base):]
+            asset = (stage / path.lstrip('/') if path.startswith('/') else document.parent / path).resolve()
+            if not asset.is_relative_to(stage.resolve()) or not asset.is_file():
+                raise ValueError('Missing local image: ' + source)
+            if asset in checked:
+                continue
+            data = asset.read_bytes()
+            valid = ((data.startswith(b'\xff\xd8\xff') and data.endswith(b'\xff\xd9'))
+                     or (data.startswith(b'\x89PNG\r\n\x1a\n') and data[-8:-4] == b'IEND')
+                     or (data[:4] == b'RIFF' and data[8:12] == b'WEBP' and len(data) > 12)
+                     or (data[:6] in (b'GIF87a', b'GIF89a') and data.endswith(b';')))
+            if asset.suffix.lower() == '.svg':
+                try:
+                    valid = ET.fromstring(data).tag in ('svg', '{http://www.w3.org/2000/svg}svg')
+                except ET.ParseError:
+                    valid = False
+            if not valid:
+                raise ValueError('Invalid local image: ' + source)
+            checked.add(asset)
+    return len(checked)
+
+
 def build(data_dir, outdir, base='', theme='b', preview=False):
     target = Path(outdir)
     if target.is_symlink():
@@ -228,6 +272,7 @@ def build(data_dir, outdir, base='', theme='b', preview=False):
             _write(stage / 'sitemap.xml', sm)
         meta = {'counts': {'seminars': len(seminars), 'bookclubs': len(bookclubs), 'videos': len(videos)}, 'base': base, 'preview': bool(preview)}
         _write(stage / 'build.json', json.dumps(meta, ensure_ascii=False, indent=2))
+        validate_local_images(stage, base)
         _swap(stage, target)
     except Exception:
         shutil.rmtree(str(stage), ignore_errors=True)

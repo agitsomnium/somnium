@@ -1,6 +1,7 @@
 """홈페이지 보강 블록: 월별 일정, 유튜브, SNS, 계좌, 이사진 틀."""
 import datetime as _dt
 import json
+import hashlib
 import os
 from html import escape as e
 from pathlib import Path
@@ -296,10 +297,11 @@ def post_image(post, base=''):
              'Dev3vMGBHKg': 'bookclub-close-poster.jpg',
              'DebdXlrhQaQ': 'sonjeol.webp'}
     if shortcode in local:
-        return base + '/assets/' + local[shortcode]
+        path = ROOT / 'assets' / local[shortcode]
+        return base + '/assets/' + path.name + '?v=' + hashlib.sha256(path.read_bytes()).hexdigest()[:12]
     saved = cached_image(post)
     if saved:
-        return base + '/assets/instagram/' + saved.name
+        return base + '/assets/instagram/' + saved.name + '?v=' + hashlib.sha256(saved.read_bytes()).hexdigest()[:12]
     return base + '/assets/somnium_wordmark_on_navy.svg'
 
 
@@ -329,13 +331,12 @@ def news_strip(insta, limit=6, base=''):
             continue
         seen.add(key)
         d = p.get('date', '')
-        image = post_image(p, base)
-        if title == '손절사회':
-            image = base + '/assets/sonjeol.webp'
+        image_post = {**p, 'link': 'https://www.instagram.com/p/DebdXlrhQaQ/'} if title == '손절사회' else p
+        image = post_image(image_post, base)
         cards.append('<a class="news-card" href="%s" target="_blank" rel="noopener">'
                      '<img src="%s" alt="%s 포스터" loading="%s" width="432" height="540">'
                      '<span class="news-kind">%s</span><strong>%s</strong>%s</a>'
-                     % (e(p['link']), e(image), e(title), 'eager' if not cards else 'lazy', e(kind or '소식'), e(title),
+                     % (e(p['link']), e(image), e(title), 'eager', e(kind or '소식'), e(title),
                         ('<time datetime="%s">%s 올림</time>' % (e(d), e(d[5:].replace('-', '.')))) if d else ''))
         if len(cards) >= limit:
             break

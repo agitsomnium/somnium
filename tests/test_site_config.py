@@ -81,7 +81,7 @@ class PosterTest(unittest.TestCase):
         post = {'link': 'https://www.instagram.com/p/POST/', 'image': 'https://cdn.example/expired.jpg',
                 'caption': '[10월 솜니움 북클럽 | 손절사회]'}
         html = news_strip([post], base='/preview')
-        self.assertIn('src="/preview/assets/sonjeol.webp"', html)
+        self.assertRegex(html, r'src="/preview/assets/sonjeol\.webp\?v=[a-f0-9]{12}"')
         self.assertNotIn('expired.jpg', html)
         self.assertTrue((ROOT / 'assets/sonjeol.webp').is_file())
 
