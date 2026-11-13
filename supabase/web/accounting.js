@@ -6,7 +6,7 @@ export function accounting(db,{access,rpc,notice}) {
   $('report-close').onclick=closeViewer;
   const text=(tag,value,parent)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
   async function run(button,fn){button.disabled=true;try{await fn();}catch(e){notice(e.message);}finally{button.disabled=false;}}
-  function clear(){closeViewer();signature='';$('report-list').replaceChildren();$('report-upload').hidden=true;$('report-login').hidden=true;$('report-status').textContent='회계 보고서는 관리자와 이사 자격 회원만 열람할 수 있습니다.';}
+  function clear(){closeViewer();signature='';$('report-list').replaceChildren();$('report-upload').hidden=true;$('report-login').hidden=true;$('report-status').textContent='현재 계정으로는 보고서 목록을 표시하지 않습니다.';}
   async function load(){
     const start={...access()};
     if(!start.canReadReports){clear();return;}
