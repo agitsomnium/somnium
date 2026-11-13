@@ -2,7 +2,7 @@
 from html import escape as e
 
 from data import public_rows
-from extras import (today, collect_events, _shift, _month_range, WEEK,
+from extras import (MEMBER_LECTURE_COUNT, today, collect_events, _shift, _month_range, WEEK,
                     youtube_section, social_strip, accounts_block, social_feeds, fmt_days, pay_bar, news_strip)
 import datetime as _dt
 from poster_card import program_cards
@@ -119,8 +119,8 @@ def _notices(tables):
     return '<section class="pz-sec pz-notice" aria-label="소식"><h2 class="pz-kicker">소식</h2><ul>%s</ul></section>' % items
 
 
-MEMBER_STRIP = ('<p class="pz-member-strip"><span>후원회원은 지난 강의 99편을 다시 볼 수 있어요</span> '
-                '<a href="https://somnium-classroom.pages.dev/guide/">강의실 안내 →</a></p>')
+MEMBER_STRIP = ('<p class="pz-member-strip"><span>후원회원은 지난 강의 %d편을 다시 볼 수 있어요</span> '
+                '<a href="https://somnium-classroom.pages.dev/guide/">강의실 안내 →</a></p>') % MEMBER_LECTURE_COUNT
 
 
 def home(tables, base='', videos=None, insta=None):

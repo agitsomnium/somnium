@@ -18,6 +18,37 @@ WEEK = '월화수목금토일'
 CONFIG_OVERRIDES = {}  # 빌드 때 시트의 계좌·연락 탭으로 채운다
 
 
+def _bookclub_names(rows):
+    """북클럽 줄마다 보일 이름(rows 와 같은 순서). «N월 북클럽 (숫자)» 가 한 달에 둘 이상이면
+    첫 날짜 순으로 «N월 북클럽 1, 2…» 를 다시 매긴다. 하나뿐이거나 형식이 다르면 제목 그대로.
+    (pages.bookclub_labels 와 같은 규칙)"""
+    import re as _re
+    rows = list(rows)
+
+    def first_day(r):
+        return (str(r.get('날짜') or '').split(';')[0]).strip() or '9999-12-31'
+
+    def stem(r):
+        return _re.match(r'^(\d+월 북클럽)(?:\s*\d+)?$', str(r.get('제목') or '').strip())
+    groups = {}
+    for i in sorted(range(len(rows)), key=lambda i: first_day(rows[i])):
+        m = stem(rows[i])
+        if m:
+            groups.setdefault(m.group(1), []).append(i)
+    names = []
+    for i, r in enumerate(rows):
+        title = str(r.get('제목') or '').strip()
+        m = stem(r)
+        if m and len(groups[m.group(1)]) > 1:
+            title = '%s %d' % (m.group(1), groups[m.group(1)].index(i) + 1)
+        names.append(title)
+    return names
+
+
+# 후원회원 강의실에 실제 게시된 강의 편수. 목록이 바뀌면 이 숫자 하나만 고친다
+MEMBER_LECTURE_COUNT = 97
+
+
 def site_config():
     p = ROOT / 'config' / 'site.json'
     try:
@@ -92,11 +123,12 @@ def collect_events(tables, base=''):
                            'href': href, 'place': s.get('장소', '')})
         elif not a and s.get('상태') in ('예고', '모집중'):
             undated.append({'title': s.get('제목', ''), 'kind': '세미나', 'href': href, 'state': s.get('상태', '')})
-    for bk in public_rows(tables, '북클럽'):
+    book_rows = public_rows(tables, '북클럽')
+    for bk, bk_name in zip(book_rows, _bookclub_names(book_rows)):
         if bk.get('상태') == '취소':
             continue
         days = [x for x in (_d(v) for v in (bk.get('날짜') or '').split(';')) if x]
-        title = '%s 『%s』' % (bk.get('제목', ''), bk.get('도서', '')) if bk.get('도서') else bk.get('제목', '')
+        title = '%s 『%s』' % (bk_name, bk.get('도서', '')) if bk.get('도서') else bk_name
         href = ('%s/about/#past-programs' % base) if bk.get('상태') == '종료' else ('%s/programs/#book-%s' % (base, bk.get('id')))
         if days:
             for n, d in enumerate(days, 1):

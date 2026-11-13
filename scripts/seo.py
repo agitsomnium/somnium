@@ -8,7 +8,7 @@ import re
 from html import escape as e
 
 from data import public_rows
-from extras import site_config
+from extras import site_config, _bookclub_names
 
 AI_BOTS = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User',
            'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended', 'CCBot']
@@ -93,12 +93,13 @@ def events_jsonld(tables, base=''):
             continue
         out.append(make('%s %s회 · %s' % (sem.get('제목', ''), r.get('회차', ''), r.get('제목', '')), r['날짜'], r.get('시간', ''),
                         sem, 'seminars/%s/' % sem.get('id'), sem.get('소개', '')))
-    for b in public_rows(tables, '북클럽'):
+    book_rows = public_rows(tables, '북클럽')
+    for b, b_name in zip(book_rows, _bookclub_names(book_rows)):
         days = [d.strip() for d in (b.get('날짜') or '').split(';') if d.strip()]
         if not days or b.get('상태') == '취소':
             continue
         for n, d in enumerate(days, 1):  # 날짜가 여럿이면 회차마다 Event 하나
-            name = '솜니움 %s 『%s』' % (b.get('제목', ''), b.get('도서', ''))
+            name = '솜니움 %s 『%s』' % (b_name, b.get('도서', ''))
             if len(days) > 1:
                 name += ' %d/%d회' % (n, len(days))
             out.append(make(name, d, b.get('시간', ''),
@@ -168,9 +169,10 @@ def llms_txt(tables, base=''):
         L.append('- [%s](%s): %s%s%s' % (x.get('제목', ''), abs_url('seminars/%s/' % x.get('id'), base),
                  x.get('상태', ''), (' · ' + when) if when else '', (' · ' + x.get('부제', '')) if x.get('부제') else ''))
     books = public_rows(tables, '북클럽')
+    book_names = _bookclub_names(books)
     if books:
         L += ['', '## 북클럽', '']
-        L += ['- %s 『%s』 (%s)' % (b.get('제목', ''), b.get('도서', ''), b.get('상태', '')) for b in books]
+        L += ['- %s 『%s』 (%s)' % (nm, b.get('도서', ''), b.get('상태', '')) for b, nm in zip(books, book_names)]
     L += ['', '## 참여·후원', '',
           '- 참가 신청과 후원 계좌: %s' % abs_url('participate/', base)]
     L += ['', '## 채널', '']

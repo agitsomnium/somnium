@@ -94,7 +94,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <a href="{base}/about/#visit">오시는 길</a>
 <a href="{base}/participate/">참여·후원</a>
 <a href="https://somnium-classroom.pages.dev/?entry=login#entry">강의실 로그인</a>
-<a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고</a>
+<a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고(이사 전용)</a>
 <a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a>
 {footer_social()}
 </div>

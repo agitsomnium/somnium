@@ -1,5 +1,5 @@
 import re
-from extras import accounts_block, board_frame, fmt_days
+from extras import MEMBER_LECTURE_COUNT, accounts_block, board_frame, fmt_days
 from data import public_rows
 from html import escape as e
 
@@ -95,9 +95,6 @@ def about_page(content, md, base=''):
         + '</section>'
         + '</article>'
         + '</div>'
-        + '<footer class="source-footer"><details class="source-note"><summary>자료출처</summary>'
-        + '<p>이사회·주소 등 운영 정보는 기존 공개 자료를 옮겼습니다.</p>'
-        + '<ul>' + src_html + '</ul></details></footer>'
     )
 
 
@@ -129,7 +126,7 @@ def program_page(tables, content, md, base=''):
     live_books = [r for r in books if r.get('상태') in ('모집중', '진행중')]
     imgs = {'book-october': 'assets/sonjeol.webp', 'book-november': 'assets/bookclub-close-poster.jpg', 'book-november-love': 'assets/bookclub-love-poster.jpg'}
     out = ['<div class="program-page">', '<header class="program-heading"><h1>%s월 북클럽</h1></header>' % today().month]
-    out.append('<section id="bookclubs" aria-label="현재 모집 중인 북클럽"><div class="book-listing">')
+    out.append('<section id="bookclubs" aria-label="진행·모집 중인 북클럽"><div class="book-listing">')
     for r in live_books:
         bid, title = r['id'], r.get('도서') or r.get('제목') or ''
         out.append('<article class="book-program" id="book-%s">' % e(bid))
@@ -295,13 +292,12 @@ def participate_page(tables, content, md, base=''):
         out.append('<p class="muted">현재 모집 중인 프로그램이 없습니다. 아래 전체 프로그램에서 지난 활동을 살펴보세요.</p>')
     out.append(f'<p><a class="text-link" href="{e(base)}/programs/">전체 프로그램 보기</a></p>')
     out.append('</section>')
-    out.append('<section class="content-section"><h2>후원회원 강의실</h2><p>월 1만 원 이상 정기후원하시면 지난 강의 93편과 등록된 강의자료를 이용할 수 있습니다. 이메일로 가입한 뒤 후원 확인을 요청해 주세요.</p><p><a href="https://somnium-classroom.pages.dev/guide/">강의·후원 안내</a> · <a href="https://somnium-classroom.pages.dev/?entry=signup#entry">회원가입</a> · <a href="https://somnium-classroom.pages.dev/?entry=login#entry">로그인</a></p></section>')
-    out.append('<section class="content-section"><h2>회계 보고·기부금영수증</h2><p>회계 보고서는 로그인한 회원이 볼 수 있습니다.</p><p><a class="text-link" href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고 보기</a> · <a class="text-link" href="https://mrmweb.hsit.co.kr/v2/?server=OB24ScQzNnMeOyh7ApK%2BSw==&amp;action=receiptedit" target="_blank" rel="noopener noreferrer">한빛누리 기부금영수증 ↗</a></p></section>')
+    out.append('<section class="content-section"><h2>후원회원 강의실</h2><p>월 1만 원 이상 정기후원하시면 지난 강의 %d편과 등록된 강의자료를 이용할 수 있습니다. 이메일로 가입한 뒤 후원 신청을 알려 주시면 운영자가 확인해 승인합니다.</p><p><a href="https://somnium-classroom.pages.dev/guide/">강의·후원 안내</a> · <a href="https://somnium-classroom.pages.dev/?entry=signup#entry">회원가입</a> · <a href="https://somnium-classroom.pages.dev/?entry=login#entry">로그인</a></p></section>' % MEMBER_LECTURE_COUNT)
+    out.append('<section class="content-section"><h2>회계 보고·기부금영수증</h2><p>회계 보고서는 관리자와 이사 자격 회원만 열람할 수 있습니다.</p><p><a class="text-link" href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고(이사 전용)</a> · <a class="text-link" href="https://mrmweb.hsit.co.kr/v2/?server=OB24ScQzNnMeOyh7ApK%2BSw==&amp;action=receiptedit" target="_blank" rel="noopener noreferrer">한빛누리 기부금영수증 ↗</a></p></section>')
     out.append('<section id="support" class="content-section"><h2>연구소를 후원하기</h2>')
     out.append('<p>솜니움은 한빛누리 공익기금 Bright Fund를 통해 정기후원을 받고 있습니다. 세미나 참가비도 아래 계좌로 보내 주시면 됩니다.</p>')
     out.append(accounts_block('후원·참가비 계좌'))
-    out.append('<p class="source-note">기부금 영수증과 후원 절차는 한빛누리 안내를 확인해 주세요. '
-               '<a href="https://somnium.oopy.io/184f8918-f72b-8049-8712-efdbe356f5c2" target="_blank" rel="noopener">후원 안내 원문</a></p>')
+    out.append('<p class="source-note">기부금 영수증과 후원 절차는 한빛누리 안내를 확인해 주세요.</p>')
     out.append('</section>')
     out.append('<section id="contact" class="content-section"><h2>문의하기</h2>')
     out.append('<p>프로그램 참여와 후원, 연구소 활동에 관해 문의해 주세요.</p>')
