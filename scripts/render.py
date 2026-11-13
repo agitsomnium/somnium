@@ -95,7 +95,7 @@ def shell(title, body, base='', theme='b', preview=False):
 <a href="{base}/participate/">참여·후원</a>
 <a href="https://somnium-classroom.pages.dev/?entry=login#entry">강의실 로그인</a>
 <a href="https://somnium-classroom.pages.dev/#accounting-panel">회계 보고(이사 전용)</a>
-<a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a>
+<a href="mailto:agit_somnium@naver.com">agit_somnium@naver.com</a>
 {footer_social()}
 </div>
 <div class="theme-switch hidden" data-theme-switch role="group" aria-label="화면 밝기"><button type="button" data-theme-choice="a" aria-pressed="false">어둡게</button><button type="button" data-theme-choice="b" aria-pressed="false">밝게</button></div>

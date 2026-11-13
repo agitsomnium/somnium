@@ -138,7 +138,7 @@ class OpsTest(unittest.TestCase):
         self.run_build()
         about=(self.output/"about/index.html").read_text()
         self.assertEqual(about.count("<h1>"),1)
-        self.assertIn("agit.somnium@gmail.com",about)
+        self.assertIn("agit_somnium@naver.com",about)
         self.assertNotIn("contact@somnium",about)
         for anchor in ("spirit","board","history","visit"):
             self.assertIn('id="'+anchor+'"',about)

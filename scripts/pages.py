@@ -76,7 +76,7 @@ def about_page(content, md, base=''):
         + '<div class="reading-layout">'
         + '<aside class="reading-note">'
         + '<p class="reading-note-motto">기독교와 정치사회 현실을 함께 공부합니다.</p>'
-        + '<p><a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a></p>'
+        + '<p><a href="mailto:agit_somnium@naver.com">agit_somnium@naver.com</a></p>'
         + '</aside>'
         + '<article class="reading-body">'
         + '<section id="spirit"><h2>솜니움의 정신</h2>' + md(spirit) + '</section>'
@@ -138,7 +138,7 @@ def program_page(tables, content, md, base=''):
         if r.get('신청_url'):
             out.append('<a class="button book-apply" href="%s" aria-label="%s 북클럽 신청하기">신청하기 ↗</a>' % (e(r['신청_url']), e(title)))
         else:
-            out.append('<a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의 ↗</a>')
+            out.append('<a class="text-link" href="mailto:agit_somnium@naver.com">참여 문의 ↗</a>')
         out.append('<details class="book-details"><summary>모임 소개·장소</summary>')
         if r.get('소개'):
             out.append('<p>%s</p>' % e(r['소개']))
@@ -267,7 +267,7 @@ def participate_page(tables, content, md, base=''):
         if url not in (None, ''):
             li += f' <a class="button" href="{e(str(url))}" target="_blank" rel="noopener">신청하기</a>'
         else:
-            li += ' <a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의</a>'
+            li += ' <a class="text-link" href="mailto:agit_somnium@naver.com">참여 문의</a>'
         li += '</li>'
         items.append(li)
     for b, label in bookclub_labels(public_rows(tables, '북클럽') or []):
@@ -283,7 +283,7 @@ def participate_page(tables, content, md, base=''):
         if url not in (None, ''):
             li += f' <a class="button" href="{e(str(url))}" target="_blank" rel="noopener">신청하기</a>'
         else:
-            li += ' <a class="text-link" href="mailto:agit.somnium@gmail.com">참여 문의</a>'
+            li += ' <a class="text-link" href="mailto:agit_somnium@naver.com">참여 문의</a>'
         li += '</li>'
         items.append(li)
     if items:
@@ -301,7 +301,7 @@ def participate_page(tables, content, md, base=''):
     out.append('</section>')
     out.append('<section id="contact" class="content-section"><h2>문의하기</h2>')
     out.append('<p>프로그램 참여와 후원, 연구소 활동에 관해 문의해 주세요.</p>')
-    out.append('<p class="contact-address"><a href="mailto:agit.somnium@gmail.com">agit.somnium@gmail.com</a></p>')
+    out.append('<p class="contact-address"><a href="mailto:agit_somnium@naver.com">agit_somnium@naver.com</a></p>')
     out.append(f'<p><a class="text-link" href="{e(base)}/about/#visit">오시는 길</a></p>')
     out.append('</section>')
     return '\n'.join(out)
