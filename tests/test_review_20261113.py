@@ -20,7 +20,7 @@ class Review20261113(unittest.TestCase):
 
     def test_accounting_wording(self):
         self.assertNotIn('로그인한 회원이 볼 수 있습니다', SRC('pages.py'))
-        self.assertIn('회계 보고(이사 전용)', SRC('render.py'))
+        self.assertIn('회계 보고(이사·간사 전용)', SRC('render.py'))
 
     def test_no_oopy_links_or_source_footer(self):
         p = SRC('pages.py')

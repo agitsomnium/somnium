@@ -43,7 +43,7 @@ class TextFixes(unittest.TestCase):
         extras.CONFIG_OVERRIDES.clear()
         b = extras.board_frame()
         for t in ('<span>이사장</span><strong>원용진</strong>', '<span>대표</span><strong>김동환</strong>',
-                  '박춘노 · 김민수 · 김영철 · 이승민 · 이모세', '<span>사무국</span><strong>최지은 간사</strong>'):
+                  '박춘노 · 김민수 · 김영철(감사) · 이승민 · 이모세', '<span>사무국</span><strong>최지은 간사</strong>'):
             self.assertIn(t, b)
         self.assertNotIn('<span>감사</span>', b)
         people = (ROOT / 'content' / 'people.md').read_text(encoding='utf-8')
