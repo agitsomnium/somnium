@@ -225,6 +225,41 @@ def extract_proxy(w, sheets, through, ledger, people, fixed=(), notes=None):
                 rule=CARD_RULE, matched=len(rows), ledger_checked=len(sheet_rows))
 
 
+def board_extras(accounts, year, purpose=None, loan_opening=None, loan_note=None, budget_csv=None, budget_year=None, account_changes=None):
+    """이사회 제출본에 붙는 칸: 차입금 잔액, 다음 해 예산표, 계정 간 항목 변경. 숫자는 사람이 준 값과 마감 계정 값만 쓴다."""
+    import csv
+    by = {a['name']: a for a in accounts}
+    names = set(by)
+    if loan_opening is None:
+        b, r = by.get('차입금', {}).get('prior_year'), by.get('차입금변제', {}).get('prior_year')
+        loan = dict(opening=(b or 0) - (r or 0), source='derived') if b is not None else None
+    else:
+        if type(loan_opening) is not int or loan_opening < 0: raise ValueError('loan opening must be a non-negative whole number')
+        loan = dict(opening=loan_opening, source='given')
+    if loan is not None: loan['note'] = str(loan_note or '')[:300]
+    rows = {}
+    if budget_csv:
+        with open(budget_csv, encoding='utf-8-sig', newline='') as f:
+            for row in csv.DictReader(f):
+                name = (row.get('계정') or '').strip()
+                if not name: continue
+                side = {'수입': 'income', '지출': 'expense'}.get((row.get('구분') or '').strip())
+                if side is None: raise ValueError('budget row needs 구분 = 수입 or 지출: ' + name)
+                if not any(a['name'] == name and a['side'] == side for a in accounts): raise ValueError('budget account not in closed accounts: ' + name)
+                name = side + '|' + name
+                if name in rows: raise ValueError('budget account listed twice: ' + name)
+                raw = (row.get('예산') or '').replace(',', '').strip()
+                if raw and not re.fullmatch(r'\d{1,9}', raw): raise ValueError('budget amount must be a whole number: ' + name)
+                rows[name] = dict(amount=int(raw) if raw else None, note=(row.get('비고') or '').strip()[:120])
+    budget = dict(year=budget_year or year + 1, provided=any(v['amount'] is not None for v in rows.values()), rows=rows)
+    changes = []
+    for c in account_changes or []:
+        if c.get('account') not in names: raise ValueError('account change names an unknown account: %s' % c.get('account'))
+        if type(c.get('before')) is not int or type(c.get('after')) is not int: raise ValueError('account change needs whole-number before/after')
+        changes.append(dict(account=c['account'], before=c['before'], after=c['after'], note=str(c.get('note') or '')[:300], period=str(c.get('period') or '')[:40]))
+    return dict(purpose=str(purpose or '관리자 검토용 초안')[:40], loan=loan, budget=budget, account_changes=changes)
+
+
 def extract(book, previous, through='auto', notes=None, questions=None, anonymous=(), fixed=None, confirm_csv=None):
     import openpyxl
     w = openpyxl.load_workbook(book, data_only=True, read_only=True)
@@ -344,6 +379,7 @@ def build(data):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--workbook',required=True);p.add_argument('--previous');p.add_argument('--through',default='auto',help='auto = every month the workbook has closed (default), or an explicit month 1-12');p.add_argument('--out',required=True);p.add_argument('--notes');p.add_argument('--questions');p.add_argument('--anonymous',help='JSON list of names who asked to be anonymous');p.add_argument('--fixed-payments',help='JSON list of standing payees: names, label_name, label, note');p.add_argument('--confirm-csv',help='수기확인.csv (read only): 사유 memos');p.add_argument('--manifest')
+    p.add_argument('--purpose',help='표지의 성격 칸. 예: 이사회 제출용');p.add_argument('--loan-opening',type=int,help='연초 차입 잔액(원). 없으면 전년 결산의 차입금-변제로 계산');p.add_argument('--loan-note');p.add_argument('--budget',help='다음 해 예산 CSV: 구분(수입|지출),계정,예산,비고');p.add_argument('--budget-year',type=int);p.add_argument('--account-changes',help='JSON list: account, before, after, period, note')
     a=p.parse_args()
     if a.through!='auto':
         a.through=int(a.through)
@@ -351,13 +387,13 @@ def main():
     out=Path(a.out)
     if out.exists():raise ValueError('choose a new output; preserve reviewed versions')
     load=lambda f:json.loads(Path(f).read_text()) if f else None
-    data=extract(a.workbook,a.previous,a.through,load(a.notes),load(a.questions),load(a.anonymous) or (),load(a.fixed_payments),a.confirm_csv);body=build(data);out.write_text(body)
+    data=extract(a.workbook,a.previous,a.through,load(a.notes),load(a.questions),load(a.anonymous) or (),load(a.fixed_payments),a.confirm_csv);data.update(board_extras(data['accounts'],data['year'],a.purpose,a.loan_opening,a.loan_note,a.budget,a.budget_year,load(a.account_changes)));body=build(data);out.write_text(body)
     if a.manifest:
         mp=Path(a.manifest)
         if mp.exists():raise ValueError('choose a new manifest path')
         c,t,pm=data['confirmed_through'],data['through'],data['through']-data['confirmed_through']
         period='%d년 1~%d월 확정'%(data['year'],c)+(' · %d월 잠정'%t if pm==1 else ' · %d~%d월 잠정'%(c+1,t) if pm else '')
-        mp.write_text(json.dumps(dict(file=str(out.resolve()),title='솜니움 %s 재정보고서 · 검토 초안'%period,period=period[:80],sha256=hashlib.sha256(body.encode()).hexdigest(),member_safe=True,publish=False),ensure_ascii=False,indent=2))
+        mp.write_text(json.dumps(dict(file=str(out.resolve()),title='솜니움 %s 재정보고서 · %s'%(period,'이사회 제출용' if a.purpose and '이사회' in a.purpose else '검토 초안'),period=period[:80],sha256=hashlib.sha256(body.encode()).hexdigest(),member_safe=True,publish=False),ensure_ascii=False,indent=2))
     print(json.dumps({'months':data['through'],'confirmed_through':data['confirmed_through'],'transactions':len(data['transactions']),'accounts':len(data['accounts']),'sha256':hashlib.sha256(body.encode()).hexdigest(),'source_sha256':data['source_sha256'],'privacy':'names masked, memo/contact/account columns excluded'},ensure_ascii=False))
 
 if __name__=='__main__':main()

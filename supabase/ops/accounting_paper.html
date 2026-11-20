@@ -50,7 +50,7 @@ function render(){
     donationNames=['정기후원금','일시후원금','한빛누리CMS후원금','한빛누리비CMS후원금'],priorKeys=['정기후원','일시후원','한빛누리CMS','한빛누리 비CMS'],
     donations=sum(donationNames.map(account)),priorVal=k=>D.previous[k]?val(D.previous[k]):null,prior=sum(priorKeys.map(k=>priorVal(k)||0)),
     exAccts=D.accounts.filter(a=>a.side==='expense'),inAccts=D.accounts.filter(a=>a.side==='income');
-  const tag=prov?' (잠정 포함)':'';
+  const tag=prov?' (잠정 포함)':'',nz1=v=>v?num(v):'-';
   let out='',sn=0;const S=(t,b,c)=>sec(++sn,t,b,c);
   if(prov){const pm=chosen.filter(m=>m.status==='잠정'),cf=chosen.filter(m=>m.status==='확정'),s=(l,k)=>sum(l.map(m=>m[k]));
     out+=`<div class="prov-banner"><p>⚠ 이 화면에는 <b>잠정 마감 월(${pm.map(m=>m.month+'월').join('·')})</b>이 들어 있습니다.</p><p>잠정은 통장 입금액과 추정치로 정리한 값이며, 한빛누리 원본 자료와 대조하기 전입니다. 확정된 달의 합계와 섞이지 않도록 아래에 따로 적었습니다.</p>${cf.length&&typeof view!=='number'?table(['구분','수입','지출','수지'],[[`확정 ${span(cf.map(m=>m.month))}`,money(s(cf,'income')),money(s(cf,'expense')),money(s(cf,'income')-s(cf,'expense'))],[`잠정 ${span(pm.map(m=>m.month))}`,money(s(pm,'income')),money(s(pm,'expense')),money(s(pm,'income')-s(pm,'expense'))],['합계 (잠정 포함)',money(inc),money(exp),money(net)]],{cls:['','prov','total']}):''}</div>`}
@@ -90,6 +90,18 @@ function render(){
   const n=ms.length,steady=account('한빛누리비CMS후원금')+account('한빛누리CMS후원금')+account('장소대여료'),baseExpense=account('급여')+account('사무실임차료')+account('사무비')+account('CMS비용');
   const nat=D.accounts.filter(a=>val(a.values)&&!['차입금','차입금변제'].includes(a.name)).map(a=>[a.side==='income'?'수입':'지출',esc(a.name),nature(a),money(Math.round(val(a.values)/n)),months().filter(m=>a.values[m-1]).length+' / '+n+'개월']);
   out+=S('고정과 변동, 예산의 뼈대',`<p>고정성 항목의 실적 평균과 상황에 따라 달라지는 사업비를 나눠 봅니다.</p>${table(['구분','기간 합계','월평균'],[['한빛누리 후원 + 장소대여료',money(steady),money(Math.round(steady/n))],['급여 + 임차료 + 사무비 + CMS비용',money(baseExpense),money(Math.round(baseExpense/n))],['두 묶음의 차이',money(steady-baseExpense),money(Math.round((steady-baseExpense)/n))]])}<div class="box">위 금액은 이 기간 실적의 평균입니다. 후원·대여료가 앞으로 보장된다는 뜻이나 확정 예산이 아닙니다. 강사비·연구지원·홍보 등 사업비와 기타 지출도 별도로 필요합니다.</div>${(D.proxy&&D.proxy.regular||[]).filter(x=>x.note).map(x=>`<div class="box"><b>2027 참고</b> · ${esc(x.note)}입니다.</div>`).join('')}<details><summary>계정별 고정/변동 판별 (참고) 펼치기</summary>${n>=3?table(['구분','계정','성격(자동)','월평균','발생 월수'],nat):'<p>세 달 이상일 때만 판별합니다.</p>'}<p class="caption">매달 발생하고 월별 편차가 평균의 25% 이하이면 «고정», 그 밖에는 «변동»으로 자동 표시한 참고용 구분이며 확정 예산이 아닙니다. 차입금·차입금변제는 자금 이동이므로 제외했습니다.</p></details>`);
+  /* 이사회 제출본 칸: 차입금 잔액, 계정 간 항목 변경, 다음 해 예산표. 자료가 없으면 그 칸은 만들지 않는다. */
+  const L=D.loan,acc=nm=>D.accounts.find(a=>a.name===nm);
+  if(L){const bor=acc('차입금')?.values||[],rpy=acc('차입금변제')?.values||[];let bal=L.opening;
+    const all=D.monthly.map(m=>{const b=bor[m.month-1]||0,r=rpy[m.month-1]||0;bal+=b-r;return {m,b,r,bal}}),shown=all.filter(x=>ms.includes(x.m.month)),end=shown.at(-1),sb=sum(shown.map(x=>x.b)),sr=sum(shown.map(x=>x.r));
+    out+=S('차입금 현황',`<p>차입금은 후원·사업 수입과 구분해 따로 봅니다. ${D.year}년 초 차입 잔액은 ${money(L.opening)}입니다(${L.source==='given'?'사무국 확인 값':'지난해 결산의 차입금에서 변제를 뺀 값'}).</p><dl class="facts"><div><dt>연초 차입 잔액</dt><dd>${money(L.opening)}</dd></div><div><dt>${period()} 차입</dt><dd>${money(sb)}</dd></div><div><dt>${period()} 변제</dt><dd>${money(sr)}</dd></div><div><dt>${end.m.month}월 말 차입 잔액${end.m.status==='잠정'?' (잠정)':''}</dt><dd>${money(end.bal)}</dd></div></dl>${table(['월','구분','차입','변제','월말 차입 잔액','월말 통장 잔액'],shown.map(x=>[x.m.month+'월',badge(x.m.month),nz1(x.b),nz1(x.r),money(x.bal),money(x.m.balance)]),{cls:shown.map(x=>x.m.status==='잠정'?'prov':'')})}<p>${end.m.month}월 말 통장 잔액 ${money(end.m.balance)}에서 차입 잔액 ${money(end.bal)}을 빼면 ${money(end.m.balance-end.bal)}입니다.</p>${L.note?`<div class="box">${esc(L.note)}</div>`:''}<p class="caption">월말 차입 잔액은 1월부터의 차입과 변제를 차례로 더하고 뺀 값입니다. 상환용 적립은 별도 계정 없이 통장 잔액으로 관리하므로 이 표에는 실제 변제만 나타납니다.</p>`);}
+  const CH=D.account_changes||[];
+  if(CH.length){const biz=exAccts.filter(a=>a.group==='사업비');
+    out+=S('계정 사이에서 옮긴 항목',`<p>같은 지출을 다른 계정으로 옮겨 적은 내용입니다. 지출 합계는 달라지지 않습니다.</p>${table(['계정','대상 기간','옮기기 전','옮긴 뒤','차이','설명'],CH.map(c=>[esc(c.account),esc(c.period),money(c.before),money(c.after),(c.after-c.before>0?'+':'')+money(c.after-c.before),esc(c.note)]))}<h3>사업비 계정, 지난해와 나란히</h3>${table(['계정',period(),'2025년 연간<br>(참고)'],biz.map(a=>[esc(a.name),money(val(a.values)),a.prior_year==null?'—':money(a.prior_year)]))}<p class="caption">2025년 연간은 한 해 합계이므로 올해 일부 기간과 그대로 비교하지 않습니다.</p>`);}
+  const B=D.budget;
+  if(B){const br=a=>B.rows[a.side+'|'+a.name]||{},bRows=[],bCls=[],addB=(label,list,k)=>{bRows.push(['<b>'+label+'</b>','','','','','']);bCls.push('grp');list.forEach(a=>{const v=val(a.values),r=br(a);bRows.push([esc(a.name),a.prior_year==null?'—':nz1(a.prior_year),nz1(v),nz1(Math.round(v/n)),r.amount==null?'미정':num(r.amount),esc(r.note||'')]);bCls.push('')});const t=list.map(a=>br(a).amount);bRows.push([label+' 합계','—',nz1(total(k)),nz1(Math.round(total(k)/n)),B.provided&&t.every(x=>x!=null)?num(sum(t)):'미정','']);bCls.push('total')};
+    addB('수입',inAccts,'income');addB('지출',exAccts,'expense');
+    out+=S(`${B.year}년 예산안`,`<p>${D.year}년 실적 옆에 ${B.year}년 예산을 나란히 놓았습니다(단위: 원, «-»는 0).</p>${table(['계정','2025년 연간<br>(참고)',`${D.year}년 ${period()}`,'월평균',`${B.year}년 예산`,'비고'],bRows,{cls:bCls,nw:true})}<p class="caption">${B.provided?'예산 금액은 사무국이 입력한 값이며 이사회 의결 전입니다. «미정»은 아직 정하지 않은 계정입니다.':'예산 금액이 아직 입력되지 않아 모두 «미정»입니다. 예산표에 금액을 넣고 보고서를 다시 만들면 채워집니다.'} 월평균은 선택 기간의 실적을 개월 수로 나눈 값입니다.</p>`,'pb');}
   /* 계정별 결산: 월별 + 분기 + 2025 연간 참고 */
   const nz=n=>n?num(n):'-',head=['계정',...chosen.map(m=>m.month+'월'+(m.status==='잠정'?'<br>(잠정)':'')),'합계'];
   const rows=[],cls=[],addRows=(label,list,tot)=>{rows.push(['<b>'+label+'</b>',...chosen.map(()=>''),'']);cls.push('grp');list.forEach(a=>{rows.push([esc(a.name),...chosen.map(m=>nz(a.values[m.month-1])),nz(val(a.values))]);cls.push('')});rows.push([label+' 합계',...chosen.map(m=>nz(m[tot])),nz(total(tot))]);cls.push('total')};
@@ -118,7 +130,7 @@ function setup(){
   $('month').onchange=e=>{view=/^\d+$/.test(e.target.value)?Number(e.target.value):e.target.value;render()};
   const c=confirmed.length,t=D.through;
   $('title').innerHTML=D.year+'년 '+(provisional.length?(c?'1~'+D.confirmed_through+'월 확정<br><span style="font-size:.6em;color:var(--prov)">'+(provisional.length===1?provisional[0]+'월':span(provisional)+'월')+' 잠정 포함</span> ':'잠정 ')+'재정보고서':'1~'+t+'월<br>재정보고서');
-  $('cover').innerHTML=`<div><b>보고 기간</b> ${D.year}년 1~${t}월</div><div><b>확정</b> ${c?span(confirmed):'없음'}</div><div><b>잠정</b> ${provisional.length?span(provisional):'없음'}</div><div><b>작성일</b> ${esc(D.generated)}</div><div><b>성격</b> 관리자 검토용 초안</div><div><b>금액 단위</b> 원</div>`;
+  $('cover').innerHTML=`<div><b>보고 기간</b> ${D.year}년 1~${t}월</div><div><b>확정</b> ${c?span(confirmed):'없음'}</div><div><b>잠정</b> ${provisional.length?span(provisional):'없음'}</div><div><b>작성일</b> ${esc(D.generated)}</div><div><b>성격</b> ${esc(D.purpose||'관리자 검토용 초안')}</div><div><b>금액 단위</b> 원</div>`;
   $('pending').textContent=D.pending;
   $('sources').textContent='자료: 솜니움 '+D.year+'년 마감 워크북(읽기 전용 재계산 사본), 2025년 후원현황. 모든 금액은 원 단위. 개인 이름은 가렸습니다. 자료 지문: '+D.source_sha256;
   let before=[];window.addEventListener('beforeprint',()=>{before=[...document.querySelectorAll('details')].map(e=>[e,e.open]);for(const[e]of before)e.open=true});

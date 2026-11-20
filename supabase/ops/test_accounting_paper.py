@@ -87,4 +87,45 @@ class PaperTests(unittest.TestCase):
     def test_none_amount_never_zero_filled(self):
         with self.assertRaises(ValueError):number(None)
 
+
+
+class BoardExtras(unittest.TestCase):
+    ACCOUNTS = [dict(name='차입금', side='income', prior_year=5000000, values=[1600000, 0]),
+                dict(name='차입금변제', side='expense', prior_year=0, values=[0, 600000]),
+                dict(name='기타미지급금', side='income', prior_year=0, values=[0, 0]),
+                dict(name='기타미지급금', side='expense', prior_year=0, values=[0, 0]),
+                dict(name='강사비', side='expense', prior_year=1500000, values=[0, 150000])]
+
+    def test_loan_opening_is_derived_or_given_and_never_negative(self):
+        from build_accounting_paper import board_extras
+        self.assertEqual(board_extras(self.ACCOUNTS, 2026)['loan'], dict(opening=5000000, source='derived', note=''))
+        self.assertEqual(board_extras(self.ACCOUNTS, 2026, loan_opening=3000000)['loan']['source'], 'given')
+        with self.assertRaises(ValueError):
+            board_extras(self.ACCOUNTS, 2026, loan_opening=-1)
+
+    def test_budget_rows_need_side_and_known_accounts(self):
+        import tempfile
+        from build_accounting_paper import board_extras
+        def run(text):
+            with tempfile.NamedTemporaryFile('w', suffix='.csv', encoding='utf-8', delete=False) as f:
+                f.write(text)
+            return board_extras(self.ACCOUNTS, 2026, budget_csv=f.name)['budget']
+        b = run('구분,계정,예산,비고\n수입,기타미지급금,,\n지출,기타미지급금,,\n지출,강사비,"1,800,000",세미나 6회\n')
+        self.assertEqual((b['year'], b['provided']), (2027, True))
+        self.assertEqual(b['rows']['expense|강사비'], dict(amount=1800000, note='세미나 6회'))
+        self.assertIsNone(b['rows']['income|기타미지급금']['amount'])
+        self.assertFalse(run('구분,계정,예산,비고\n지출,강사비,,\n')['provided'])
+        for bad in ('구분,계정,예산,비고\n지출,없는계정,1,\n', '구분,계정,예산,비고\n,강사비,1,\n', '구분,계정,예산,비고\n지출,강사비,1.5,\n', '구분,계정,예산,비고\n지출,강사비,1,\n지출,강사비,2,\n'):
+            with self.assertRaises(ValueError):
+                run(bad)
+
+    def test_account_changes_are_validated(self):
+        from build_accounting_paper import board_extras
+        ok = board_extras(self.ACCOUNTS, 2026, account_changes=[dict(account='강사비', before=550000, after=850000, period='1~6월', note='옮김')])
+        self.assertEqual(ok['account_changes'][0]['after'], 850000)
+        self.assertEqual(ok['purpose'], '관리자 검토용 초안')
+        with self.assertRaises(ValueError):
+            board_extras(self.ACCOUNTS, 2026, account_changes=[dict(account='없는계정', before=1, after=2)])
+
+
 if __name__=='__main__':unittest.main()
