@@ -53,3 +53,13 @@ HTML도 같은 검토 manifest와 `sync_accounting_report.py`로 연동한다. *
 ### 강의 날짜와 목록 정렬 (2026-11-07)
 
 회원에게 게시하는 모든 강의는 `lecture_date`가 필요합니다. 실제 강의일을 행사 포스터·연혁·활동보고서 회차표로 확인하며 YouTube 업로드일·도서 출간연도를 사용하지 않습니다. 관리자 등록 화면에서 날짜를 입력하고 `somnium_save_lesson`의 `p_lecture_date` 인자를 함께 전달합니다. 공개 목록과 강의실은 개별 강의를 실제 강의일 최신순으로 표시하며, 같은 날 분할된 영상은 회차 순서를 유지합니다. 날짜 근거는 `data/lecture-dates.json`에 있습니다. 기존 자료·권한·후원 정책은 별도입니다.
+
+## 활동보고서(이사회용)
+
+본문 틀은 `activity_paper.html`, 생성은 `build_activity_paper.py`다. 데이터는 사람이 쓴 JSON 한 개(프로그램·신청 인원·유입·평가·계획)이고, 생성기는 형식·합계(유입 합 = 신청 합)·연락처 유무만 검사한다. 올리는 길은 재정보고서와 같다(`sync_accounting_report.py`, 같은 표·같은 비공개 버킷). 그래서 관리자·이사·간사만 보고, 후원회원·일반회원에게는 목록도 파일도 나가지 않는다(`tests/board-reports-isolation.sql`).
+
+```bash
+python3 supabase/ops/build_activity_paper.py --data /작업폴더/activity_2026.json --out /작업폴더/솜니움_2026_활동평가.html --manifest /작업폴더/manifest.json
+```
+
+관리자는 강의실에서 보고서를 연 뒤 「내용 고치기」로 평가 문장과 채널 수치를 고쳐 「새 판으로 저장」할 수 있다. 새 판이 등록되고 이전 판은 숨김으로 남는다. 숫자·프로그램 목록·계획은 JSON을 고쳐 다시 생성한다. 틀(`activity_paper.html`)의 script·style이 바뀌면 뷰어 CSP 해시가 바뀌므로 강의실을 다시 빌드·배포한다.

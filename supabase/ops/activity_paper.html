@@ -1,0 +1,54 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="REPORT_CSP"><title>솜니움 활동보고</title><style>
+:root{--ink:#203b5e;--accent:#bd6d2c;--muted:#647384;--paper:#fffdfa;--line:#deded6;--bar:#5a89bc}*{box-sizing:border-box}body{margin:0;background:#f0ede6;color:#25313e;font:15px/1.7 -apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}main{max-width:900px;margin:24px auto;background:var(--paper);padding:36px 44px}
+.eyebrow{font-size:12px;letter-spacing:.2em;color:var(--accent);font-weight:700}h1{font-size:30px;margin:6px 0;color:var(--ink)}h2{font-size:19px;color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:6px;margin:34px 0 14px}h3{font-size:15px;margin:18px 0 4px;color:var(--ink)}.sub{color:var(--muted)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 0;border-block:1px solid var(--line);position:sticky;top:0;background:var(--paper);z-index:2;margin:14px 0}button{font:inherit;background:#fff;border:1px solid #b7b8b5;border-radius:5px;padding:7px 12px;color:var(--ink);cursor:pointer}button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}#editnote{font-size:13px;color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-block:1px solid var(--line);margin:14px 0}.stats>div{padding:14px 8px;border-right:1px solid var(--line)}.stats>div:last-child{border:0}.stats .k{font-size:12px;color:var(--muted)}.stats .v{font-size:22px;font-weight:700;color:var(--ink)}.stats small{font-size:12px;font-weight:400;margin-left:2px}
+.tag{display:inline-block;font-size:11px;font-weight:700;background:var(--ink);color:#fff;border-radius:3px;padding:1px 7px;margin-right:8px;vertical-align:2px}.prog{border-bottom:1px solid var(--line);padding:6px 0 12px;break-inside:avoid}.meta{font-size:13px;color:#4b5d70}.assess{border-left:3px solid var(--accent);background:#f5f2eb;padding:8px 14px;margin-top:8px}.assess .lab{font-size:12px;font-weight:700;color:var(--accent)}ul{margin:4px 0;padding-left:20px}.todo{color:#a04a1c;font-weight:600}
+.note{background:#f5f2eb;padding:10px 16px;font-size:13px;margin:12px 0}table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#eef0ef;color:var(--ink)}td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}tfoot td{font-weight:700;border-top:2px solid var(--ink)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px}.bars{display:grid;gap:6px;margin:8px 0}.bar{display:grid;grid-template-columns:minmax(120px,1.2fr) 2fr 48px;gap:8px;align-items:center;font-size:12px}.track{background:#e8e7e1;height:13px;border-radius:2px}.fill{background:var(--bar);height:13px;border-radius:2px}.bar b{text-align:right}
+textarea,input.ed{width:100%;font:inherit;font-size:13px;border:1px solid #b7b8b5;border-radius:4px;padding:6px 8px;background:#fff}textarea{min-height:92px}.edhint{font-size:12px;color:var(--muted)}footer{margin-top:34px;border-top:1px solid var(--line);padding-top:12px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media(max-width:640px){main{margin:0;padding:18px 14px}.stats{grid-template-columns:repeat(2,1fr)}.stats>div:nth-child(2){border:0}.two{grid-template-columns:1fr}h1{font-size:24px}.bar{grid-template-columns:104px 1fr 40px}.table-scroll{overflow-x:auto}}
+@page{size:A4;margin:15mm 14mm 18mm;@bottom-center{content:"솜니움 활동보고 · " counter(page) " / " counter(pages);font-size:8pt;color:#647384}}
+@media print{body{background:#fff;font-size:10pt}main{max-width:none;margin:0;padding:0}.toolbar,.screen-only{display:none!important}h2{break-after:avoid}.assess,.note,tr,.bars{break-inside:avoid}}
+</style><main><div class="eyebrow" id="eyebrow"></div><h1 id="title"></h1><div class="sub" id="sub"></div><div class="toolbar"><button id="print" type="button">인쇄 · PDF 저장</button><button id="edit" type="button" hidden>내용 고치기</button><button id="save" type="button" class="primary" hidden>새 판으로 저장</button><button id="cancel" type="button" hidden>고치기 취소</button><span id="editnote"></span></div><div id="report"></div><footer><span id="f1"></span><span id="f2"></span></footer></main>
+<script id="report-data" type="application/json">REPORT_JSON</script><script>
+'use strict';
+const D=JSON.parse(document.getElementById('report-data').textContent);
+let editing=false,canEdit=false;
+const $=id=>document.getElementById(id),won=n=>(Number(n)||0).toLocaleString('ko-KR'),sum=a=>a.reduce((s,r)=>s+(Number(r[1])||0),0),
+esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
+sec=(n,t,b)=>`<section><h2>${n}. ${esc(t)}</h2>${b}</section>`,
+rows=(l,f)=>l.map(f).join(''),todo=s=>/^\[[^\]]*입력 필요\]/.test(s),
+bars=items=>{const max=Math.max(...items.map(i=>i[1]),1);return `<div class="bars">${rows(items,([n,v])=>`<div class="bar"><span>${esc(n)}</span><div class="track"><div class="fill" style="width:${v/max*100}%"></div></div><b>${v}명</b></div>`)}</div>`};
+function render(){
+  const C=D,F=C.finance,inc=sum(F.income),exp=sum(F.expense),net=inc-exp,bal=F.carryover+net,total=C.programs.reduce((s,p)=>s+p.applied,0),
+    cnt=k=>C.programs.filter(p=>k.includes(p.kind)).length,N=C.plan.network;
+  $('eyebrow').textContent=C.org+' · '+C.audience;$('title').textContent=C.title;$('sub').textContent='활동 기간 '+C.period+' · 작성 '+C.issued+' · 담당 '+C.author;
+  $('f1').textContent=C.org;$('f2').textContent=C.title+' · '+C.issued;
+  let h=sec(1,'사무국 운영 현황',`<table><tbody><tr><th style="width:20%">업무 시간</th><td>${esc(C.office.hours)}</td></tr><tr><th>공간</th><td>${esc(C.office.venue)}</td></tr><tr><th>사무국</th><td>${esc(C.office.staff)}</td></tr><tr><th>주요 업무</th><td>${C.office.tasks.map(esc).join(' · ')}</td></tr><tr><th>운영 전환</th><td>${esc(C.office.shift)}</td></tr></tbody></table>`);
+  const chan=(label,key)=>{const c=C.channels[key];return `<div class="meta"><b>${label}</b> · ${esc(c.url)} · ${editing?`<input class="ed" data-chan="${key}" value="${esc(c.meta)}">`:esc(c.meta)}</div>`};
+  let b=`<div class="stats"><div><div class="k">프로그램</div><div class="v">${C.programs.length}<small>건</small></div></div><div><div class="k">신청 연인원(합산)</div><div class="v">${total}<small>명</small></div></div><div><div class="k">세미나 · 특강</div><div class="v">${cnt(['세미나','특강'])}<small>건</small></div></div><div><div class="k">북클럽 · 연구자초대</div><div class="v">${cnt(['북클럽','연구자초대'])}<small>건</small></div></div></div><div class="note">${esc(C.countNote||'')}</div>${chan('유튜브','youtube')}${chan('인스타그램','instagram')}`;
+  C.programs.forEach((p,i)=>{b+=`<div class="prog"><h3><span class="tag">${esc(p.kind)}</span>${esc(p.name)}</h3><div class="meta"><b>${esc(p.date)}</b> · ${esc(p.host)}</div><div class="meta">신청 <b>${p.applied}명</b> · 형식 ${esc(p.mode)}</div><div class="meta">유입 · ${esc(p.inflow)}</div><div class="assess"><div class="lab">평가</div>${editing?`<textarea data-prog="${i}">${esc(p.assess.join('\n'))}</textarea><div class="edhint">한 줄이 한 항목입니다.</div>`:`<ul>${rows(p.assess,a=>`<li${todo(a)?' class="todo"':''}>${esc(a)}</li>`)}</ul>`}</div></div>`});
+  h+=sec(2,'프로그램 운영 · 평가',b);
+  h+=sec(3,'참여 규모 · 유입 경로',`<div class="two"><div><h3>프로그램별 신청 인원</h3>${bars(C.programs.map(p=>[p.name.length>16?p.name.slice(0,15)+'…':p.name,p.applied]))}</div><div><h3>유입 경로 (연인원 ${total}명)</h3>${bars(Object.entries(C.inflowAgg))}</div></div><div class="note"><ul>${rows(C.inflowNotes||[],x=>`<li>${esc(x)}</li>`)}</ul></div>`);
+  const ft=(cap,l,t)=>`<div><h3>${cap}</h3><table><tbody>${rows(l,([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${won(v)}원</td></tr>`)}</tbody><tfoot><tr><td>합계</td><td class="num">${won(t)}원</td></tr></tfoot></table></div>`;
+  h+=sec(4,'재정 보고 ('+esc(F.label||'')+')',`<div class="stats"><div><div class="k">수입</div><div class="v">${won(inc)}<small>원</small></div></div><div><div class="k">지출</div><div class="v">${won(exp)}<small>원</small></div></div><div><div class="k">수지</div><div class="v">${net>0?'+':''}${won(net)}<small>원</small></div></div><div><div class="k">${esc(F.balanceLabel||'잔액')}</div><div class="v">${won(bal)}<small>원</small></div></div></div><div class="two">${ft('수입',F.income,inc)}${ft('지출',F.expense,exp)}</div><div class="note"><ul>${rows(F.notes,x=>`<li>${esc(x)}</li>`)}</ul></div>`);
+  h+=sec(5,C.plan.title||'계획',`<p>${esc(N.concept)}</p><div class="assess"><div class="lab">사무국 | ${esc(N.recommend.name)}</div><p style="margin:6px 0 0">${esc(N.recommend.text)}</p></div><h3>강사진 네트워크 혜택</h3><ul>${rows(N.benefits,x=>`<li>${esc(x)}</li>`)}</ul><h3>강사진 네트워크(비공식)</h3><div class="table-scroll"><table><thead><tr><th style="width:18%">연구자</th><th style="width:34%">소속 · 분야</th><th>비고</th></tr></thead><tbody>${rows(N.members,m=>`<tr><td>${esc(m[0])}</td><td>${esc(m[1])}</td><td>${esc(m[2])}</td></tr>`)}</tbody></table></div><h3>프로그램 후보 (확정은 아님)</h3><div class="table-scroll"><table><thead><tr><th style="width:18%">시기</th><th style="width:30%">담당</th><th>내용</th></tr></thead><tbody>${rows(C.plan.lineup,r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`)}</tbody></table></div>`);
+  h+=sec(6,'홈페이지 · 회원 강의실 · 기록',`<table><thead><tr><th style="width:18%">항목</th><th>내용</th></tr></thead><tbody>${rows(C.digital||[],r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`)}</tbody></table>`);
+  $('report').innerHTML=h;
+  $('edit').hidden=!canEdit||editing;$('save').hidden=$('cancel').hidden=!editing;
+  $('editnote').textContent=editing?'평가와 채널 수치를 고친 뒤 「새 판으로 저장」을 누르세요. 이전 판은 숨김으로 남습니다.':'';
+}
+function collect(){
+  const assess={},channels={};
+  for(const t of document.querySelectorAll('textarea[data-prog]'))assess[t.dataset.prog]=t.value.split('\n').map(x=>x.trim()).filter(Boolean);
+  for(const i of document.querySelectorAll('input[data-chan]'))channels[i.dataset.chan]=i.value.trim();
+  return {assess,channels};
+}
+$('print').onclick=()=>window.print();
+$('edit').onclick=()=>{editing=true;render()};
+$('cancel').onclick=()=>{editing=false;render()};
+$('save').onclick=()=>{$('save').disabled=true;$('editnote').textContent='저장하는 중입니다…';parent.postMessage({type:'somnium-activity-save',edits:collect()},'*')};
+window.addEventListener('message',e=>{if(e.source!==parent||!e.data)return;if(e.data.type==='somnium-edit-enable'){canEdit=true;render()}if(e.data.type==='somnium-activity-save-failed'){$('save').disabled=false;$('editnote').textContent='저장하지 못했습니다. 다시 눌러 주세요.'}});
+render();
+</script></html>

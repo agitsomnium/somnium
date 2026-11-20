@@ -45,7 +45,7 @@ def prepare(manifest_path):
         raise ValueError('PDF header missing')
     if f.suffix.lower() == '.html':
         body = unescape(data.decode('utf-8'))
-        if 'somnium-finance-paper/1' not in body or "default-src 'none'" not in body or "connect-src 'none'" not in body:
+        if not any(v in body for v in ('somnium-finance-paper/1', 'somnium-activity-paper/1')) or "default-src 'none'" not in body or "connect-src 'none'" not in body:
             raise ValueError('self-contained sandbox report required')
     digest = hashlib.sha256(data).hexdigest()
     if digest != m['sha256']:

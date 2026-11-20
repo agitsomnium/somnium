@@ -1,9 +1,30 @@
 import {downloadReport} from './reportDownload.js';
+import {applyActivityEdits,isActivityPaper} from './activityEdit.js';
 export function accounting(db,{access,rpc,notice}) {
   const $=id=>document.getElementById(id);
-  let signature='',readerId=null;
-  function closeViewer(){readerId=null;const dialog=$('report-reader');if(dialog){dialog.close();$('report-frame').removeAttribute('src');$('report-frame').removeAttribute('srcdoc');}}
+  let signature='',readerId=null,readerReport=null,readerBody='';
+  function closeViewer(){readerId=null;readerReport=null;readerBody='';const dialog=$('report-reader');if(dialog){dialog.close();$('report-frame').removeAttribute('src');$('report-frame').removeAttribute('srcdoc');}}
   $('report-close').onclick=closeViewer;
+  // The activity paper runs in a sandboxed frame; only an administrator's parent page may store an edited edition.
+  const frameWindow=()=>$('report-frame').contentWindow;
+  $('report-frame').addEventListener('load',()=>{if(readerId&&access().admin&&isActivityPaper(readerBody))frameWindow().postMessage({type:'somnium-edit-enable'},'*');});
+  let saving=false;
+  window.addEventListener('message',async e=>{
+    if(e.source!==frameWindow()||!e.data||e.data.type!=='somnium-activity-save'||saving)return;
+    saving=true;
+    try{
+      const start={...access()},report=readerReport;
+      if(!start.admin||!report||report.id!==readerId)throw Error('관리자만 보고서를 고쳐 저장할 수 있습니다.');
+      const body=applyActivityEdits(readerBody,e.data.edits),path=crypto.randomUUID()+'.html';
+      const {error}=await db.storage.from('somnium-accounting').upload(path,new Blob([body],{type:'text/html'}),{contentType:'text/html',upsert:false,cacheControl:'0'});
+      if(error)throw Error('고친 보고서를 올리지 못했습니다. 관리자 권한과 연결 상태를 확인해 주세요.');
+      const end=access();if(start.userId!==end.userId||start.epoch!==end.epoch||!end.admin)throw Error('계정 상태가 바뀌어 저장을 중단했습니다.');
+      await rpc('save_report',{p_title:report.title,p_period:report.period||'',p_filename:report.filename,p_path:path,p_enabled:report.enabled});
+      await rpc('set_report',{p_id:report.id,p_enabled:false});
+      closeViewer();await load();notice('새 판으로 저장했습니다. 이전 판은 숨김으로 남겼습니다.');
+    }catch(err){notice(err.message);if(frameWindow())frameWindow().postMessage({type:'somnium-activity-save-failed'},'*');}
+    finally{saving=false;}
+  });
   const text=(tag,value,parent)=>{const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;};
   async function run(button,fn){button.disabled=true;try{await fn();}catch(e){notice(e.message);}finally{button.disabled=false;}}
   function clear(){closeViewer();signature='';$('report-list').replaceChildren();$('report-upload').hidden=true;$('report-login').hidden=true;$('report-status').textContent='현재 계정으로는 보고서 목록을 표시하지 않습니다.';}
@@ -14,7 +35,7 @@ export function accounting(db,{access,rpc,notice}) {
     if(start.userId!==now.userId || start.epoch!==now.epoch || !now.canReadReports)return;
     if(readerId&&!rows.some(r=>r.id===readerId))closeViewer();
     $('report-login').hidden=true;$('report-upload').hidden=!now.admin;
-    $('report-status').textContent=rows.length?`회계 보고서 ${rows.length}건`:'등록된 보고서가 없습니다. 정리된 보고서가 올라오면 이곳에서 볼 수 있습니다.';
+    $('report-status').textContent=rows.length?`보고서 ${rows.length}건`:'등록된 보고서가 없습니다. 정리된 보고서가 올라오면 이곳에서 볼 수 있습니다.';
     const next=JSON.stringify([now.userId,now.admin,rows]);if(next===signature)return;signature=next;
     $('report-list').replaceChildren();
     for(const report of rows){
@@ -25,7 +46,7 @@ export function accounting(db,{access,rpc,notice}) {
         const offered=await downloadReport(report,{
           access,list:()=>rpc('reports'),
           download:async path=>{const {data,error}=await db.storage.from('somnium-accounting').download(path,{}, {cache:'no-store'});if(error)throw Error('보고서를 받지 못했습니다. 로그인 상태를 확인해 주세요.');return data;},
-          offer:async(blob,filename)=>{if(filename.endsWith('.html')){const start={...access()},body=await blob.text(),end=access();if(!end.canReadReports||start.userId!==end.userId||start.epoch!==end.epoch)return false;closeViewer();readerId=report.id;$('report-reader-title').textContent=report.title;$('report-frame').srcdoc=body;$('report-reader').showModal();return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);},
+          offer:async(blob,filename)=>{if(filename.endsWith('.html')){const start={...access()},body=await blob.text(),end=access();if(!end.canReadReports||start.userId!==end.userId||start.epoch!==end.epoch)return false;closeViewer();readerId=report.id;readerReport=report;readerBody=body;$('report-reader-title').textContent=report.title;$('report-frame').srcdoc=body;$('report-reader').showModal();return;}const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);},
         });notice(offered?(report.filename.endsWith('.html')?'보고서를 열었습니다.':'보고서 내려받기를 시작했습니다.'):'이용 상태가 바뀌어 내려받기를 중단했습니다.');
       });
       if(now.admin){
