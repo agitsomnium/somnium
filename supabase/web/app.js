@@ -67,6 +67,7 @@ async function rpc(name, args = {}) {
 }
 function clearPrivate() {
   reportUI.clear();
+  show("role-request", false);
   privateEpoch++;
   openMaterials.clear();
   catalogSig = "";
@@ -75,7 +76,7 @@ function clearPrivate() {
   activeLesson = "";
   $("issued-code-value").value = "";
   show("issued-code", false);
-  for (const id of ["catalog", "player-region", "members", "admin-lessons", "directors", "audit", "series-codes", "series-entitlements", "admin-materials"]) $(id).replaceChildren();
+  for (const id of ["catalog", "player-region", "members", "admin-lessons", "directors", "role-requests", "audit", "series-codes", "series-entitlements", "admin-materials"]) $(id).replaceChildren();
 }
 function mode(value) {
   signup = value;
@@ -347,12 +348,30 @@ async function play(l) {
   $("player-region").scrollIntoView({ block: "nearest" });
 }
 form("director-form", async (f) => {
-  await rpc("set_director", { p_email: String(f.get("email")).trim().toLowerCase(), p_enabled: true, p_roster_confirmed: f.get("confirmed") === "on" });
+  await rpc("set_board_member", { p_email: String(f.get("email")).trim().toLowerCase(), p_role: f.get("role") === "staff" ? "staff" : "director", p_enabled: true, p_roster_confirmed: f.get("confirmed") === "on" });
   $("director-form").reset();
-  notice("내부 이사 명단에 등록했습니다. 같은 이메일 본인 확인 후 강의 권한이 적용됩니다.");
+  notice("내부 이사·간사 명단에 등록했습니다. 같은 이메일 본인 확인 후 강의·회계 열람 권한이 적용됩니다.");
+  await refresh();
 });
+const roleNames = { director: "이사", staff: "간사" };
+form("role-form", async (f) => {
+  const role = f.get("role") === "staff" ? "staff" : "director";
+  await rpc("request_role", { p_role: role });
+  notice(roleNames[role] + " 등록을 신청했습니다. 운영자가 명단을 확인해 승인하면 회계 보고가 열립니다.");
+  await refresh();
+});
+function renderRoleRequest() {
+  const open = !!me && !me.suspended && !me.admin && !me.board_role;
+  show("role-request", open);
+  if (!open) return;
+  const r = me.role_request;
+  const pending = r?.state === "pending";
+  show("role-form", !pending);
+  $("role-state").textContent = pending ? roleNames[r.role] + " 등록 신청이 접수되어 운영자 승인을 기다리고 있습니다." : r?.state === "declined" ? "지난 신청은 승인되지 않았습니다. 명단에 있는 이메일로 로그인했는지 확인한 뒤 다시 신청할 수 있습니다." : "이사·간사는 아래에서 등록을 신청해 주세요.";
+}
 async function admin(generation) {
   const [members, registered, directors, audit, series, materials] = await Promise.all([rpc("admin_members"), rpc("admin_lessons"), rpc("admin_directors"), rpc("admin_audit"), rpc("admin_series"), rpc("admin_materials")]);
+  const roleRequests = await rpc("admin_role_requests");
   if (generation !== refreshGeneration || !me?.admin) return;
   managedLessons = newestFirst(registered);
   renderManaged();
@@ -360,10 +379,27 @@ async function admin(generation) {
   renderMaterialAdmin(materials);
   $("directors").replaceChildren();
   for (const d of directors) {
-    const row = text("p", d.email + " · " + (d.enabled ? "유효" : "종료"), $("directors"));
-    if (d.enabled) action("이사 자격 종료", row, async () => {
-      if (!confirm(d.email + " 이사 자격을 종료할까요?")) return;
-      await rpc("set_director", { p_email: d.email, p_enabled: false, p_roster_confirmed: false });
+    const roleName = roleNames[d.role] || "이사";
+    const row = text("p", roleName + " · " + d.email + " · " + (d.enabled ? "유효" : "종료"), $("directors"));
+    if (d.enabled) action(roleName + " 자격 종료", row, async () => {
+      if (!confirm(d.email + " " + roleName + " 자격을 종료할까요?")) return;
+      await rpc("set_board_member", { p_email: d.email, p_role: d.role === "staff" ? "staff" : "director", p_enabled: false, p_roster_confirmed: false });
+      await refresh();
+    });
+  }
+  $("role-requests").replaceChildren();
+  if (!roleRequests.length) text("p", "대기 중인 신청이 없습니다.", $("role-requests"));
+  for (const r of roleRequests) {
+    const roleName = roleNames[r.role] || "이사";
+    const row = text("p", roleName + " 신청 · " + (r.name || "이름 없음") + " · " + r.email + " · " + new Date(r.requested_at).toLocaleDateString("ko-KR"), $("role-requests"));
+    action("명단 확인 후 승인", row, async () => {
+      if (!confirm(r.email + " 님이 " + roleName + " 명단에 있는지 확인하셨나요? 승인하면 회계 보고와 회원 강의가 열립니다.")) return;
+      await rpc("review_role_request", { p_user: r.user_id, p_approve: true, p_roster_confirmed: true });
+      await refresh();
+    });
+    action("승인하지 않음", row, async () => {
+      if (!confirm(r.email + " 님의 " + roleName + " 신청을 승인하지 않을까요?")) return;
+      await rpc("review_role_request", { p_user: r.user_id, p_approve: false, p_roster_confirmed: false });
       await refresh();
     });
   }
@@ -550,6 +586,7 @@ async function refresh() {
     show("supporter-request", !me.suspended && !me.full_access && me.supporter_state === "not_requested");
     show("supporter-guide", !me.suspended && !me.full_access);
     $("supporter-guide").textContent = me.supporter_state === "pending" ? "후원 신청이 접수되어 운영자 승인을 기다리고 있습니다. 승인 후 상태를 새로고침해 주세요." : "한빛누리에서 월 1만 원 이상 정기후원을 신청하셨다면 ‘후원 신청했어요’를 눌러 주세요. 운영자가 확인·승인하면 강의실이 열립니다.";
+    renderRoleRequest();
     await reportUI.load();
     if (generation !== refreshGeneration) return;
     const allowed = me.can_learn ? await rpc("catalog") : [];
@@ -573,7 +610,7 @@ async function refresh() {
     else {
       $("issued-code-value").value = ""; show("issued-code", false);
       managedLessons = [];
-      for (const id of ["members", "admin-lessons", "directors", "audit", "series-codes", "series-entitlements", "admin-materials"]) $(id).replaceChildren();
+      for (const id of ["members", "admin-lessons", "directors", "role-requests", "audit", "series-codes", "series-entitlements", "admin-materials"]) $(id).replaceChildren();
       $("lesson-form").reset();
       $("lesson-form").elements.id.value = "";
     }

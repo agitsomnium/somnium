@@ -19,7 +19,7 @@ export function accounting(db,{access,rpc,notice}) {
     $('report-list').replaceChildren();
     for(const report of rows){
       const row=text('article','',$('report-list'));row.className='report-row';
-      text('h3',report.title,row);text('p',[report.period,report.enabled?'이사 열람':'관리자 전용 · 숨김'].filter(Boolean).join(' · '),row);
+      text('h3',report.title,row);text('p',[report.period,report.enabled?'이사·간사 열람':'관리자 전용 · 숨김'].filter(Boolean).join(' · '),row);
       const button=text('button',report.filename.endsWith('.html')?'보고서 열기':'PDF 내려받기',row);button.type='button';
       button.onclick=()=>run(button,async()=>{
         const offered=await downloadReport(report,{
@@ -29,7 +29,7 @@ export function accounting(db,{access,rpc,notice}) {
         });notice(offered?(report.filename.endsWith('.html')?'보고서를 열었습니다.':'보고서 내려받기를 시작했습니다.'):'이용 상태가 바뀌어 내려받기를 중단했습니다.');
       });
       if(now.admin){
-        const toggle=text('button',report.enabled?'이사 목록에서 숨기기':'이사 목록에 표시',row);toggle.type='button';
+        const toggle=text('button',report.enabled?'이사·간사 목록에서 숨기기':'이사·간사 목록에 표시',row);toggle.type='button';
         toggle.onclick=()=>run(toggle,async()=>{await rpc('set_report',{p_id:report.id,p_enabled:!report.enabled});await load();});
       }
     }
@@ -45,7 +45,7 @@ export function accounting(db,{access,rpc,notice}) {
       if(error)throw Error('업로드하지 못했습니다. 관리자 권한과 연결 상태를 확인해 주세요.');
       const end=access();if(start.userId!==end.userId || start.epoch!==end.epoch || !end.admin)throw Error('계정 상태가 바뀌어 등록을 중단했습니다.');
       await rpc('save_report',{p_title:String(f.get('title')).trim(),p_period:String(f.get('period')||'').trim(),p_filename:file.name,p_path:path,p_enabled:f.get('published')==='on'});
-      form.reset();await load();notice(f.get('published')==='on'?'보고서를 저장했습니다. 관리자와 이사만 볼 수 있습니다.':'보고서를 임시 저장했습니다. 관리자만 볼 수 있습니다.');
+      form.reset();await load();notice(f.get('published')==='on'?'보고서를 저장했습니다. 관리자와 이사·간사만 볼 수 있습니다.':'보고서를 임시 저장했습니다. 관리자만 볼 수 있습니다.');
     });
   };
   return {load,clear};
