@@ -63,3 +63,9 @@ python3 supabase/ops/build_activity_paper.py --data /작업폴더/activity_2026.
 ```
 
 관리자는 강의실에서 보고서를 연 뒤 「내용 고치기」로 평가 문장과 채널 수치를 고쳐 「새 판으로 저장」할 수 있다. 새 판이 등록되고 이전 판은 숨김으로 남는다. 숫자·프로그램 목록·계획은 JSON을 고쳐 다시 생성한다. 틀(`activity_paper.html`)의 script·style이 바뀌면 뷰어 CSP 해시가 바뀌므로 강의실을 다시 빌드·배포한다.
+
+## 회원 탈퇴·삭제
+
+`migrations/20261121020000_member_withdrawal_and_erasure.sql`. 회원 본인은 강의실 「나의 강의실 › 회원 탈퇴」(`somnium_withdraw`)로, 운영자는 회원 목록의 「회원 삭제」(`somnium_erase_member`)로 지운다. 둘 다 같은 내부 함수로 프로필·후원 신청·이사·간사 신청과 명단 행·세미나 이용권을 지우고 감사기록의 식별 값을 가린 뒤, 해시와 건수만 삭제 장부(`erasure_ledger`)에 남긴다. 관리자·승인자 계정은 이 길로 지울 수 없다. 삭제 뒤에는 `erasure_ledger.py export` 로 장부를 백업 밖에 보관하고, 백업을 복원하면 `apply` 로 다시 지운다.
+
+격리 시험: `SOMNIUM_PG_BIN=<postgres bin> python3 supabase/tests/run_isolated.py supabase/tests/member-withdrawal.sql supabase/tests/board-staff-roles.sql supabase/tests/board-reports-isolation.sql` (루트 계정으로는 실행되지 않는다). `run_member_erasure_isolated.py` 와 `minimal-profile`·`auto_supporter`·`series-passes`·`cloud-admin-lists` 시험은 이후 마이그레이션과 맞지 않아 이 변경 전부터 실패한다.

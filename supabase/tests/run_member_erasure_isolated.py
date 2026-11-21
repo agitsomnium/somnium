@@ -13,7 +13,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-PG = Path('/opt/homebrew/opt/postgresql@17/bin')
+PG = Path(os.environ.get('SOMNIUM_PG_BIN', '/opt/homebrew/opt/postgresql@17/bin'))
 SUPABASE = Path(__file__).resolve().parents[1]
 ROLES = "create role anon;create role authenticated;"
 BOOTSTRAP = """

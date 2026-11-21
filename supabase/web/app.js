@@ -22,7 +22,7 @@ const credentials = passwordAuth(db.auth);
 let settingPassword = sessionStorage.getItem("somnium-password-pending") === "yes";
 let me = null, user = null, lessons = [], signup = false, targetEmail = "", lastSend = 0, activeLesson = "", refreshGeneration = 0, privateEpoch = 0, managedLessons = [];
 const reportUI = accounting(db, {access:()=>({userId:user?.id,epoch:privateEpoch,member:!!me && !me.suspended,canReadReports:!!me?.can_read_reports,admin:!!me?.admin}),rpc,notice});
-const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 신청 접수 · 관리자 승인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "후원 자격 종료" };
+const stateNames = { not_requested: "일반회원 · 후원 확인 전", pending: "후원 신청 접수 · 관리자 승인 대기", qualified: "후원회원 · 강의 이용 가능", held: "후원 확인 보류", withdrawn: "일반회원 · 후원 자격 종료" };
 function notice(t) {
   $("notice").textContent = t;
 }
@@ -208,6 +208,18 @@ $("password-cancel").onclick = () => run($("password-cancel"), async () => {
   if (error) throw new Error(safeError(error));
   await refresh();
 });
+$("withdraw-form").onsubmit = (e) => {
+  e.preventDefault();
+  const form = e.target;
+  run(e.submitter, async () => {
+    if (String(new FormData(form).get("confirm")).trim() !== "탈퇴") throw new Error("‘탈퇴’ 두 글자를 입력해 주세요.");
+    await rpc("withdraw", { p_confirm: "탈퇴" });
+    form.reset();
+    await db.auth.signOut({ scope: "local" });
+    await refresh();
+    notice("탈퇴가 끝났습니다. 회원 정보를 모두 지웠습니다.");
+  });
+};
 $("resend").onclick = () => run($("resend"), send);
 setInterval(() => {
   $("resend").disabled = Date.now() - lastSend < 6e4;
@@ -437,7 +449,7 @@ async function admin(generation) {
       await rpc("review_supporter", { p_user: m.id, p_state: "qualified", p_minimum_confirmed: m.supporter_state === "qualified" });
       await refresh();
     });
-    for (const [title, state] of [["후원 보류", "held"], ["후원 종료", "withdrawn"]]) action(title, actions, async () => {
+    for (const [title, state] of [["후원 보류", "held"], ["일반회원으로 내리기", "withdrawn"]]) action(title, actions, async () => {
       if (!confirm(`${m.name} · ${title} 처리할까요?`)) return;
       await rpc("review_supporter", { p_user: m.id, p_state: state, p_minimum_confirmed: false });
       await refresh();
@@ -446,6 +458,12 @@ async function admin(generation) {
       if (!confirm(`${m.name} 계정을 ${m.suspended ? "재개" : "중지"}할까요?`)) return;
       await rpc("suspend_member", { p_user: m.id, p_suspended: !m.suspended });
       await refresh();
+    });
+    if (m.id !== user.id) action("회원 삭제", actions, async () => {
+      if (prompt(`${m.name} 회원의 계정과 개인정보를 지웁니다. 되돌릴 수 없습니다.\n진행하려면 ‘삭제’를 입력해 주세요.`) !== "삭제") return;
+      await rpc("erase_member", { p_user: m.id });
+      await refresh();
+      notice(`${m.name} 회원을 삭제했습니다.`);
     });
   }
 }
@@ -586,6 +604,7 @@ async function refresh() {
     show("supporter-request", !me.suspended && !me.full_access && me.supporter_state === "not_requested");
     show("supporter-guide", !me.suspended && !me.full_access);
     $("supporter-guide").textContent = me.supporter_state === "pending" ? "후원 신청이 접수되어 운영자 승인을 기다리고 있습니다. 승인 후 상태를 새로고침해 주세요." : "한빛누리에서 월 1만 원 이상 정기후원을 신청하셨다면 ‘후원 신청했어요’를 눌러 주세요. 운영자가 확인·승인하면 강의실이 열립니다.";
+    show("withdraw-box", !me.admin);
     renderRoleRequest();
     await reportUI.load();
     if (generation !== refreshGeneration) return;

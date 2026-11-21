@@ -1,3 +1,4 @@
+-- SUPERSEDED 2026-11-21 by migrations/20261121020000_member_withdrawal_and_erasure.sql. Kept for history; do not apply.
 -- DRAFT · NOT APPLIED to any database. Isolated PostgreSQL review only.
 -- Problem found on the hosted test project (2026-11-02): deleting an auth user fails with HTTP 500 as soon as the member has an
 -- audit row (audit.actor -> auth.users has no ON DELETE action), and series_entitlements.user_id blocks it as well.
